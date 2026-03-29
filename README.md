@@ -1,4 +1,4 @@
-# 2026W2-GarticHands
+# 2026W2-GarticHands hello
 ## Group members + email
 Forrest Huang, fhua0018@student.monash.edu, forrestdesu12</br> 
 Jayavi Meemaduma, jmee0005@student.monash.edu, jayavi999</br>
