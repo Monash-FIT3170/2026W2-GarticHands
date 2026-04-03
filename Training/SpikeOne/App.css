@@ -2,10 +2,9 @@
   font-family: sans-serif;
   max-width: 600px;
   margin: 2rem auto;
-  padding: 2rem;
+  padding: 0 1rem;
 }
 
-/* Widget 1: Counter Styles - No shared classes used */
 .counter-widget {
   border: 2px solid #333;
   padding: 20px;
@@ -19,7 +18,6 @@
   cursor: pointer;
 }
 
-/* Widget 2: Text Display Styles */
 .display-widget {
   border: 2px solid #007bff;
   padding: 20px;
@@ -33,7 +31,6 @@
   font-style: italic;
 }
 
-/* Widget 3: Form Input Styles */
 .input-widget {
   border: 2px solid #28a745;
   padding: 20px;
