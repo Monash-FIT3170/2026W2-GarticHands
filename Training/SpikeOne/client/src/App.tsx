@@ -6,41 +6,45 @@ function App() {
   const [text, setText] = useState('')
 
   return (
-    <div className="app-container">
-      <h1>Phase 1: Widget Layout</h1>
+    <div className="max-w-xl mx-auto mt-8 px-4">
+      <h1 className="text-3xl font-bold mb-6">Phase 1: Widget Layout</h1>
 
-      <Card>
-        <section className="counter-widget">
-          <h2>Interactive Counter</h2>
-          <p>Current Count: {count}</p>
-          <div className="counter-controls">
-            <button onClick={() => setCount(count + 1)}>Increment</button>
-            <button onClick={() => setCount(count - 1)}>Decrement</button>
-          </div>
-        </section>
+      {/* Widget 1: Counter */}
+      <Card className="border-gray-800">
+        <h2 className="text-xl font-semibold mb-2">Interactive Counter</h2>
+        <p className="mb-3">Current Count: {count}</p>
+        <div className="flex gap-2">
+          <button
+            className="px-4 py-2 bg-gray-800 text-white rounded hover:bg-gray-700"
+            onClick={() => setCount(count + 1)}
+          >Increment</button>
+          <button
+            className="px-4 py-2 bg-gray-800 text-white rounded hover:bg-gray-700"
+            onClick={() => setCount(count - 1)}
+          >Decrement</button>
+        </div>
       </Card>
 
-      <Card>
-        <section className="display-widget">
-          <h2>Static Information</h2>
-          <p className="display-text">
-            This widget displays static content. It is styled independently to
-            demonstrate the layout structure of Phase 1.
-          </p>
-        </section>
+      {/* Widget 2: Static Info */}
+      <Card className="border-blue-500 bg-blue-50">
+        <h2 className="text-xl font-semibold mb-2">Static Information</h2>
+        <p className="text-gray-500 italic">
+          This widget displays static content. It is styled independently to
+          demonstrate the layout structure of Phase 1.
+        </p>
       </Card>
 
-      <Card>
-        <section className="input-widget">
-          <h2>Live Input Preview</h2>
-          <input
-            type="text"
-            placeholder="Type something..."
-            value={text}
-            onChange={(e) => setText(e.target.value)}
-          />
-          <p>Preview: <span className="input-preview">{text}</span></p>
-        </section>
+      {/* Widget 3: Input */}
+      <Card className="border-green-500">
+        <h2 className="text-xl font-semibold mb-2">Live Input Preview</h2>
+        <input
+          type="text"
+          placeholder="Type something..."
+          value={text}
+          onChange={(e) => setText(e.target.value)}
+          className="w-full border rounded px-3 py-2 mb-2 focus:outline-none focus:ring-2 focus:ring-green-400"
+        />
+        <p>Preview: <span className="font-bold text-green-600">{text}</span></p>
       </Card>
     </div>
   )
