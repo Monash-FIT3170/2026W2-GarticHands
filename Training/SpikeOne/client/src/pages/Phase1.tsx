@@ -1,9 +1,18 @@
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import Card from '../components/Card'
+import LoadingSpinner from '../components/LoadingSpinner'
 
 export default function Phase1() {
+  const [loading, setLoading] = useState(true)
   const [count, setCount] = useState(0)
   const [text, setText] = useState('')
+
+  useEffect(() => {
+    const timer = setTimeout(() => setLoading(false), 1500)
+    return () => clearTimeout(timer)
+  }, [])
+
+  if (loading) return <LoadingSpinner />
 
   return (
     <div>
