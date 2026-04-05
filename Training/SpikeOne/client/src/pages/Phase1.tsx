@@ -1,6 +1,8 @@
 import { useState } from 'react'
 import Card from '../components/Card'
 import LoadingSpinner from '../components/LoadingSpinner'
+import SubmitWidget from '../components/SubmitWidget'
+import RecentSubmissions from '../components/RecentSubmissions'
 import useMessage from '../hooks/useMessage'
 
 export default function Phase1() {
@@ -14,13 +16,8 @@ export default function Phase1() {
     <div>
       <h1 className="text-3xl font-bold mb-6">Phase 1: Widget Layout</h1>
 
-      {error && (
-        <p className="text-red-500 mb-4">{error}</p>
-      )}
-
-      {message && (
-        <p className="text-gray-600 italic mb-6">Server says: "{message}"</p>
-      )}
+      {error && <p className="text-red-500 mb-4">{error}</p>}
+      {message && <p className="text-gray-600 italic mb-6">Server says: "{message}"</p>}
 
       <Card className="border-gray-800">
         <h2 className="text-xl font-semibold mb-2">Interactive Counter</h2>
@@ -56,6 +53,9 @@ export default function Phase1() {
         />
         <p>Preview: <span className="font-bold text-green-600">{text}</span></p>
       </Card>
+
+      <SubmitWidget />
+      <RecentSubmissions />
     </div>
   )
 }
