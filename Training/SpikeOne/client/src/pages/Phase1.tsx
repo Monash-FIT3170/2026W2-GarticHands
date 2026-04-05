@@ -1,22 +1,26 @@
-import { useState, useEffect } from 'react'
+import { useState } from 'react'
 import Card from '../components/Card'
 import LoadingSpinner from '../components/LoadingSpinner'
+import useMessage from '../hooks/useMessage'
 
 export default function Phase1() {
-  const [loading, setLoading] = useState(true)
   const [count, setCount] = useState(0)
   const [text, setText] = useState('')
-
-  useEffect(() => {
-    const timer = setTimeout(() => setLoading(false), 1500)
-    return () => clearTimeout(timer)
-  }, [])
+  const { message, loading, error } = useMessage()
 
   if (loading) return <LoadingSpinner />
 
   return (
     <div>
       <h1 className="text-3xl font-bold mb-6">Phase 1: Widget Layout</h1>
+
+      {error && (
+        <p className="text-red-500 mb-4">{error}</p>
+      )}
+
+      {message && (
+        <p className="text-gray-600 italic mb-6">Server says: "{message}"</p>
+      )}
 
       <Card className="border-gray-800">
         <h2 className="text-xl font-semibold mb-2">Interactive Counter</h2>
