@@ -10,9 +10,9 @@ function App() {
   return (
     <div className="app-container">
 
-      {/* Counter */}
+      {/* Counter Widget */}
       <Card>
-        <div className="counter-widget">
+        <div className="widget">
           <h2>Counter</h2>
           <p>{count}</p>
           <button onClick={() => setCount(count + 1)}>Increase</button>
@@ -20,9 +20,9 @@ function App() {
         </div>
       </Card>
 
-      {/* Text Display */}
+      {/* Text Display Widget */}
       <Card>
-        <div className="text-widget">
+        <div className="widget">
           <h2>Text Display</h2>
           <p>{text}</p>
           <button onClick={() => setText("You clicked the button!")}>
@@ -31,9 +31,9 @@ function App() {
         </div>
       </Card>
 
-      {/* Form Input */}
+      {/* Form Input Widget */}
       <Card>
-        <div className="form-widget">
+        <div className="widget">
           <h2>Form Input</h2>
           <form
             onSubmit={(e) => {
