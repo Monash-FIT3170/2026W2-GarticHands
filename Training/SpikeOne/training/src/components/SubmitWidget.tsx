@@ -1,31 +1,17 @@
 import { useState } from 'react'
+import { useSubmissionsStore } from '../stores/submissionsStore'
 
 export default function SubmitWidget() {
   const [value, setValue] = useState('')
-  const [status, setStatus] = useState<'idle' | 'submitting' | 'success' | 'error'>(
-    'idle',
-  )
+  const status = useSubmissionsStore((s) => s.status)
+  const submitToServer = useSubmissionsStore((s) => s.submitToServer)
 
   async function onSubmit(e: React.FormEvent) {
     e.preventDefault()
-    setStatus('submitting')
-
-    try {
-      const res = await fetch('http://localhost:4000/api/submissions', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ submission: value }),
-      })
-
-      if (!res.ok) throw new Error(`Request failed: ${res.status}`)
-
-      setValue('')
-      setStatus('success')
-      window.setTimeout(() => setStatus('idle'), 1200)
-    } catch (err) {
-      console.error('Submit failed', err)
-      setStatus('error')
-    }
+    const submission = value.trim()
+    if (submission.length === 0) return
+    await submitToServer(submission)
+    setValue('')
   }
 
   return (
