@@ -1,6 +1,8 @@
 import { useEffect, useState } from 'react'
 import Card from '../components/Card'
 import LoadingScreen from '../components/LoadingScreen'
+import RecentSubmissions from '../components/RecentSubmissions'
+import SubmitWidget from '../components/SubmitWidget'
 
 export default function Phase1Page() {
   const [loading, setLoading] = useState(true)
@@ -117,6 +119,14 @@ export default function Phase1Page() {
             </button>
           </form>
         </div>
+      </Card>
+
+      <Card>
+        <SubmitWidget />
+      </Card>
+
+      <Card>
+        <RecentSubmissions />
       </Card>
     </div>
   )
