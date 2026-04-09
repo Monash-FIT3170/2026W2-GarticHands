@@ -2,11 +2,17 @@ import { create } from 'zustand'
 
 type SubmitStatus = 'idle' | 'submitting' | 'success' | 'error'
 
+export type SubmissionDoc = {
+  _id: string
+  content: string
+  createdAt: string
+}
+
 type SubmissionsState = {
-  recent: string[]
+  recent: SubmissionDoc[]
   status: SubmitStatus
   error: string | null
-  addLocalSubmission: (submission: string) => void
+  fetchSubmissions: () => Promise<void>
   submitToServer: (submission: string) => Promise<void>
 }
 
@@ -15,8 +21,17 @@ export const useSubmissionsStore = create<SubmissionsState>((set) => ({
   status: 'idle',
   error: null,
 
-  addLocalSubmission: (submission) =>
-    set((s) => ({ recent: [submission, ...s.recent].slice(0, 10) })),
+  fetchSubmissions: async () => {
+    try {
+      const res = await fetch('http://localhost:4000/api/submissions')
+      if (!res.ok) throw new Error(`Request failed: ${res.status}`)
+      const data = (await res.json()) as SubmissionDoc[]
+      set({ recent: data.slice(0, 25), error: null })
+    } catch (err) {
+      console.error('Fetch submissions failed', err)
+      set({ error: 'Failed to load submissions' })
+    }
+  },
 
   submitToServer: async (submission) => {
     set({ status: 'submitting', error: null })
@@ -28,9 +43,10 @@ export const useSubmissionsStore = create<SubmissionsState>((set) => ({
       })
 
       if (!res.ok) throw new Error(`Request failed: ${res.status}`)
+      const created = (await res.json()) as SubmissionDoc
 
       set((s) => ({
-        recent: [submission, ...s.recent].slice(0, 10),
+        recent: [created, ...s.recent].slice(0, 25),
         status: 'success',
       }))
 
