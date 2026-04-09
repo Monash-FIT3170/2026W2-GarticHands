@@ -3,6 +3,7 @@ import Phase1Page from './pages/Phase1Page'
 import Phase2Page from './pages/Phase2Page'
 import Phase3Page from './pages/Phase3Page'
 import Phase4Page from './pages/Phase4Page'
+import Phase13Page from './pages/Phase13Page'
 
 function App() {
   return (
@@ -21,6 +22,9 @@ function App() {
           <Link className="text-blue-600 hover:underline" to="/phase-4">
             Phase 4
           </Link>
+          <Link className="text-blue-600 hover:underline" to="/phase-13">
+            Phase 13
+          </Link>
         </nav>
 
         <Routes>
@@ -28,6 +32,7 @@ function App() {
           <Route path="/phase-2" element={<Phase2Page />} />
           <Route path="/phase-3" element={<Phase3Page />} />
           <Route path="/phase-4" element={<Phase4Page />} />
+          <Route path="/phase-13" element={<Phase13Page />} />
           <Route path="*" element={<Phase1Page />} />
         </Routes>
       </div>

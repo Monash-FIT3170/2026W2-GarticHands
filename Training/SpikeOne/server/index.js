@@ -3,6 +3,7 @@ import cors from 'cors'
 import mongoose from 'mongoose'
 import messageRouter from './routes/message.js'
 import submissionsRouter from './routes/submissions.js'
+import statsRouter from './routes/stats.js'
 
 const app = express()
 const PORT = process.env.PORT || 4000
@@ -21,6 +22,7 @@ app.use(express.json())
 
 app.use('/api/message', messageRouter)
 app.use('/api/submissions', submissionsRouter)
+app.use('/api/stats', statsRouter)
 
 export async function connectMongo() {
   try {
