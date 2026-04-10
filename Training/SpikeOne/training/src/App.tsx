@@ -6,23 +6,23 @@ function App() {
   const [text, setText] = useState('')
 
   return (
-    <div className='Phase1-Code'>
-      <h1>Phase 1, get something on screen</h1>
+    <div className='text-[18px] p-5 my-8 mx-auto font-sans grid gap-[30px] justify-items-center'>
+      <h1 className='text-3xl font-bold'>Phase 1, get something on screen</h1>
 
       {/* Widget 1*/}
       <Card>
-        <section className='Counter-Widget'>
-          <h2>Interactive counter widget</h2>
-          <p>Count: {count}</p>
-          <div>
+        <section>
+          <h2 className='text-xl font-semibold mb-3'>Interactive counter widget</h2>
+          <p className='mb-3'>Count: {count}</p>
+          <div className='flex gap-2'>
             <button 
-            className='Increase'
+            className='text-black bg-green-300 cursor-pointer px-2 py-1 rounded'
             onClick={() => setCount((count) => count + 1)}
             >
             Increase    
             </button>
             <button 
-            className='Decrease'
+            className='text-black bg-red-500 cursor-pointer px-2 py-1 rounded'
             onClick={() => setCount((count) => count - 1)}
             >
             Decrease    
@@ -33,9 +33,9 @@ function App() {
 
       {/* Widget 2*/}
       <Card>
-        <section className='Text-Display'>
-          <h2>Display for text</h2>
-          <p className='text-data'>
+        <section>
+          <h2 className='text-xl font-semibold mb-3'>Display for text</h2>
+          <p className='text-xs'>
             The purpose of this widget is to display text.
             Idk what else to put here, We can finally be Bees. 
           </p>
@@ -44,19 +44,22 @@ function App() {
 
       {/* Widget 3*/}
       <Card>
-        <section className='Form-Input'>
-          <h2>Form for inputting information</h2>
+        <section>
+          <h2 className='text-xl font-semibold mb-3'>Form for inputting information</h2>
           <form 
           onSubmit={(data) => {data.preventDefault();
             alert("You really said that, okay then: " + text)
           }}
           >
-            <input type="text"
+            <input 
+            className='border border-gray-400 rounded px-3 py-2'
+            type="text"
             value={text}
             onChange={(data) => setText(data.target.value)}
             placeholder='Say something'
             />
-            <button className='submit-Button' 
+            <button 
+            className='cursor-pointer bg-cyan-400 text-black px-3 py-2 rounded' 
             type='submit'>Show us what you said</button>
           
           </form>
