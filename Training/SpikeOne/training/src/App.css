@@ -8,15 +8,6 @@
   justify-items: center;
 }
 
-/* Widget 1 */
-.Counter-Widget {
-  margin: 20px;
-  border: 2px solid grey;
-  border-radius: 10px;
-  width: 300px;
-  align-items: center;
-}
-
 .Increase {
   color: black;
   background-color: lightgreen;
@@ -31,25 +22,8 @@
   padding: 4px 8px;
 }
 
-/* Widget 2 */
-.Text-Display {
-  margin: 20px;
-  border: 2px solid grey;
-  border-radius: 10px;
-  width: 300px;
-}
-
 .text-data {
   font-size: 12px;
-}
-
-/* Widget 3 */
-.Form-Input {
-  margin: 20px;
-  border: 2px solid grey;
-  border-radius: 10px;
-  width: 300px;
-
 }
 
 .submit-Button {
