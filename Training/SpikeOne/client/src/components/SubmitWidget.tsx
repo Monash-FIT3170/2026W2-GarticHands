@@ -1,9 +1,11 @@
 import { useState } from 'react'
 import Card from './Card'
+import { useSubmissionsStore } from '../store/submissionsStore'
 
 export default function SubmitWidget() {
   const [input, setInput] = useState('')
   const [status, setStatus] = useState('')
+  const addSubmission = useSubmissionsStore((state) => state.addSubmission)
 
   const handleSubmit = async () => {
     if (!input.trim()) return
@@ -16,6 +18,7 @@ export default function SubmitWidget() {
       })
       const data = await res.json()
       if (data.success) {
+        addSubmission(input)
         setStatus('Submitted!')
         setInput('')
       }
