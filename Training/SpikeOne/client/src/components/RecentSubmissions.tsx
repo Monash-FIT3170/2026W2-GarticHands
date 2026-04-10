@@ -1,8 +1,20 @@
+import { useEffect } from 'react'
 import Card from './Card'
 import { useSubmissionsStore } from '../store/submissionsStore'
 
 export default function RecentSubmissions() {
   const submissions = useSubmissionsStore((state) => state.submissions)
+  const setSubmissions = useSubmissionsStore((state) => state.setSubmissions)
+
+  useEffect(() => {
+    fetch('http://localhost:3000/api/submissions')
+      .then(res => res.json())
+      .then(data => setSubmissions(data.map((s: any) => ({
+        id: s._id,
+        text: s.content
+      }))))
+      .catch(console.error)
+  }, [])
 
   return (
     <Card className="border-orange-400">
