@@ -7,7 +7,6 @@
 
 .counter-widget {
   display: inline-flex;
-  border: 2px solid var(--border);
   margin-top: 32px;
   flex-direction: column;
   align-items: center;
@@ -29,7 +28,6 @@
 
 .display-section {
   margin-top: 32px;
-  border: 2px solid var(--border);
   padding: auto;
 }
 
@@ -43,7 +41,6 @@
 
 .input-widget {
   display: inline-flex;
-  border: 2px solid var(--border);
   margin-top: 32px;
   flex-direction: column;
   align-items: center;
