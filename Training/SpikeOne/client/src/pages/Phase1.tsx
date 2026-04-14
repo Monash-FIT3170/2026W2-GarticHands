@@ -4,6 +4,7 @@ import LoadingSpinner from '../components/LoadingSpinner'
 import SubmitWidget from '../components/SubmitWidget'
 import RecentSubmissions from '../components/RecentSubmissions'
 import useMessage from '../hooks/useMessage'
+import SubmissionsChart from '../components/SubmissionsChart'
 
 export default function Phase1() {
   const [count, setCount] = useState(0)
@@ -56,6 +57,7 @@ export default function Phase1() {
 
       <SubmitWidget />
       <RecentSubmissions />
+      <SubmissionsChart />
     </div>
   )
 }

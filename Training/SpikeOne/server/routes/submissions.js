@@ -24,4 +24,29 @@ router.get('/', async (req, res) => {
   }
 })
 
+router.get('/stats', async (req, res) => {
+  try {
+    const stats = await Submission.aggregate([
+      {
+        $group: {
+          _id: {
+            $dateToString: { format: '%Y-%m-%d', date: '$createdAt' }
+          },
+          count: { $sum: 1 }
+        }
+      },
+      { $sort: { _id: 1 } }
+    ])
+
+    res.json({
+      submissions_per_day: stats.map(s => ({
+        date: s._id,
+        count: s.count
+      }))
+    })
+  } catch (err) {
+    res.status(500).json({ error: 'Failed to fetch stats' })
+  }
+})
+
 export default router
