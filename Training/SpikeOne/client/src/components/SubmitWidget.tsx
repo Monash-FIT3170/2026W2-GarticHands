@@ -6,6 +6,7 @@ export default function SubmitWidget() {
   const [input, setInput] = useState('')
   const [status, setStatus] = useState('')
   const addSubmission = useSubmissionsStore((state) => state.addSubmission)
+  const setSubmissions = useSubmissionsStore((state) => state.setSubmissions)
 
   const handleSubmit = async () => {
     if (!input.trim()) return
@@ -21,6 +22,14 @@ export default function SubmitWidget() {
         addSubmission(input)
         setStatus('Submitted!')
         setInput('')
+
+        // immediately refresh from DB to stay in sync
+        const updated = await fetch('http://localhost:3000/api/submissions')
+        const updatedData = await updated.json()
+        setSubmissions(updatedData.map((s: any) => ({
+          id: s._id,
+          text: s.content
+        })))
       }
     } catch {
       setStatus('Failed to submit.')
