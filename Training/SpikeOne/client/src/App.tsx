@@ -1,46 +1,22 @@
-import { useState } from 'react'
-import './App.css'
+import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom'
+import Nav from './components/Nav'
+import Phase1 from './pages/Phase1'
+import Placeholder from './pages/Placeholder'
 
-function App() {
-  const [count, setCount] = useState(0)
-  const [text, setText] = useState('')
-
+export default function App() {
   return (
-    <div className="app-container">
-      <h1>Phase 1: Widget Layout</h1>
-
-      {/* Widget 1: Counter */}
-      <section className="counter-widget">
-        <h2>Interactive Counter</h2>
-        <p>Current Count: {count}</p>
-        <div className="counter-controls">
-          <button onClick={() => setCount(count + 1)}>Increment</button>
-          <button onClick={() => setCount(count - 1)}>Decrement</button>
-        </div>
-      </section>
-
-      {/* Widget 2: Text Display */}
-      <section className="display-widget">
-        <h2>Static Information</h2>
-        <p className="display-text">
-          This widget displays static content. It is styled independently to
-          demonstrate the layout structure of Phase 1.
-        </p>
-      </section>
-
-      {/* Widget 3: Form Input */}
-      <section className="input-widget">
-        <h2>Live Input Preview</h2>
-        <input
-          type="text"
-          placeholder="Type something..."
-          value={text}
-          onChange={(e) => setText(e.target.value)}
-        />
-        <p>Preview: <span className="input-preview">{text}</span></p>
-      </section>
-    </div>
+    <BrowserRouter>
+      <div className="max-w-xl mx-auto px-4 mt-8">
+        <Nav />
+        <Routes>
+          <Route path="/" element={<Navigate to="/phase-1" replace />} />
+          <Route path="/phase-1" element={<Phase1 />} />
+          <Route path="/phase-2" element={<Placeholder phase="Phase 2" />} />
+          <Route path="/phase-3" element={<Placeholder phase="Phase 3" />} />
+          <Route path="/phase-4" element={<Placeholder phase="Phase 4" />} />
+          <Route path="/phase-5" element={<Placeholder phase="Phase 5" />} />
+        </Routes>
+      </div>
+    </BrowserRouter>
   )
 }
-
-export default App
