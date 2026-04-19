@@ -1,31 +1,34 @@
-import { useState } from "react";
-import Card from "../components/Card";
+import { useState } from 'react'
+import Card from '../components/Card'
+import useSubmissionStore from '../store/useSubmissionStore'
 
 function SubmitPage() {
-  const [content, setContent] = useState("");
-  const [status, setStatus] = useState("");
+  const [content, setContent] = useState('')
+  const [status, setStatus] = useState('')
+  const addSubmission = useSubmissionStore((state) => state.addSubmission)
 
   const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
-
-    if (!content.trim()) return;
+    e.preventDefault()
+    if (!content.trim()) return
 
     try {
-      const res = await fetch("http://localhost:3001/api/submissions", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
+      const res = await fetch('http://localhost:3001/api/submissions', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ content })
-      });
+      })
 
       if (res.ok) {
-        setStatus("Submitted!");
-        setContent("");
-        setTimeout(() => setStatus(""), 2000);
+        const submission = await res.json()
+        addSubmission(submission)   // Write to global store
+        setStatus('Submitted!')
+        setContent('')
+        setTimeout(() => setStatus(''), 2000)
       }
     } catch (err) {
-      setStatus("Failed to submit");
+      setStatus('Failed to submit')
     }
-  };
+  }
 
   return (
     <Card>
