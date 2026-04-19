@@ -28,7 +28,6 @@ export default function PhaseLoadingWrapper({ children }: { children: React.Reac
         <Skeleton height={32} width="40%" />
         <Skeleton count={4} style={{ marginTop: '0.75rem' }} />
         {message && <p className="mb-2 text-gray-600 italic">{message}</p>}
-        {children}
       </div>
     );
   }
