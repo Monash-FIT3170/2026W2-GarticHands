@@ -1,6 +1,7 @@
 import { create } from 'zustand'
 
 interface Submission {
+  _id: string
   id: string
   content: string
   createdAt: string
