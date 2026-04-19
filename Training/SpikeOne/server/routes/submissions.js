@@ -1,31 +1,32 @@
 const express = require('express')
 const router = express.Router()
+const Submission = require('../models/Submission')
 
-// Temporary in-memory store (replaced by database in Phase 10)
-let submissions = []
-
-// GET all submissions
-router.get('/', (req, res) => {
-  res.json(submissions)
+// GET all submissions, newest first
+router.get('/', async (req, res) => {
+  try {
+    const submissions = await Submission.find().sort({ createdAt: -1 })
+    res.json(submissions)
+  } catch (err) {
+    res.status(500).json({ error: 'Failed to fetch submissions' })
+  }
 })
 
 // POST a new submission
-router.post('/', (req, res) => {
-  const { content } = req.body
+router.post('/', async (req, res) => {
+  try {
+    const { content } = req.body
 
-  if (!content) {
-    return res.status(400).json({ error: 'Content is required' })
+    if (!content) {
+      return res.status(400).json({ error: 'Content is required' })
+    }
+
+    const submission = await Submission.create({ content })
+    res.status(201).json(submission)
+  } catch (err) {
+    res.status(500).json({ error: 'Failed to create submission' })
   }
-
-  const submission = {
-    id: Date.now().toString(),
-    content,
-    createdAt: new Date().toISOString()
-  }
-
-  submissions.push(submission)
-  console.log('New submission:', submission)
-  res.status(201).json(submission)
 })
+
 
 module.exports = router
