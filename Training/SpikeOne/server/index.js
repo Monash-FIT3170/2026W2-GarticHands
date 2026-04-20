@@ -18,6 +18,7 @@ mongoose.connect(process.env.MONGODB_URI)
 // Routes
 app.use('/api/message', require('./routes/message'))
 app.use('/api/submissions', require('./routes/submissions'))
+app.use('/api/stats', require('./routes/stats'))
 
 app.listen(PORT, () => {
   console.log(`Server running on http://localhost:${PORT}`)
