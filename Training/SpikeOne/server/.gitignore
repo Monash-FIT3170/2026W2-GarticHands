@@ -1,0 +1,4 @@
+node_modules
+.mongodb-memory-server
+*.log
+
