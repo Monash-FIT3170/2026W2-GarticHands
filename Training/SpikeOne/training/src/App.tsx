@@ -1,50 +1,26 @@
-import { useState } from "react";
-import Card from "./components/Card";
+import {Route, Routes, Link, Navigate, BrowserRouter} from "react-router-dom";
+import Phase01 from "./pages/Phase01";
+import Phase02 from "./pages/Phase02";
+import Phase03 from "./pages/Phase03";
+import Phase04 from "./pages/Phase04";
 
-function App() {
-  const [count, setCount] = useState(0);
-  const [formValue, setFormValue] = useState("");
-
+export default function App() {
   return (
-    <div className="text-center p-4 mx-auto max-w-2xl font-sans justify-items-center bg-emerald-200">
-      {/* counter widget */}
-      <Card>
-        <section className="border-2 border-blue-500 mx-auto rounded-lg p-4 justify-items-center flex-gap-4">
-          <h1 className="text-4xl font-bold text-blue-700">Counter</h1>
-          <button
-            className="bg-lime-500 cursor-pointer"
-            onClick={() => setCount((count) => count + 1)}
-          >
-            Count is {count}
-          </button>
-        </section>
-      </Card>
-      {/* text display section */}
-      <Card>
-        <section className="border-2 border-blue-500 mx-auto rounded-lg p-4 justify-items-center flex-gap-4">
-          <h1 className="text-4xl font-bold text-blue-700">Display Section</h1>
-          <p className="display-text">This is a simple text display section.</p>
-        </section>
-      </Card>
-      {/* form input widget */}
-      <section className="border-2 border-blue-500 mx-auto rounded-lg p-4 justify-items-center flex-gap-4">
-        <h1 className="text-4xl font-bold text-blue-700">Input Widget</h1>
-        <input
-          className="border-2 border-b-cyan-600"
-          type="text"
-          value={formValue}
-          onChange={(e) => setFormValue(e.target.value)}
-          placeholder="Enter some text..."
-        />
-        <button
-          className="bg-cyan-500 border-b-fuchsia-600 cursor-pointer"
-          onClick={() => console.log(formValue)}
-        >
-          Submit
-        </button>
-      </section>
-    </div>
-  );
+    <BrowserRouter>
+      <nav className="flex gap-4 p-4 border-b border-gray-300">
+        <Link to="/phase01" className="border border-b-black px-4 py-2">Phase 01</Link>
+        <Link to="/phase02" className="border border-b-black px-4 py-2">Phase 02</Link>
+        <Link to="/phase03" className="border border-b-black px-4 py-2">Phase 03</Link>
+        <Link to="/phase04" className="border border-b-black px-4 py-2">Phase 04</Link>
+      </nav>
+      <Routes>
+        <Route path="/" element={<Navigate to="/phase01" replace/>} />
+        <Route path="/phase01" element={<Phase01 />} />
+        <Route path="/phase02" element={<Phase02 />} />
+        <Route path="/phase03" element={<Phase03 />} />
+        <Route path="/phase04" element={<Phase04 />} />
+      </Routes>
+    </BrowserRouter>
+  )
 }
 
-export default App;
