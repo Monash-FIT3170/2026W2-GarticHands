@@ -1,10 +1,68 @@
-import { useState } from 'react'
+import { useEffect, useState } from 'react'
+import Skeleton from 'react-loading-skeleton'
 import Card from '../components/Card'
 
 export default function Phase4() {
     const [count, setCount] = useState(0)
     const [text, setText] = useState('')
+    const [loading, setLoading] = useState(true)
 
+    useEffect(() => {
+    const timer = setTimeout(() => setLoading(false), 5000)
+    return () => clearTimeout(timer)
+    }, [])
+
+    if (loading) {
+    return(
+        <div className='text-[18px] p-5 my-8 mx-auto font-sans grid gap-[30px] justify-items-center'>
+        <h1 className='text-3xl font-bold'>
+          <Skeleton width={260} />
+        </h1>
+
+        {/* Widget 1 */}
+        <Card>
+          <section>
+            <h2 className='text-xl font-semibold mb-3'>
+              <Skeleton width={200} />
+            </h2>
+            <p className='mb-3'>
+              <Skeleton width={80} />
+            </p>
+            <div className='flex gap-2'>
+              <Skeleton width={80} height={32} />
+              <Skeleton width={80} height={32} />
+            </div>
+          </section>
+        </Card>
+
+        {/* Widget 2 */}
+        <Card>
+          <section>
+            <h2 className='text-xl font-semibold mb-3'>
+              <Skeleton width={130} />
+            </h2>
+            <p className='text-xs'>
+              <Skeleton count={3} />
+            </p>
+          </section>
+        </Card>
+
+        {/* Widget 3 */}
+        <Card>
+          <section>
+            <h2 className='text-xl font-semibold mb-3'>
+              <Skeleton width={220} />
+            </h2>
+            <div className='flex flex-col gap-2'>
+              <Skeleton height={40} />
+              <Skeleton width={180} height={40} />
+            </div>
+          </section>
+        </Card>
+      </div>
+      )
+    }
+    
     return (
         <div className='text-[18px] p-5 my-8 mx-auto font-sans grid gap-[30px] justify-items-center'>
       <h1 className='text-3xl font-bold'>Phase 4: Add Tailwind</h1>

@@ -1,11 +1,69 @@
-import { useState } from 'react'
+import { useEffect, useState } from 'react'
+import Skeleton from 'react-loading-skeleton'
 import CardWithCss from '../components/CardWithCSS'
 import './Phase2.css'
 
 export default function Phase2() {
   const [count, setCount] = useState(0)
   const [text, setText] = useState('')
+  const [loading, setLoading] = useState(true)
 
+  useEffect(() => {
+    const timer = setTimeout(() => setLoading(false), 5000)
+    return () => clearTimeout(timer)
+  }, [])
+
+  if (loading) {
+    return(
+      <div className='Phase2-Code'>
+        <h1>
+          <Skeleton width={300} />
+        </h1>
+
+        <CardWithCss>
+          <section className='Counter-Widget2'>
+            <h2>
+              <Skeleton width={200} />
+            </h2>
+            <p>
+              <Skeleton width={80} />
+            </p>
+            <div>
+              <Skeleton width={80} height={28} inline />
+              <span style={{ marginLeft: '8px' }} />
+              <Skeleton width={80} height={28} inline />
+            </div>
+          </section>
+        </CardWithCss>
+
+        <CardWithCss>
+          <section className='Text-Display2'>
+            <h2>
+              <Skeleton width={130} />
+            </h2>
+            <p className='text-data2'>
+              <Skeleton count={3} />
+            </p>
+          </section>
+        </CardWithCss>
+
+        <CardWithCss>
+          <section className='Form-Input2'>
+            <h2>
+              <Skeleton width={220} />
+            </h2>
+            <div>
+              <Skeleton height={30} />
+            </div>
+            <div style={{ marginTop: '10px' }}>
+              <Skeleton width={170} height={30} />
+            </div>
+          </section>
+        </CardWithCss>
+      </div>
+    )
+  }
+  
   return (
     <div className='Phase2-Code'>
       <h1>Phase 2: Refactor Towards Usability</h1>
