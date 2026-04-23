@@ -1,8 +1,11 @@
 import { useState } from 'react'
+import useSubmissionStore from '../store/useSubmissionStore'
 
 export default function SubmitWidget() {
   const [input, setInput] = useState('')
   const [status, setStatus] = useState('')
+
+  const addSubmission = useSubmissionStore((state) => state.addSubmission)
 
   const handleSubmit = async (event: React.FormEvent<HTMLFormElement>) => {
     event.preventDefault()
@@ -21,6 +24,8 @@ export default function SubmitWidget() {
       }
 
       const data = await response.json()
+
+      addSubmission(data.submittedText)
       setStatus(`Submitted: ${data.submittedText}`)
       setInput('')
     } catch {

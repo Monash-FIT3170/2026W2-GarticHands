@@ -3,7 +3,7 @@ import Phase1 from './Pages/Phase1'
 import Phase2 from './Pages/Phase2'
 import Phase3 from './Pages/Phase3'
 import Phase4 from './Pages/Phase4'
-import Phase8 from './Pages/Phase8'
+import Phase9 from './Pages/Phase9'
 import 'react-loading-skeleton/dist/skeleton.css'
 
 export default function App() {
@@ -11,7 +11,7 @@ export default function App() {
   return (
     <BrowserRouter>
       <div className='min-h-screen p-6'>
-        <h1 className='text-3xl font-bold mb-6'>Phase 8: Posting data to the backend</h1>
+        <h1 className='text-3xl font-bold mb-6'>Phase 9:  State Management with Zustand</h1>
         <nav className='flex gap-3 mb-8'>
           <Link to='/Phase-1' className='border px-4 py-2 rounded'>
             Phase 1
@@ -25,8 +25,8 @@ export default function App() {
           <Link to='/Phase-4' className='border px-4 py-2 rounded'>
             Phase 4
           </Link>
-          <Link to='/Phase-8' className='border px-4 py-2 rounded'>
-            Phase 8
+          <Link to='/Phase-9' className='border px-4 py-2 rounded'>
+            Phase 9
           </Link>
         </nav>
 
@@ -36,7 +36,7 @@ export default function App() {
           <Route path='/Phase-2' element={<Phase2 />}/>
           <Route path='/Phase-3' element={<Phase3 />}/>
           <Route path='/Phase-4' element={<Phase4 />}/>
-          <Route path='/Phase-8' element={<Phase8 />}/>
+          <Route path='/Phase-9' element={<Phase9 />}/>
         </Routes>
       </div>
     </BrowserRouter>

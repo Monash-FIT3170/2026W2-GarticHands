@@ -5,7 +5,7 @@ import useBackendMessage from '../hooks/useBackendMessage'
 import SubmitWidget from '../components/submitWidget'
 import RecentSubmissions from '../components/recentSubmissions'
 
-export default function Phase4() {
+export default function Phase9() {
     const [count, setCount] = useState(0)
     const [text, setText] = useState('')
     const [loading, setLoading] = useState(true)
@@ -70,7 +70,7 @@ export default function Phase4() {
     
     return (
         <div className='text-[18px] p-5 my-8 mx-auto font-sans grid gap-[30px] justify-items-center'>
-      <h1 className='text-3xl font-bold'>Phase 8: Post Data to backend</h1>
+      <h1 className='text-3xl font-bold'>Phase 9: State Management with Zustand</h1>
 
       {/* Widget 1*/}
       <Card>
