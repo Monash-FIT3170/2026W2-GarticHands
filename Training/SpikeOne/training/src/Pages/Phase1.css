@@ -1,0 +1,59 @@
+.Phase1-Code {
+  font-size: 18px;
+  padding: 20px;
+  margin: 2rem auto;
+  font-family: sans-serif;
+  display: grid;
+  gap: 30px;
+  justify-items: center;
+}
+
+/* Widget 1 */
+.Counter-Widget1 {
+  margin: 20px;
+  border: 2px solid grey;
+  border-radius: 10px;
+  width: 300px;
+  align-items: center;
+}
+
+.Increase1 {
+  color: black;
+  background-color: lightgreen;
+  cursor: pointer;
+  padding: 4px 8px;
+}
+
+.Decrease1 {
+  color: black;
+  background-color: red;
+  cursor: pointer;
+  padding: 4px 8px;
+}
+
+/* Widget 2 */
+.Text-Display1 {
+  margin: 20px;
+  border: 2px solid grey;
+  border-radius: 10px;
+  width: 300px;
+}
+
+.text-data1 {
+  font-size: 12px;
+}
+
+/* Widget 3 */
+.Form-Input1 {
+  margin: 20px;
+  border: 2px solid grey;
+  border-radius: 10px;
+  width: 300px;
+
+}
+
+.submit-Button1 {
+  cursor: pointer;
+  background-color: aqua;
+  color: black;
+}
