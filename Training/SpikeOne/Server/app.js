@@ -2,7 +2,7 @@ const express = require('express')
 const cors = require('cors')
 
 const messageRoute = require('./routes/message')
-const createSubmissionsRouter = require('./routes/submissions')
+const createSubmissionsRouter = require('./routes/submission')
 
 const app = express()
 

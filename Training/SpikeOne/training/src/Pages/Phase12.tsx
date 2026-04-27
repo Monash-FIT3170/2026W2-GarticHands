@@ -5,7 +5,7 @@ import useBackendMessage from '../hooks/useBackendMessage'
 import SubmitWidget from '../components/submitWidget'
 import RecentSubmissions from '../components/recentSubmissions'
 
-export default function Phase10() {
+export default function Phase12() {
     const [count, setCount] = useState(0)
     const [text, setText] = useState('')
     const [loading, setLoading] = useState(true)
@@ -70,7 +70,7 @@ export default function Phase10() {
     
     return (
         <div className='text-[18px] p-5 my-8 mx-auto font-sans grid gap-[30px] justify-items-center'>
-      <h1 className='text-3xl font-bold'>Phase 10: Add a database</h1>
+      <h1 className='text-3xl font-bold'>Phase 12: Completing the Loop</h1>
 
       {/* Widget 1*/}
       <Card>
