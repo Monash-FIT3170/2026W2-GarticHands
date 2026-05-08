@@ -1,5 +1,5 @@
 import { GestureType } from './GestureTypes';
-import type { HandLandmark } from '../models/HandLandmark';
+import type { HandLandmark } from '../Models/HandLandmark';
 import { distance } from './GestureUtils';
 
 export const detectGesture = (
