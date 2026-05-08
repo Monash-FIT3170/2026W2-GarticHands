@@ -1,5 +1,11 @@
 import React, { useEffect, useRef, useState } from 'react';
 
+import {
+  GestureType,
+  type GestureType as GestureTypeValue,
+} from '../gestures/GestureTypes';
+
+import { detectGesture } from '../gestures/GestureRecogniser';
 
 // ONLY responsible for:
 
@@ -14,7 +20,6 @@ import React, { useEffect, useRef, useState } from 'react';
 // smoothing
 // gesture state machines
 
-
 const HandTracking: React.FC = () => {
   const videoRef = useRef<HTMLVideoElement>(null);
   const canvasRef = useRef<HTMLCanvasElement>(null);
@@ -22,6 +27,12 @@ const HandTracking: React.FC = () => {
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [handDetected, setHandDetected] = useState(false);
+
+  const [gesture, setGesture] =
+    useState<GestureTypeValue>(GestureType.NONE);
+
+  // small stability buffer (prevents flicker)
+  const gestureBuffer = useRef<GestureTypeValue[]>([]);
 
   useEffect(() => {
     let hands: any = null;
@@ -52,20 +63,49 @@ const HandTracking: React.FC = () => {
         ctx.drawImage(results.image, 0, 0, canvas.width, canvas.height);
       }
 
-      // detect hands
-      const detected = results.multiHandLandmarks?.length > 0;
+      const detected =
+        results.multiHandLandmarks?.length > 0;
 
-      // prevent rerender spam
-      setHandDetected((prev) => {
-        if (prev !== detected) return detected;
-        return prev;
-      });
+      setHandDetected(prev =>
+        prev !== detected ? detected : prev
+      );
 
       if (detected) {
-        for (const landmarks of results.multiHandLandmarks) {
-          drawConnections(ctx, landmarks);
-          drawLandmarks(ctx, landmarks);
+        const landmarks =
+          results.multiHandLandmarks[0];
+
+        // -------------------------
+        // GESTURE DETECTION (delegated)
+        // -------------------------
+        const newGesture =
+          detectGesture(landmarks);
+
+        // -------------------------
+        // SIMPLE STABILITY BUFFER
+        // -------------------------
+        gestureBuffer.current.push(newGesture);
+
+        if (gestureBuffer.current.length > 5) {
+          gestureBuffer.current.shift();
         }
+
+        const stableGesture =
+          gestureBuffer.current.reduce((a, b) => {
+            const count = (g: string) =>
+              gestureBuffer.current.filter(x => x === g)
+                .length;
+
+            return count(a) > count(b) ? a : b;
+          }, newGesture);
+
+        setGesture(prev =>
+          prev !== stableGesture
+            ? stableGesture
+            : prev
+        );
+
+        drawConnections(ctx, landmarks);
+        drawLandmarks(ctx, landmarks);
       }
 
       ctx.restore();
@@ -104,15 +144,10 @@ const HandTracking: React.FC = () => {
     ) => {
       const connections = [
         [0, 1], [1, 2], [2, 3], [3, 4],
-
         [0, 5], [5, 6], [6, 7], [7, 8],
-
         [5, 9], [9, 10], [10, 11], [11, 12],
-
         [9, 13], [13, 14], [14, 15], [15, 16],
-
         [13, 17], [17, 18], [18, 19], [19, 20],
-
         [0, 17],
       ];
 
@@ -139,35 +174,33 @@ const HandTracking: React.FC = () => {
       }
     };
 
-   
+    // -------------------------
     // STARTUP
-    
+    // -------------------------
     const start = async () => {
       try {
         console.log('Starting camera...');
 
-        // CAMERA
-        const stream = await navigator.mediaDevices.getUserMedia({
-          video: {
-            width: 640,
-            height: 480,
-          },
-        });
+        const stream =
+          await navigator.mediaDevices.getUserMedia({
+            video: {
+              width: 640,
+              height: 480,
+            },
+          });
 
         if (!videoRef.current) return;
 
         videoRef.current.srcObject = stream;
 
-        await new Promise<void>((resolve) => {
-          videoRef.current!.onloadedmetadata = async () => {
-            await videoRef.current!.play();
-            resolve();
-          };
+        await new Promise<void>(resolve => {
+          videoRef.current!.onloadedmetadata =
+            async () => {
+              await videoRef.current!.play();
+              resolve();
+            };
         });
 
-        console.log('Camera ready');
-
-        // MEDIAPIPE GLOBAL
         const Hands = (window as any).Hands;
 
         if (!Hands) {
@@ -190,9 +223,6 @@ const HandTracking: React.FC = () => {
 
         hands.onResults(onResults);
 
-        console.log('MediaPipe ready');
-
-        // FRAME LOOP
         const loop = async () => {
           if (
             videoRef.current &&
@@ -224,8 +254,9 @@ const HandTracking: React.FC = () => {
 
     start();
 
+    // -------------------------
     // CLEANUP
-   
+    // -------------------------
     return () => {
       if (frameId) {
         cancelAnimationFrame(frameId);
@@ -235,10 +266,11 @@ const HandTracking: React.FC = () => {
         hands.close();
       }
 
-      const stream = videoRef.current?.srcObject as MediaStream;
+      const stream =
+        videoRef.current?.srcObject as MediaStream;
 
       if (stream) {
-        stream.getTracks().forEach((track) => {
+        stream.getTracks().forEach(track => {
           track.stop();
         });
       }
@@ -263,13 +295,19 @@ const HandTracking: React.FC = () => {
       )}
 
       {!error && (
-        <p>
-          {isLoading
-            ? 'Loading camera and model...'
-            : handDetected
-            ? '✅ Hand detected'
-            : '👋 No hand detected'}
-        </p>
+        <>
+          <p>
+            {isLoading
+              ? 'Loading camera and model...'
+              : handDetected
+              ? '✅ Hand detected'
+              : '👋 No hand detected'}
+          </p>
+
+          <p>
+            Gesture: <b>{gesture}</b>
+          </p>
+        </>
       )}
 
       {/* Hidden raw webcam feed */}
