@@ -1,6 +1,7 @@
 import { useState } from "react";
 import "./App.css";
 import Card from "./components/Card";
+import HandTracking from "./components/HandTracking";
 
 function App() {
   const [count, setCount] = useState(0);
@@ -50,6 +51,11 @@ function App() {
             <button type="submit">Submit</button>
           </form>
         </div>
+      </Card>
+
+      {/* Hand Tracking Widget */}
+      <Card>
+        <HandTracking />
       </Card>
 
     </div>
