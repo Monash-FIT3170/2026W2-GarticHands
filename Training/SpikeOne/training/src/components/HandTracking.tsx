@@ -1,5 +1,20 @@
 import React, { useEffect, useRef, useState } from 'react';
 
+
+// ONLY responsible for:
+
+// webcam
+// MediaPipe
+// canvas rendering
+// passing landmarks to recognizer
+
+// It should NOT contain:
+
+// pinch logic
+// smoothing
+// gesture state machines
+
+
 const HandTracking: React.FC = () => {
   const videoRef = useRef<HTMLVideoElement>(null);
   const canvasRef = useRef<HTMLCanvasElement>(null);
@@ -124,9 +139,9 @@ const HandTracking: React.FC = () => {
       }
     };
 
-    // -------------------------
+   
     // STARTUP
-    // -------------------------
+    
     const start = async () => {
       try {
         console.log('Starting camera...');
@@ -209,9 +224,8 @@ const HandTracking: React.FC = () => {
 
     start();
 
-    // -------------------------
     // CLEANUP
-    // -------------------------
+   
     return () => {
       if (frameId) {
         cancelAnimationFrame(frameId);
