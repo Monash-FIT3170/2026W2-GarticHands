@@ -19,8 +19,11 @@
   },
   "homepage": "https://github.com/Monash-FIT3170/2026W2-GarticHands#readme",
   "devDependencies": {
+    "@types/react": "^19.2.14",
+    "@types/react-dom": "^19.2.3",
     "autoprefixer": "^10.4.27",
     "postcss": "^8.5.8",
-    "tailwindcss": "^4.2.2"
+    "tailwindcss": "^4.2.2",
+    "typescript": "^6.0.3"
   }
 }
