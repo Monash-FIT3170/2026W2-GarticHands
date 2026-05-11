@@ -1,3 +1,4 @@
+import { useState } from "react";
 
 const ROOM_CODE = "K9L3F";
 
@@ -10,26 +11,52 @@ const PLAYERS = [
 
 const Badge = ({ status }: { status: string }) => {
   if (status === "host")
-    return <span className="text-xs font-bold px-3 py-0.5 rounded-full bg-purple-500/20 text
-      .purple-300 border border-purple-500/40">Host</span>;
+    return <span className="text-xs font-bold px-3 py-0.5 rounded-full">Host</span>;
   if (status === "ready")
-    return <span className="text-xs font-bold px-3 py-0.5 rounded-full bg-teal-500/20 text-teal-300 border border-teal-500/40">Ready</span>;
-  return <span className="text-xs font-bold px-3 py-0.5 rounded-full bg-white/5 text-white/30 border border-white/10">Waiting…</span>;
+    return <span className="text-xs font-bold px-3 py-0.5 rounded-full">Ready</span>;
+  return <span className="text-xs font-bold px-3 py-0.5 rounded-full">Waiting…</span>;
 };
 
 export default function hostingPage() {
+  const [toast, setToast] = useState("");
+  const [toastVisible, setToastVisible] = useState(false);
+
+  const showToast = (msg: string) => {
+    setToast(msg);
+    setToastVisible(true);
+    setTimeout(() => setToastVisible(false), 2000);
+  };
+
+  const copyCode = () => {
+    navigator.clipboard.writeText(ROOM_CODE).catch(() => {});
+    showToast("Room code copied!");
+  };
+
   return (
     <div className="hosting-page">
-      <h1>Hosting Page</h1>
-      <p>Room Code: {ROOM_CODE}</p>
-      <div className="players">
+      <h1 className="text-4xl font-bold mb-6">Hosting Page</h1>
+      <div className="mb-4">
+        <span className="text-lg font-mono tracking-wide bg-neutral-500 rounded cursor-pointer" onClick={copyCode}>
+          {ROOM_CODE}
+        </span>
+      </div>
+      <div className="space-y-3">
         {PLAYERS.map((player) => (
-          <div key={player.id} className={`player ${player.color}`}>
-            <span className="name">{player.name}</span>
+          <div className={`flex items-center space-x-4 p-3 rounded ${player.color}`}>
+            <div className="flex-1">
+              <div className="font-semibold">{player.name}</div>
+            </div>
             <Badge status={player.status} />
           </div>
         ))}
       </div>
+
+      {/* Toast notification */}
+      {toastVisible && (
+        <div className="fixed bottom-4 left-1/2 transform -translate-x-1/2 bg-gray-700 text-white px-4 py-2 rounded">
+          {toast}
+        </div>
+      )}
     </div>
   )
 }
