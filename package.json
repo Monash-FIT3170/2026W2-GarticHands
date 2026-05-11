@@ -4,6 +4,8 @@
   "description": "Forrest Huang, fhua0018@student.monash.edu, forrestdesu12</br>  Jayavi Meemaduma, jmee0005@student.monash.edu, jayavi999</br> Mitchell Rocks, mroc0003@student.monash.edu, mitchrock04</br> Bexley D'Rozario, bdro0002@student.monash.edu, bexley07</br> Ashutosh Shrivastav, ashr0018@student.monash.edu, hshdhshshjjjjj</br> Chinmay Purohit, cpur0011@student.monash.edu, ChinmayGit8765 </br>",
   "main": "index.js",
   "scripts": {
+    "dev": "nodemon index.js",
+    "start": "node index.js",
     "test": "echo \"Error: no test specified\" && exit 1"
   },
   "repository": {
@@ -22,8 +24,13 @@
     "@types/react": "^19.2.14",
     "@types/react-dom": "^19.2.3",
     "autoprefixer": "^10.4.27",
+    "nodemon": "^3.1.14",
     "postcss": "^8.5.8",
     "tailwindcss": "^4.2.2",
     "typescript": "^6.0.3"
+  },
+  "dependencies": {
+    "cors": "^2.8.6",
+    "express": "^5.2.1"
   }
 }
