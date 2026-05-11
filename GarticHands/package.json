@@ -9,8 +9,9 @@
     "preview": "vite preview"
   },
   "devDependencies": {
+    "@vitejs/plugin-react": "^6.0.1",
     "typescript": "~6.0.2",
-    "vite": "^8.0.10"
+    "vite": "^8.0.12"
   },
   "dependencies": {
     "@tailwindcss/vite": "^4.3.0",
