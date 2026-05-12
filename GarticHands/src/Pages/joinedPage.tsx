@@ -17,9 +17,10 @@ const Badge = ({ status }: { status: string }) => {
   return <span className="text-xs font-bold px-3 py-0.5 rounded-full">Waiting</span>;
 };
 
-export default function hostingPage() {
+export default function joinedPage() {
   const [toast, setToast] = useState("");
   const [toastVisible, setToastVisible] = useState(false);
+  const [ready, setReady] = useState(false);
 
   const showToast = (msg: string) => {
     setToast(msg);
@@ -31,19 +32,15 @@ export default function hostingPage() {
     navigator.clipboard.writeText(ROOM_CODE).catch(() => {});
     showToast("Room code copied!");
   };
-
-  const handleStart = () => {
-    if (!allReady) {
-      return;
-    }
-    showToast("Starting game...");
+  
+  const handleReady = () => {
+    setReady((prev) => !prev);
   };
 
   const readyCount = PLAYERS.filter((p) => p.status === "ready" || p.status === "host").length;
-  const allReady = readyCount === PLAYERS.length;
 
   return (
-    <div className="hosting-page">
+    <div className="joined-page">
       <h1 className="text-4xl font-bold mb-6">Lobby</h1>
       <div className="mb-4">
         <span className="text-lg font-mono tracking-wide bg-neutral-500 rounded cursor-pointer" onClick={copyCode}>
@@ -61,16 +58,13 @@ export default function hostingPage() {
         ))}
       </div>
 
-      {/*Start Game Button (for host)*/}
       <button
-        onClick={handleStart}
-        disabled={!allReady}
+        onClick={handleReady}
         className={`mt-6 px-6 py-3 rounded font-bold 
-          ${allReady ? "bg-green-600 text-white hover:bg-green-700" : "bg-gray-500 text-gray-300"}`}
+          ${ready ? "bg-green-600 text-white hover:bg-green-700" : "bg-gray-500 text-gray-300"}`}
       >
-        {allReady ? "Start Game" : "Waiting for Players..."}
+        {ready ? "Ready" : "Not Ready"}
       </button>
-
       <p className="mt-4 text-sm text-gray-400">
         {readyCount} of {PLAYERS.length} players are ready
       </p>
