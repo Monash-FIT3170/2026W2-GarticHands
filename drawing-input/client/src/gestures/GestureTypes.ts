@@ -1,10 +1,8 @@
-// defines gestures
-
 export const GestureType = {
-  NONE: 'NONE',
-  OPEN_PALM: 'OPEN_PALM',
+  NO_HAND: 'NO_HAND',
+  HAND_PRESENT: 'HAND_PRESENT',
   PINCH: 'PINCH',
+  OPEN_PALM: 'OPEN_PALM',
 } as const;
 
-export type GestureType =
-  (typeof GestureType)[keyof typeof GestureType];
+export type GestureType = (typeof GestureType)[keyof typeof GestureType];

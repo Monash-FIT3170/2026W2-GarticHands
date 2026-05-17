@@ -1,46 +1,18 @@
 import { GestureType } from './GestureTypes';
 import type { HandLandmark } from '../Models/HandLandmark';
-import { distance } from './GestureUtils';
+import { detectHandOnScreen } from './detectors/detectHandOnScreen';
+import { detectPinch } from './detectors/detectPinch';
+import { detectOpenPalm } from './detectors/detectOpenPalm';
 
-export const detectGesture = (
-  landmarks: HandLandmark[]
-): (typeof GestureType)[keyof typeof GestureType] => {
-  if (!landmarks || landmarks.length < 21) {
-    return GestureType.NONE;
-  }
-
-  const thumbTip = landmarks[4];
-  const indexTip = landmarks[8];
-
-  const pinchDist = distance(thumbTip, indexTip);
-
-  // normalize by palm size (robust across distance/camera)
-  const palmScale = distance(
-    landmarks[5],
-    landmarks[17]
-  );
-
-  const normalizedPinch =
-    palmScale > 0 ? pinchDist / palmScale : 1;
-
-  if (normalizedPinch < 0.4) {
-    return GestureType.PINCH;
-  }
-
-  // OPEN PALM heuristic
-  const fingerTips = [8, 12, 16, 20];
-  const fingerBases = [5, 9, 13, 17];
-
-  const openPalm = fingerTips.every((tip, i) => {
-    return (
-      landmarks[tip].y <
-      landmarks[fingerBases[i]].y
-    );
-  });
-
-  if (openPalm) {
-    return GestureType.OPEN_PALM;
-  }
-
-  return GestureType.NONE;
-};
+// Order matters. PINCH and OPEN_PALM are mutually exclusive in practice but
+// noisy frames can match both, so we check the more constrained gesture
+// (PINCH) first. HAND_PRESENT is the fallback when a hand is visible but
+// neither specific gesture is held.
+export function detectGesture(
+  landmarks: HandLandmark[] | undefined,
+): GestureType {
+  if (!detectHandOnScreen(landmarks)) return GestureType.NO_HAND;
+  if (detectPinch(landmarks!)) return GestureType.PINCH;
+  if (detectOpenPalm(landmarks!)) return GestureType.OPEN_PALM;
+  return GestureType.HAND_PRESENT;
+}

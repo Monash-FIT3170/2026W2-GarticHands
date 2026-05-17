@@ -6,6 +6,7 @@ import {
 } from '../gestures/GestureTypes';
 
 import { detectGesture } from '../gestures/GestureRecogniser';
+import type { HandLandmark } from '../Models/HandLandmark';
 
 // ONLY responsible for:
 
@@ -20,7 +21,14 @@ import { detectGesture } from '../gestures/GestureRecogniser';
 // smoothing
 // gesture state machines
 
-const HandTracking: React.FC = () => {
+interface HandTrackingProps {
+  onFrame?: (
+    landmarks: HandLandmark[] | null,
+    gesture: GestureType,
+  ) => void;
+}
+
+const HandTracking: React.FC<HandTrackingProps> = ({ onFrame }) => {
   const videoRef = useRef<HTMLVideoElement>(null);
   const canvasRef = useRef<HTMLCanvasElement>(null);
 
@@ -29,10 +37,17 @@ const HandTracking: React.FC = () => {
   const [handDetected, setHandDetected] = useState(false);
 
   const [gesture, setGesture] =
-    useState<GestureTypeValue>(GestureType.NONE);
+    useState<GestureTypeValue>(GestureType.NO_HAND);
 
   // small stability buffer (prevents flicker)
   const gestureBuffer = useRef<GestureTypeValue[]>([]);
+
+  // Keep the latest onFrame in a ref so the MediaPipe onResults closure
+  // (created once in the effect below) always sees the current prop.
+  const onFrameRef = useRef(onFrame);
+  useEffect(() => {
+    onFrameRef.current = onFrame;
+  }, [onFrame]);
 
   useEffect(() => {
     let hands: any = null;
@@ -104,8 +119,15 @@ const HandTracking: React.FC = () => {
             : prev
         );
 
+        onFrameRef.current?.(landmarks, stableGesture);
+
         drawConnections(ctx, landmarks);
         drawLandmarks(ctx, landmarks);
+      } else {
+        setGesture(prev =>
+          prev !== GestureType.NO_HAND ? GestureType.NO_HAND : prev,
+        );
+        onFrameRef.current?.(null, GestureType.NO_HAND);
       }
 
       ctx.restore();

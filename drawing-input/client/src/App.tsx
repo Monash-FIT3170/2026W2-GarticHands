@@ -1,69 +1,32 @@
-import { useState } from "react";
+import { useCallback, useRef } from "react";
 import "./App.css";
-import Card from "./composables/Card";
 import HandTracking from "./components/HandTracking";
-import Canvas from "./components/Canvas";
+import Canvas, { type CanvasHandle } from "./components/Canvas";
+import type { HandLandmark } from "./Models/HandLandmark";
+import type { GestureType } from "./gestures/GestureTypes";
 
 function App() {
-  const [count, setCount] = useState(0);
-  const [text, setText] = useState("Hello!");
-  const [formValue, setFormValue] = useState("");
+  const canvasRef = useRef<CanvasHandle>(null);
+
+  const handleFrame = useCallback(
+    (landmarks: HandLandmark[] | null, gesture: GestureType) => {
+      canvasRef.current?.onFrame(landmarks, gesture);
+    },
+    [],
+  );
 
   return (
-    <div className="app-container">
-
-      {/* Counter Widget */}
-      <Card>
-        <div className="widget">
-          <h2>Counter</h2>
-          <p>{count}</p>
-          <button onClick={() => setCount(count + 1)}>Increase</button>
-          <button onClick={() => setCount(count - 1)}>Decrease</button>
-        </div>
-      </Card>
-
-      {/* Text Display Widget */}
-      <Card>
-        <div className="widget">
-          <h2>Text Display</h2>
-          <p>{text}</p>
-          <button onClick={() => setText("You clicked the button!")}>
-            Change Text
-          </button>
-        </div>
-      </Card>
-
-      {/* Form Input Widget */}
-      <Card>
-        <div className="widget">
-          <h2>Form Input</h2>
-          <form
-            onSubmit={(e) => {
-              e.preventDefault();
-              alert("Submitted: " + formValue);
-            }}
-          >
-            <input
-              type="text"
-              value={formValue}
-              onChange={(e) => setFormValue(e.target.value)}
-              placeholder="Type something..."
-            />
-            <button type="submit">Submit</button>
-          </form>
-        </div>
-      </Card>
-
-      {/* Hand Tracking Widget */}
-      <Card>
-        <HandTracking />
-      </Card>
-
-      {/* Canvas Widget */}
-      <Card>
-        <Canvas />
-      </Card>
-
+    <div
+      style={{
+        display: "flex",
+        gap: "24px",
+        padding: "24px",
+        alignItems: "flex-start",
+        flexWrap: "wrap",
+      }}
+    >
+      <HandTracking onFrame={handleFrame} />
+      <Canvas ref={canvasRef} />
     </div>
   );
 }
