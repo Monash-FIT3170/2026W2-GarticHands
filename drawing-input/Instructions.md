@@ -23,6 +23,9 @@ In order to do that, you must be inside the drawing-input directory
 
 **Setup Instructions**
 
+NOTE: for setup instructs neccessary to incl. setup and installation guides since npm init is not acknowledged. command 'npm run install-all
+' works.
+
 1. Type "cd drawing-input"
 
 2. Then type "npm run dev"

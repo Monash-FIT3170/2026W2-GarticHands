@@ -1,7 +1,8 @@
 import { useState } from "react";
 import "./App.css";
-import Card from "./components/Card";
+import Card from "./composables/Card";
 import HandTracking from "./components/HandTracking";
+import Canvas from "./components/Canvas";
 
 function App() {
   const [count, setCount] = useState(0);
@@ -56,6 +57,11 @@ function App() {
       {/* Hand Tracking Widget */}
       <Card>
         <HandTracking />
+      </Card>
+
+      {/* Canvas Widget */}
+      <Card>
+        <Canvas />
       </Card>
 
     </div>
