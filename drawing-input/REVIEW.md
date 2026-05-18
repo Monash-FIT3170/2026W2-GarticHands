@@ -1,211 +1,356 @@
 # Drawing Input — Code Review
 
 A running record of issues, fixes, and revisions for the `drawing-input/`
-section of Gartic Hands. Items use checkbox markdown so you can tick them
-off as they get resolved.
+section of Gartic Hands. Items use checkbox markdown so they can be ticked
+off as they're resolved.
 
 Legend:
 - `[x]` — done
 - `[ ]` — pending
-- `[GROUPMATE]` — lives in `HandTracking.tsx`, owned by your teammate
+- **Bandaid** — temporary patch that unblocks the immediate problem; a
+  permanent solution is recorded alongside it
+- **Permanent** — proper structural fix; no follow-up work needed
 
 ---
 
-## ISSUES
+## ISSUES (by file)
 
-### Canvas + Gesture architecture
-- [x] Demo widgets (Counter, Text Display, Form Input) cluttered `App.tsx`
-- [x] `Card` import in `App.tsx` pointed at `./components/Card`, file was actually in `./composables/`
-- [x] Single canvas mixing cursor and drawing — cursor would bake into the artwork on every frame
-- [x] No documentation for Canvas/Gesture systems — hard for forkers and LLMs to extend safely
+### `client/index.html`
+- [x] MediaPipe `<script src>` URL had no version pinned — version drift
+      between `hands.js` and the WASM sidecar caused the
+      `Aborted(Module.arguments has been replaced)` runtime error
 
-### Gesture detection
-- [x] All detection logic crammed into one `GestureRecogniser` function — not testable in isolation
-- [x] `NONE` was ambiguous — meant *both* "no hand visible" and "hand visible, no specific gesture"
-- [x] No `HAND_PRESENT` state — couldn't route to a cursor on neutral hand pose
-- [x] `GestureRecogniser.TS` had uppercase `.TS` extension — would break on case-sensitive filesystems (Linux, some CI)
-- [x] `detectHandOnScreen` returned plain `boolean` instead of a TS type predicate
-- [x] Non-null `!` assertions in `GestureRecogniser` after the predicate-style guard
+### `client/src/main.tsx`
+- [ ] Triple `./index.css` import (one is needed, two are dead duplicates)
+- [ ] Unused `React` and `ReactDOM` default imports
 
-### Canvas operations
-- [x] `CanvasOp` contract used `isActive: boolean` — pushed routing logic into every op (`if (!isActive) return`)
-- [x] `CanvasLocation` was a `CanvasOp` with a `start/end` lifecycle that didn't fit its passive cursor role
-- [x] Cursor disappeared during PINCH/OPEN_PALM — no visual feedback on which mode was active
+### `client/src/App.tsx`
+- [x] Demo widgets (Counter, Text Display, Form Input) cluttered the file
+- [x] `Card` import pointed at `./components/Card`; file was actually in `./composables/`
+
+### `client/src/composables/Card.tsx`
+- [ ] Untyped `{ children }` — implicit `any` in a `.tsx` file
+- [ ] Tailwind classes used but Tailwind plugin not configured in Vite —
+      they render as dead text
+
+### `client/src/components/Canvas.tsx`
+- [x] Used `forwardRef` (deprecated in React 19)
+- [x] `useImperativeHandle` was missing its deps array — handle rebuilt every render
+- [x] Single canvas mixed cursor and drawing — cursor would bake into the artwork
+
+### `client/src/components/HandTracking.tsx`
+- [ ] **Double-mirror bug** — camera context is mirrored in `onResults`
+      (lines 72-74) *and* again via CSS `transform: scaleX(-1)`
+      (line 353). Net result: a non-mirrored display. Causes the drawing
+      canvas to land strokes on the opposite side from where the user
+      sees their hand.
+- [ ] Canvas buffer resized every frame (`canvas.width = 640;` inside
+      `onResults`) — clears the canvas as a side effect, runs 30-60×/sec
+- [ ] File contradicts its own header — comments say "no smoothing /
+      no gesture state machines" but the file contains the 5-frame
+      stability buffer
+- [ ] `drawLandmarks` and `drawConnections` defined inside `useEffect` —
+      not testable, hide file length
+- [ ] `connections` array re-allocated on every call (should be a
+      module-scope `const`)
+- [ ] `React.FC` used (officially discouraged in modern React)
+- [ ] `any` types throughout (`hands`, `results`, `landmarks`,
+      `(window as any).Hands`)
+- [ ] `hands.send()` errors are unhandled — produces unhandled promise
+      rejections
+- [ ] rAF loop never exits — keeps scheduling forever even after cleanup
+- [ ] `<video style={{ display: 'none' }}>` can be throttled / paused by
+      some browsers
+- [ ] No error recovery — once errored, only a page reload fixes
+- [ ] `maxNumHands: 2` set but only `multiHandLandmarks[0]` is read — wasted compute
+- [ ] O(n²) majority-vote reducer in the stability buffer (cosmetic)
+- [x] **Bandaid applied:** MediaPipe CDN version pinned in `locateFile`
+      (permanent solution: migrate to `@mediapipe/tasks-vision` — see
+      cross-cutting issue below)
+
+### `client/src/components/CanvasOperations/`
+- [x] `CanvasOp` contract used `isActive: boolean` — pushed routing
+      logic into every op
+- [x] `CanvasLocation` was a `CanvasOp` with a `start/end` lifecycle that
+      didn't fit its passive cursor role
+- [x] Cursor disappeared during PINCH and OPEN_PALM — no visual feedback
+      on which mode was active
 - [x] No icons for tools — couldn't visually distinguish pencil from eraser
+- [x] No documentation for forkers or LLMs
 
-### React principles
-- [x] `Canvas.tsx` used `forwardRef` (deprecated in React 19)
-- [x] `Canvas.tsx` `useImperativeHandle` missing deps array — handle rebuilt every render
-- [ ] `Card.tsx` destructures `{ children }` with no type — implicit `any` in a `.tsx` file
-- [ ] `main.tsx` has triple `./index.css` import + unused `React` / `ReactDOM` default imports
-- [ ] Tailwind classes used in `Card.tsx` but Tailwind plugin is not configured in Vite — classes are dead text
+### `client/src/gestures/`
+- [x] All detection crammed into one `GestureRecogniser` function — not
+      testable in isolation
+- [x] `NONE` was overloaded — meant both "no hand visible" and "hand
+      visible, no specific gesture"
+- [x] No `HAND_PRESENT` state — couldn't route to a cursor on neutral pose
+- [x] `GestureRecogniser.TS` had uppercase `.TS` extension — would break
+      on case-sensitive filesystems
+- [x] `detectHandOnScreen` returned plain `boolean` instead of a TS
+      type predicate
+- [x] Non-null `!` assertions in `GestureRecogniser` after the predicate guard
+- [x] No documentation for forkers or LLMs
 
-### MediaPipe
-- [x] `hands.js` and WASM sidecar URLs both unpinned — version drift caused `Aborted(Module.arguments has been replaced)` runtime error
-- [ ] On `@mediapipe/hands` (in maintenance mode) — should migrate to `@mediapipe/tasks-vision` for production
-
-### HandTracking.tsx (groupmate's section — share with him)
-- [ ] [GROUPMATE] **Double-mirror bug** — camera context mirrored in `onResults` (lines 72-74) *and* again via CSS `transform: scaleX(-1)` (line 353). Net result: non-mirrored display. Causes the drawing canvas to land strokes on the opposite side from where the user sees their hand.
-- [ ] [GROUPMATE] Canvas buffer resized every frame (`canvas.width = 640;` inside `onResults`) — clears canvas as side effect, runs 30-60×/sec
-- [ ] [GROUPMATE] File contradicts its own header — comments say "no smoothing / no gesture state machines" but the file contains the 5-frame stability buffer
-- [ ] [GROUPMATE] `drawLandmarks` and `drawConnections` defined inside `useEffect` — not testable, hide file length
-- [ ] [GROUPMATE] `connections` array re-allocated every call (should be a module-scope `const`)
-- [ ] [GROUPMATE] `React.FC` used (officially discouraged in modern React)
-- [ ] [GROUPMATE] `any` types throughout (`hands`, `results`, `landmarks`, `(window as any).Hands`)
-- [ ] [GROUPMATE] `hands.send()` errors are unhandled — produces unhandled promise rejections
-- [ ] [GROUPMATE] rAF loop never exits — keeps scheduling forever even after cleanup
-- [ ] [GROUPMATE] `<video style={{ display: 'none' }}>` can be throttled / paused by some browsers
-- [ ] [GROUPMATE] No error recovery — once errored, only page reload fixes
-- [ ] [GROUPMATE] `maxNumHands: 2` set but only `[0]` is read — wasted compute
-- [ ] [GROUPMATE] O(n²) majority-vote reducer in the stability buffer (cosmetic)
+### Cross-cutting
+- [ ] Project is still on `@mediapipe/hands` (maintenance mode). The
+      version-pin bandaid stops the immediate crash but the permanent
+      fix is migration to `@mediapipe/tasks-vision`
 
 ---
 
-## FIXES (applied)
+## FIXES
 
-### Canvas architecture
-- Built two stacked `<canvas>` elements in `Canvas.tsx` — drawing layer (bottom) + transparent overlay (top)
-- Drawing layer accumulates strokes (`CanvasDraw`, `CanvasErase`)
-- Overlay layer holds the cursor (`CanvasLocation`), cleared every frame
-- Overlay has `pointer-events: none` so it doesn't block mouse input
+### Bandaids applied (temporary patches with permanent follow-ups)
 
-### Gesture pipeline
-- Renamed `GestureRecogniser.TS` → `GestureRecogniser.ts`
-- Split detection into three pure-predicate files under `detectors/`: `detectPinch.ts`, `detectOpenPalm.ts`, `detectHandOnScreen.ts`
-- Expanded vocab from 3 states to 4: `NO_HAND`, `HAND_PRESENT`, `PINCH`, `OPEN_PALM`
-- `detectHandOnScreen` now returns `landmarks is HandLandmark[]` — type narrows for subsequent calls
-- Removed `!` non-null assertions from `GestureRecogniser` (the predicate handles narrowing for free)
-- Added `gestures/coords.ts` with `landmarkToCanvas()` — converts normalized landmarks to canvas pixel coordinates with mirror flip
-- New `Models/Point.ts` for the shared `{x, y}` type (no longer pulled from `CanvasOps`)
+- **MediaPipe version pin**
+  - *Bandaid:* pinned `@mediapipe/hands@0.4.1675469240` in
+    `client/index.html` and in `client/src/components/HandTracking.tsx`
+    (`locateFile` callback). Both URLs now resolve to the same version,
+    so the JS shim and the WASM sidecar are ABI-compatible.
+  - *Why it's a bandaid:* keeps the project on a maintenance-mode
+    package with no type safety, no proper lockfile-managed versioning,
+    and CDN-based delivery (vulnerable to network and CDN cache issues).
+  - *Permanent solution (pending):* migrate to `@mediapipe/tasks-vision`.
+    Single npm install, TypeScript types included, synchronous
+    `detectForVideo()` instead of `onResults` callback, WASM versions
+    pinned by the package version itself. Only `index.html` and
+    `HandTracking.tsx` are affected by the migration — every other
+    file under `gestures/`, `Models/`, and `components/CanvasOperations/`
+    works unchanged because the landmark shape is identical.
 
-### CanvasOp contract
-- Replaced `isActive: boolean` with `activatedBy: GestureType` declared per op
-- Routing happens once at the coordinator — ops just `tick(point)` when called
-- `CanvasLocation` removed from the `CanvasOp` contract entirely; it's now a cursor renderer with its own `render(point, gesture)` / `clear()` API
-- Cursor renders different icons per gesture: blue dot (HAND_PRESENT), pencil ✏️ (PINCH), sponge 🧽 (OPEN_PALM)
+### Permanent solutions applied
 
-### React
-- `Canvas.tsx` migrated to the React 19 ref-as-prop pattern (no `forwardRef`)
-- `useImperativeHandle` in `Canvas.tsx` now has `[]` deps so the handle is only built once
+- **Canvas architecture** — two stacked `<canvas>` elements (drawing
+  layer + transparent overlay). Drawing layer accumulates strokes;
+  overlay clears every frame. Overlay is `pointer-events: none` so it
+  never blocks input.
 
-### MediaPipe
-- Pinned `@mediapipe/hands@0.4.1675469240` in both `index.html` and `HandTracking.tsx`'s `locateFile` callback
-- Fixes the `Module.arguments has been replaced` runtime error caused by version drift between `hands.js` and the WASM sidecar
+- **Gesture pipeline split** — renamed `GestureRecogniser.TS` → `.ts`,
+  extracted detection logic into three pure-predicate files under
+  `detectors/`, added `gestures/coords.ts` for normalized → pixel
+  mapping with mirror flip.
 
-### Documentation
-- `components/CanvasOperations/README.md` — covers the `CanvasOp` contract, per-frame lifecycle, "how to add a new operation" recipe, invariants, and gotcha → cause table
-- `gestures/README.md` — covers the four-state vocabulary, detector contract, priority order, coordinate-transform rationale, MediaPipe landmark index reference, and "how to add a new gesture" recipe
-- Both designed for LLM consumption: stated invariants, code-block contracts, concrete recipes, no implicit context
+- **Four-state gesture vocabulary** — expanded from 3 (`NONE`, `PINCH`,
+  `OPEN_PALM`) to 4 (`NO_HAND`, `HAND_PRESENT`, `PINCH`, `OPEN_PALM`).
+  Removes the ambiguity `NONE` used to carry.
+
+- **Type-predicate narrowing** — `detectHandOnScreen` now returns
+  `landmarks is HandLandmark[]`. Removed `!` non-null assertions from
+  the orchestrator.
+
+- **CanvasOp contract** — replaced `isActive: boolean` with
+  `activatedBy: GestureType` declared per op. Coordinator routes one op
+  at a time; ops just `tick(point)` when called.
+
+- **CanvasLocation decoupled** — no longer implements `CanvasOp`. Has
+  its own `render(point, gesture)` and `clear()` methods. Renders
+  different icons per gesture: blue dot (HAND_PRESENT), pencil (PINCH),
+  sponge (OPEN_PALM).
+
+- **React 19 modernization in `Canvas.tsx`** — dropped `forwardRef`,
+  switched to ref-as-prop. `useImperativeHandle` now has `[]` deps so
+  the handle is built once.
+
+- **Documentation** — per-folder READMEs in
+  `components/CanvasOperations/` and `gestures/`. Cover the contracts,
+  lifecycles, recipes for adding new ops/gestures, invariants, and
+  gotcha → cause tables. Designed for both human forkers and LLM
+  consumption.
+
+### Permanent solutions pending
+
+- HandTracking refactor — see the file's full checklist above.
+  Highest-impact items: fix the double-mirror bug, hoist the helper
+  functions out of `useEffect`, reduce `any` usage, properly bound the
+  rAF loop on cleanup.
+- `Card.tsx` props typing (and decide whether to keep the Tailwind
+  classes or remove them)
+- `main.tsx` cleanup
+- Migrate to `@mediapipe/tasks-vision` (replaces the version-pin bandaid)
 
 ---
 
-## REVISIONS (files changed)
+## REVISIONS (by file)
 
-### New files
-- `Models/Point.ts`
-- `gestures/coords.ts`
-- `gestures/GestureRecogniser.ts` (replaces `.TS`)
-- `gestures/detectors/detectPinch.ts`
-- `gestures/detectors/detectOpenPalm.ts`
-- `gestures/detectors/detectHandOnScreen.ts`
-- `gestures/README.md`
-- `components/Canvas.tsx`
-- `components/CanvasOperations/CanvasOps.ts`
-- `components/CanvasOperations/CanvasDraw.ts`
-- `components/CanvasOperations/CanvasErase.ts`
-- `components/CanvasOperations/CanvasLocation.ts`
-- `components/CanvasOperations/README.md`
+### `client/index.html` *(modified — bandaid)*
+- Pinned MediaPipe CDN version on the `<script>` tag
 
-### Deleted files
-- `gestures/GestureRecogniser.TS` (uppercase extension)
-- `components/CanvasOperations/CanvasOps.tsx` (stub)
-- `components/CanvasOperations/CanvasDraw.tsx` (stub)
-- `components/CanvasOperations/CanvasErase.tsx` (stub)
-- `components/CanvasOperations/CanvasLocation.tsx` (stub)
+### `client/src/Models/Point.ts` *(new)*
+Shared `{ x, y }` interface used across canvas and gesture code. Defined
+here so neither gesture code nor canvas code depends on the other.
 
-### Modified files
-- `App.tsx` — stripped demo widgets, wired `<HandTracking>` and `<Canvas>` via ref
-- `gestures/GestureTypes.ts` — expanded to four states
-- `components/HandTracking.tsx`:
-  - Added `onFrame` prop with stable-ref pattern
-  - Fires `onFrame(landmarks, stableGesture)` every frame when a hand is present
-  - Fires `onFrame(null, NO_HAND)` when no hand detected
-  - Pinned MediaPipe CDN version in `locateFile`
-- `index.html` — pinned MediaPipe CDN version on the `<script>` tag
+### `client/src/gestures/GestureTypes.ts` *(modified)*
+- Expanded from 3 states to 4: added `NO_HAND` and `HAND_PRESENT`
+- Continues to use the `as const` object pattern (not TS `enum`)
+
+### `client/src/gestures/GestureRecogniser.ts` *(new — replaces `.TS`)*
+Orchestrator. Calls each detector in priority order (`NO_HAND` first,
+then `PINCH`, then `OPEN_PALM`, then `HAND_PRESENT` fallback). Uses the
+type predicate from `detectHandOnScreen` to narrow `landmarks` for
+subsequent calls — no `!` assertions.
+
+### `client/src/gestures/coords.ts` *(new)*
+`landmarkToCanvas(landmark, canvas)` — converts MediaPipe's normalized
+[0, 1] landmark coordinates to canvas pixel coordinates with mirror
+flip on the x-axis. See the **WHY** section for the mirror rationale.
+
+### `client/src/gestures/detectors/detectPinch.ts` *(new)*
+Pure-predicate detector. True when thumb tip and index tip are closer
+than 40% of palm width. Threshold normalized by palm size so it
+survives the user moving toward or away from the camera.
+
+### `client/src/gestures/detectors/detectOpenPalm.ts` *(new)*
+Pure-predicate detector. True when all four non-thumb fingertips are
+above their bases on the y-axis.
+
+### `client/src/gestures/detectors/detectHandOnScreen.ts` *(new)*
+Type-predicate detector. Returns `landmarks is HandLandmark[]` so the
+orchestrator gets free type narrowing.
+
+### `client/src/gestures/README.md` *(new)*
+Folder-level documentation. Covers the four-state vocab, detector
+contract, priority order, coordinate-transform rationale, MediaPipe
+landmark index reference, and "how to add a new gesture" recipe.
+
+### `client/src/components/Canvas.tsx` *(new)*
+Two-layer drawing surface. Exposes an imperative handle (`onFrame`)
+via React 19 ref-as-prop. Per-frame routing:
+- Find the op whose `activatedBy` matches the current gesture
+- Reset the outgoing op if the gesture changed
+- Convert `landmarks[8]` (index fingertip) to canvas pixels via
+  `landmarkToCanvas`
+- Always render the cursor on the overlay; tick the active op (if any)
+  on the drawing layer
+
+### `client/src/components/CanvasOperations/CanvasOps.ts` *(new)*
+Defines the `CanvasOp` interface: `name`, `activatedBy`, `tick(point)`,
+`reset()`. Routing happens at the coordinator, not inside ops.
+
+### `client/src/components/CanvasOperations/CanvasDraw.ts` *(new)*
+Implements `CanvasOp`. Activated by `PINCH`. Draws line segments from
+the previous point to the current point each frame. `reset()` nulls
+`prevPoint` so the next pinch starts a fresh stroke.
+
+### `client/src/components/CanvasOperations/CanvasErase.ts` *(new)*
+Implements `CanvasOp`. Activated by `OPEN_PALM`. Erases pixels in a
+configurable radius around the current point using
+`globalCompositeOperation = 'destination-out'`.
+
+### `client/src/components/CanvasOperations/CanvasLocation.ts` *(new)*
+Cursor renderer. Not a `CanvasOp`. Has its own `render(point, gesture)`
+and `clear()` methods. Renders a translucent blue dot (HAND_PRESENT),
+a pencil (PINCH), or a sponge (OPEN_PALM) depending on the current
+gesture.
+
+### `client/src/components/CanvasOperations/README.md` *(new)*
+Folder-level documentation. Covers the `CanvasOp` contract, per-frame
+lifecycle, "how to add a new operation" recipe, invariants, and
+gotcha → cause tables.
+
+### `client/src/components/HandTracking.tsx` *(modified)*
+- Added `HandTrackingProps` interface with an `onFrame` callback prop
+- Stable-ref pattern (`onFrameRef`) so the MediaPipe `onResults`
+  closure always sees the current callback
+- Fires `onFrame(landmarks, stableGesture)` every frame when a hand is
+  present; fires `onFrame(null, NO_HAND)` when no hand is detected
+- Initial gesture state changed from `NONE` to `NO_HAND`
+- *Bandaid:* pinned MediaPipe CDN version in `locateFile`
+
+### `client/src/App.tsx` *(modified)*
+- Stripped Counter, Text Display, and Form Input demo widgets
+- Removed broken `Card` import (path was wrong)
+- Wired `<HandTracking>` and `<Canvas>` via a `useRef<CanvasHandle>`
+  and a stable `useCallback` `onFrame` handler
+
+### Deleted
+- `client/src/gestures/GestureRecogniser.TS` (uppercase extension)
+- `client/src/components/CanvasOperations/CanvasOps.tsx` (stub)
+- `client/src/components/CanvasOperations/CanvasDraw.tsx` (stub)
+- `client/src/components/CanvasOperations/CanvasErase.tsx` (stub)
+- `client/src/components/CanvasOperations/CanvasLocation.tsx` (stub)
 
 ---
 
 ## WHY
 
 ### Layered canvas vs single canvas
-A single canvas can't be both "persistent artwork" and "transient cursor."
-Clear the canvas every frame and the artwork dies; preserve the artwork
-and the cursor smears across the canvas. Two stacked `<canvas>` elements
-let each behave correctly — the overlay clears every frame; the drawing
-canvas accumulates strokes indefinitely.
+A single canvas can't be both "persistent artwork" and "transient
+cursor." Clear the canvas every frame and the artwork dies; preserve
+the artwork and the cursor smears across the canvas. Two stacked
+`<canvas>` elements let each behave correctly — the overlay clears
+every frame; the drawing canvas accumulates strokes indefinitely.
 
 ### `activatedBy` vs `isActive`
 The earlier `isActive` boolean required each op to check whether it
 should run. That pushed control flow into every op (`if (!isActive)
 return;`) and made the contract noisier than it needed to be. With
-`activatedBy: GestureType` declared per op, the coordinator picks which
-op to call — ops just *do their thing* without gatekeeping. Cleaner
-separation of "deciding what runs" from "how it runs."
+`activatedBy: GestureType` declared per op, the coordinator picks
+which op to call — ops just *do their thing* without gatekeeping.
+Cleaner separation of "deciding what runs" from "how it runs."
 
 ### CanvasLocation not implementing CanvasOp
-Draw and Erase have a clear lifecycle: gesture starts → tick repeatedly →
-gesture ends → reset state. Location has no such lifecycle — it's always
-showing where the hand is, regardless of which gesture is active. Forcing
-it into a start/end contract gave it no-op methods and an awkward
-`activatedBy` value. Decoupling it keeps the contract honest: `CanvasOp`
-is for drawing operations only; `CanvasLocation` is its own thing — a
-cursor renderer.
+Draw and Erase have a clear lifecycle: gesture starts → tick
+repeatedly → gesture ends → reset state. Location has no such
+lifecycle — it's always showing where the hand is, regardless of which
+gesture is active. Forcing it into a start/end contract gave it no-op
+methods and an awkward `activatedBy` value. Decoupling it keeps the
+contract honest: `CanvasOp` is for drawing operations only;
+`CanvasLocation` is its own thing — a cursor renderer.
 
 ### Four-state gesture vocab vs three
 `NONE` was overloaded. It meant either "no hand visible" or "a hand is
-visible but no specific gesture is recognized." Both states existed at
-runtime but couldn't be distinguished. Splitting into `NO_HAND` and
-`HAND_PRESENT` makes the cursor case ("hand is on screen, show pointer")
-routable as its own gesture, and lets the canvas correctly clear the
-overlay when the hand leaves the frame.
+visible but no specific gesture is recognized." Both states existed
+at runtime but couldn't be distinguished. Splitting into `NO_HAND` and
+`HAND_PRESENT` makes the cursor case ("hand is on screen, show
+pointer") routable as its own gesture, and lets the canvas correctly
+clear the overlay when the hand leaves the frame.
 
 ### Mirror flip in coords.ts
 MediaPipe gives landmarks in normalized [0, 1] in the *original*
-(unmirrored) camera frame. The webcam display is conventionally mirrored
-so the user sees themselves like a mirror. Multiplying x by canvas width
-directly would put drawings on the wrong side of where the user's hand
-appears. The `(1 - x)` flip in `landmarkToCanvas` aligns drawn points
-with the visible hand.
+(unmirrored) camera frame. The webcam display is conventionally
+mirrored so the user sees themselves like a mirror. Multiplying x by
+canvas width directly would put drawings on the wrong side of where
+the user's hand appears. The `(1 - x)` flip in `landmarkToCanvas`
+aligns drawn points with the visible hand.
 
-**Caveat:** see the `[GROUPMATE] double-mirror` issue. HandTracking
-currently has two flips which cancel out, so the live display is *not*
-actually mirrored. Once that's fixed, this alignment will work as
-designed. The fix belongs in HandTracking.tsx, not in coords.ts.
+**Caveat:** see the double-mirror issue in `HandTracking.tsx`.
+HandTracking currently has two flips that cancel out, so the live
+display is *not* actually mirrored. Once that's fixed, this alignment
+will work as designed. The fix belongs in `HandTracking.tsx`, not in
+`coords.ts`.
 
-### Pinning MediaPipe version
-The unpinned CDN URL serves whatever jsdelivr considers `@latest`. The
-main `hands.js` and the WASM sidecars are loaded at *different times*
-during page initialization. If npm publishes a new version between those
-two requests (or if the CDN cache invalidates one but not the other),
-you get a JS shim calling into a WASM blob with an incompatible ABI.
-That's what produced `Module.arguments has been replaced with plain
-arguments_` — the modern WASM no longer exposes `Module.arguments`, but
-the older JS shim was still calling for it. Pinning both URLs to the
-same version string guarantees consistency.
+### Bandaid vs permanent for MediaPipe
+The version pin is a bandaid. It fixes the immediate runtime error
+(`Aborted(Module.arguments has been replaced)`) by guaranteeing that
+`hands.js` and the WASM sidecars resolve to the same version — but it
+keeps the project on `@mediapipe/hands`, which is in maintenance mode.
+The permanent solution is migration to `@mediapipe/tasks-vision`. That
+package:
+- Ships a single npm install (no CDN script tag, no unpinned URLs)
+- Has TypeScript types
+- Exposes a synchronous `detectForVideo()` instead of the `onResults`
+  callback pattern
+- Bundles a stable version of the WASM runtime pinned by the package
+  version itself
 
-### Why not migrate to @mediapipe/tasks-vision now?
-It's the right strategic move — `@mediapipe/hands` is in maintenance
-mode and the modern Tasks API is cleaner (single npm package, typed,
-pinnable versions, synchronous `detectForVideo` instead of callback hell).
-But the migration requires rewriting `HandTracking.tsx`, which is your
-groupmate's territory. Pinning the version is a 60-second patch that
-fixes the immediate error; the migration is a proper refactor that
-should be coordinated with whoever owns that file.
+Migration affects only `HandTracking.tsx` and `index.html`. Everything
+under `gestures/`, `Models/`, and `components/CanvasOperations/` works
+unchanged because the landmark shape (`{x, y, z}` normalized 0-1) is
+identical.
 
-When migration happens: your code under `gestures/`, `Models/`, and
-`components/CanvasOperations/` does not need to change. The landmark
-shape is identical (`{x, y, z}` normalized 0-1). Only `HandTracking.tsx`
-and `index.html` are affected.
+### Custom gestures vs MediaPipe's built-in classifier
+The Tasks Vision API ships a `GestureRecognizer` with built-in
+categories: Closed_Fist, Open_Palm, Pointing_Up, Thumb_Up, Thumb_Down,
+Victory, ILoveYou. `Open_Palm` maps directly to our `OPEN_PALM`, but
+the classifier has no `PINCH` gesture — and pinch is the draw trigger.
+Using the built-in classifier would mean losing the draw gesture.
+
+The custom pipeline under `gestures/` already supports tunable
+thresholds (`PINCH_THRESHOLD`), priority ordering, and clean extension
+to new gestures (FIST, peace sign, etc.). Switching to the black-box
+classifier would be a regression on flexibility. When the migration
+to `tasks-vision` happens, we'll use `HandLandmarker` (raw landmarks
+only, no classifier) and keep the custom detection pipeline.
 
 ---
 
@@ -215,8 +360,8 @@ and `index.html` are affected.
 - **Hands solution docs** — https://github.com/google-ai-edge/mediapipe/blob/master/docs/solutions/hands.md
   - Covers the `@mediapipe/hands` package currently loaded via CDN.
   - 21-landmark hand model, configuration options (`maxNumHands`,
-    `modelComplexity`, `minDetectionConfidence`, `minTrackingConfidence`),
-    and the legacy `onResults` callback API.
+    `modelComplexity`, `minDetectionConfidence`,
+    `minTrackingConfidence`), and the legacy `onResults` callback API.
   - Reference this when tuning `hands.setOptions(...)` in
     `HandTracking.tsx`, or when looking up which landmark index
     corresponds to which knuckle/joint.
@@ -227,8 +372,9 @@ and `index.html` are affected.
     that supersedes `@mediapipe/hands`.
   - Includes the built-in gesture classifier (Closed_Fist, Open_Palm,
     Pointing_Up, Thumb_Up, Thumb_Down, Victory, ILoveYou). Note: no
-    PINCH category — see the `WHY` section on why we keep our custom
-    detection pipeline rather than relying on the built-in classifier.
+    PINCH category — see the **WHY** section on why we keep our
+    custom detection pipeline rather than relying on the built-in
+    classifier.
   - For our use case, `HandLandmarker` (landmarks only, no classifier)
     is the more direct migration target. The `gesture_recognizer` docs
     are still the best reference for the Tasks Vision setup pattern
