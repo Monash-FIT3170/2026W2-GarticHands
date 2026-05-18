@@ -1,20 +1,36 @@
 import { useState } from 'react'
+import { useNavigate } from 'react-router-dom'
 import JoinForm from '../components/JoinForm'
+import { joinRoom } from '../api/room'
 
 function JoinPage() {
+  const navigate = useNavigate();
+
   const [roomCode, setRoomCode] = useState('')
   const [playerName, setPlayerName] = useState('')
   const [error, setError] = useState('')
 
-  function handleJoin() {
+  async function handleJoin() {
     if (!roomCode.trim() || !playerName.trim()) {
       setError('Please enter both a room code and your name.')
       return
     }
+    
+    const data = await joinRoom(roomCode, playerName)
+
+    if (!data.success) {
+      setError(data.message || 'Room not found.')
+      return
+    }
+
     setError('')
-    // TODO: connect to backend room validation once backend is ready
-    console.log(`Joining room: ${roomCode} as ${playerName}`)
-    alert(`Joining room ${roomCode} as ${playerName}`)
+
+    navigate(`/joined/${data.room.code}`, {
+      state: {
+        room: data.room,
+        playerName,
+      }
+    })
   }
 
   return (

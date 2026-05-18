@@ -80,6 +80,38 @@ app.get('/rooms/:roomCode', (req, res) => {
   })
 })
 
+app.patch('/rooms/:roomCode/ready', (req, res) => {
+  const roomCode = req.params.roomCode.toUpperCase()
+  const { playerName, ready } = req.body
+
+  const room = rooms[roomCode]
+
+  if (!room) {
+    return res.status(404).json({
+      success: false,
+      message: 'Room not found',
+    })
+  }
+
+  const player = room.players.find((p) => p.name === playerName)
+
+  if (!player) {
+    return res.status(404).json({
+      success: false,
+      message: 'Player not found',
+    })
+  }
+
+  if (player.status !== 'host') {
+    player.status = ready ? 'ready' : 'waiting'
+  }
+
+  res.json({
+    success: true,
+    room,
+  })
+})
+
 app.listen(PORT, () => {
   console.log(`Backend running on http://localhost:${PORT}`)
 })
