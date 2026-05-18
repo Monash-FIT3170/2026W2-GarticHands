@@ -17,6 +17,7 @@ export default function hostingPage() {
   const [players, setPlayers] = useState<any[]>([]);
   const [toast, setToast] = useState("");
   const [toastVisible, setToastVisible] = useState(false);
+  const navigate = useNavigate();
 
   useEffect(() => {
     async function setupRoom() {
@@ -63,7 +64,8 @@ export default function hostingPage() {
     if (!allReady) return;
 
     showToast("Starting game...");
-    navigate("/game");
+    setTimeout(() => navigate('/input'), 2000);
+
   };
 
   const readyCount = players.filter(

@@ -4,6 +4,8 @@ import Host from './Pages/hostingPage.tsx'
 import Join from './Pages/joiningPage.tsx'
 import Joined from './Pages/joinedPage.tsx'
 import Game from './Pages/gamePage.tsx'
+import Input from './Pages/inputPage.tsx'
+import Guess from './Pages/guessingPage.tsx'
 
 export default function GarticHands() {
 
@@ -15,6 +17,8 @@ export default function GarticHands() {
         <Route path='/join' element={<Join />}/>
         <Route path='/joined/:roomCode' element={<Joined />}/>
         <Route path='/game' element={<Game />}/>
+        <Route path='/input' element={<Input />}/>
+        <Route path='/guess' element={<Guess />}/>
       </Routes>
     </BrowserRouter>
   )
