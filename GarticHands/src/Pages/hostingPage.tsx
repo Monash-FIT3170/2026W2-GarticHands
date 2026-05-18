@@ -11,7 +11,6 @@ const Badge = ({ status }: { status: string }) => {
 };
 
 export default function hostingPage() {
-  const navigate = useNavigate(); 
 
   const [roomCode, setRoomCode] = useState("");
   const [players, setPlayers] = useState<any[]>([]);
