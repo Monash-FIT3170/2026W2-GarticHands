@@ -3,8 +3,8 @@ import {useState, useEffect} from "react";
 const MaxChars = 120;
 const TotalTime = 60;
 
-export default function PromptPage() {
-  const [prompt, setPrompt] = useState("");
+export default function InputPage() {
+  const [input, setInput] = useState("");
   const [submitted, setSubmitted] = useState(false);
   const [timeLeft, setTimeLeft] = useState(TotalTime);
 
@@ -23,7 +23,7 @@ export default function PromptPage() {
 
 
     const handleSubmit = () => {
-        if (!prompt.trim() || submitted) return;
+        if (!input.trim() || submitted) return;
         setSubmitted(true);
     };
 
@@ -33,12 +33,14 @@ export default function PromptPage() {
                 <p className="rounds">
                     Round 1 of 4</p>
                 <h1 className="text-3xl">
-                    Write a prompt
+                    Write a sentence
                 </h1>
-                <textarea className="text box"
+                <input
+                    type="text"
+                    className="text box"
                     maxLength={MaxChars}
-                    value={prompt}
-                    onChange={(e) => setPrompt(e.target.value)}
+                    value={input}
+                    onChange={(e) => setInput(e.target.value)}
                     disabled={submitted}
                     placeholder="Start typing your prompt here..."
                 />
