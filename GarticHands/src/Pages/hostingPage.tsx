@@ -1,4 +1,5 @@
 import { useState } from "react";
+import { useNavigate } from "react-router-dom";
 
 const ROOM_CODE = "K9L3F";
 
@@ -20,6 +21,7 @@ const Badge = ({ status }: { status: string }) => {
 export default function hostingPage() {
   const [toast, setToast] = useState("");
   const [toastVisible, setToastVisible] = useState(false);
+  const navigate = useNavigate();
 
   const showToast = (msg: string) => {
     setToast(msg);
@@ -37,6 +39,8 @@ export default function hostingPage() {
       return;
     }
     showToast("Starting game...");
+    setTimeout(() => navigate('/input'), 2000);
+
   };
 
   const readyCount = PLAYERS.filter((p) => p.status === "ready" || p.status === "host").length;
