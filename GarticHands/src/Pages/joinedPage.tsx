@@ -1,5 +1,5 @@
 import { useState, useEffect } from "react";
-import { getRoom } from "../api/room";
+import { getRoom, updateReady } from "../api/room";
 import { useParams, useLocation } from "react-router-dom";
 
 const Badge = ({ status }: { status: string }) => {
@@ -13,6 +13,7 @@ const Badge = ({ status }: { status: string }) => {
 export default function joinedPage() {
   const { roomCode } = useParams();
   const location = useLocation();
+  const playerName = location.state?.playerName;
 
   const [players, setPlayers] = useState<any[]>(location.state?.room?.players || []);
   const [toast, setToast] = useState("");
@@ -23,12 +24,20 @@ export default function joinedPage() {
     if (!roomCode) return;
 
     async function loadRoom() {
-      const data = await getRoom(roomCode as string);
+  const data = await getRoom(roomCode as string);
 
-      if (data.success) {
-        setPlayers(data.room.players);
-      }
+  if (data.success) {
+    setPlayers(data.room.players);
+
+    const currentPlayer = data.room.players.find(
+      (p: any) => p.name === playerName
+    );
+
+    if (currentPlayer) {
+      setReady(currentPlayer.status === "ready");
     }
+  }
+}
 
     loadRoom();
 
@@ -49,9 +58,18 @@ export default function joinedPage() {
     showToast("Room code copied!");
   };
   
-  const handleReady = () => {
-    setReady((prev) => !prev);
-  };
+  const handleReady = async () => {
+  if (!roomCode || !playerName) return;
+
+  const newReady = !ready;
+
+  const data = await updateReady(roomCode, playerName, newReady);
+
+  if (data.success) {
+    setReady(newReady);
+    setPlayers(data.room.players);
+  }
+};
 
   const readyCount = players.filter(
     (p) => p.status === "ready" || p.status === "host"

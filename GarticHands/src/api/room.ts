@@ -24,3 +24,13 @@ export async function getRoom(roomCode: string) {
   const res = await fetch(`${API_URL}/rooms/${roomCode}`)
   return res.json()
 }
+
+export async function updateReady(roomCode: string, playerName: string, ready: boolean) {
+  const res = await fetch(`${API_URL}/rooms/${roomCode}/ready`, {
+    method: "PATCH",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ playerName, ready }),
+  });
+
+  return res.json();
+}
