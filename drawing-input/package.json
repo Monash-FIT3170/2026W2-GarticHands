@@ -13,9 +13,12 @@
     "client": "cd client && npm run dev -- --port 5137"
   },
   "devDependencies": {
-    "concurrently": "^8.2.0"
+    "concurrently": "^8.2.2"
   },
   "dependencies": {
-    "@mediapipe/tasks-vision": "^0.10.35"
+    "@mediapipe/tasks-vision": "^0.10.35",
+    "mediapipe": "^0.0.1-security",
+    "nodemon": "^3.1.14",
+    "vite": "^8.0.13"
   }
 }
