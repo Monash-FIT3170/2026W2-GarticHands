@@ -1,6 +1,6 @@
 import { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
-import { createRoom } from "../api/room";
+import { createRoom, getRoom } from "../api/room";
 
 // const ROOM_CODE = "K9L3F";
 
@@ -40,6 +40,22 @@ export default function hostingPage() {
     setupRoom();
   }, []);
 
+  useEffect(() => {
+    if (!roomCode) return;
+
+    async function loadRoom() {
+      const data = await getRoom(roomCode);
+      
+      if (data.success) {
+        setPlayers(data.room.players);
+      }
+    }
+
+    const interval = setInterval(loadRoom, 1000);
+
+    return () => clearInterval(interval);
+  }, [roomCode]);
+
   const showToast = (msg: string) => {
     setToast(msg);
     setToastVisible(true);
@@ -47,15 +63,16 @@ export default function hostingPage() {
   };
 
   const copyCode = () => {
-    navigator.clipboard.writeText(ROOM_CODE).catch(() => {});
+    if (!roomCode) return;
+    navigator.clipboard.writeText(roomCode).catch(() => {});
     showToast("Room code copied!");
   };
 
   const handleStart = () => {
-    if (!allReady) {
-      return;
-    }
+    if (!allReady) return;
+
     showToast("Starting game...");
+    navigate("/game");
   };
 
   const readyCount = players.filter(
