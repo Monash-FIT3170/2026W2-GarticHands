@@ -2,15 +2,6 @@ import { useState, useEffect } from "react";
 import { getRoom } from "../api/room";
 import { useParams, useLocation } from "react-router-dom";
 
-// const ROOM_CODE = "K9L3F";
-
-//const PLAYERS = [
-//  { id: 1, name: "Adrian", color: "bg-purple-600 text-purple-200", status: "host" },
-//  { id: 2, name: "Lily", color: "bg-teal-700 text-teal-200",   status: "ready" },
-//  { id: 3, name: "Sam", color: "bg-red-600 text-red-200",     status: "ready" },
-//  { id: 4, name: "Max", color: "bg-orange-600 text-orange-200", status: "ready" },
-//];
-
 const Badge = ({ status }: { status: string }) => {
   if (status === "host")
     return <span className="text-xs font-bold px-3 py-0.5 rounded-full">Host</span>;
@@ -75,7 +66,7 @@ export default function joinedPage() {
           className="text-lg font-mono tracking-wide bg-neutral-500 rounded cursor-pointer px-3 py-1"
           onClick={copyCode}
         >
-          {roomCode}
+          {roomCode || "No room"}
         </span>
       </div>
 

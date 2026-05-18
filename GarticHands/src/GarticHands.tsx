@@ -13,7 +13,7 @@ export default function GarticHands() {
         <Route path='/' element={<Land />}/>
         <Route path='/host' element={<Host />}/>
         <Route path='/join' element={<Join />}/>
-        <Route path='/joined/:roomcode' element={<Joined />}/>
+        <Route path='/joined/:roomCode' element={<Joined />}/>
         <Route path='/game' element={<Game />}/>
       </Routes>
     </BrowserRouter>

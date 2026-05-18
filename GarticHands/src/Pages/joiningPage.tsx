@@ -25,10 +25,10 @@ function JoinPage() {
 
     setError('')
 
-    navigate(`/joined/${roomCode.toUpperCase()}`, {
+    navigate(`/joined/${data.room.code}`, {
       state: {
-        playerName,
         room: data.room,
+        playerName,
       }
     })
   }
