@@ -26,10 +26,6 @@ export default function LandingPage() {
       <button onClick={hostRoom} className='border px-4 py-2 rounded'>
         Host Room
       </button>
-    
-      <button onClick={guessRoom} className='border px-4 py-2 rounded'>
-        Guess Room
-      </button>
     </div>
   )
 }
