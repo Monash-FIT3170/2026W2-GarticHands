@@ -43,7 +43,7 @@ const HandTracking: React.FC<HandTrackingProps> = ({ onFrame }) => {
   const gestureBuffer = useRef<GestureTypeValue[]>([]);
 
   // Keep the latest onFrame in a ref so the MediaPipe onResults closure
-  // (created once in the effect below) always sees the current prop.
+  // (created once in the effect below) always sees the current prop. 
   const onFrameRef = useRef(onFrame);
   useEffect(() => {
     onFrameRef.current = onFrame;
@@ -233,7 +233,7 @@ const HandTracking: React.FC<HandTrackingProps> = ({ onFrame }) => {
 
         hands = new Hands({
           locateFile: (file: string) =>
-            `https://cdn.jsdelivr.net/npm/@mediapipe/hands/${file}`,
+            `https://cdn.jsdelivr.net/npm/@mediapipe/hands@0.4.1675469240/${file}`,
         });
 
         hands.setOptions({

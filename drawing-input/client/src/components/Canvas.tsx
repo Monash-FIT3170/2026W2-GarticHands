@@ -1,8 +1,8 @@
 import {
-  forwardRef,
   useEffect,
   useImperativeHandle,
   useRef,
+  type Ref,
 } from 'react';
 
 import type { HandLandmark } from '../Models/HandLandmark';
@@ -24,38 +24,40 @@ export interface CanvasHandle {
 interface CanvasProps {
   width?: number;
   height?: number;
+  ref?: Ref<CanvasHandle>;
 }
 
 // MediaPipe landmark index for the tip of the index finger — the single
 // "cursor point" used across all operations for consistency.
 const INDEX_FINGERTIP = 8;
 
-const Canvas = forwardRef<CanvasHandle, CanvasProps>(
-  ({ width = 640, height = 480 }, ref) => {
-    const drawCanvasRef = useRef<HTMLCanvasElement>(null);
-    const overlayCanvasRef = useRef<HTMLCanvasElement>(null);
+const Canvas = ({ width = 640, height = 480, ref }: CanvasProps) => {
+  const drawCanvasRef = useRef<HTMLCanvasElement>(null);
+  const overlayCanvasRef = useRef<HTMLCanvasElement>(null);
 
-    // Ops, cursor, and the currently-routed op live in a ref so the
-    // imperative onFrame handler can mutate them without re-renders.
-    const stateRef = useRef<{
-      ops: CanvasOp[];
-      cursor: CanvasLocation;
-      active: CanvasOp | null;
-    } | null>(null);
+  // Ops, cursor, and the currently-routed op live in a ref so the
+  // imperative onFrame handler can mutate them without re-renders.
+  const stateRef = useRef<{
+    ops: CanvasOp[];
+    cursor: CanvasLocation;
+    active: CanvasOp | null;
+  } | null>(null);
 
-    useEffect(() => {
-      const drawCtx = drawCanvasRef.current?.getContext('2d');
-      const overlayCtx = overlayCanvasRef.current?.getContext('2d');
-      if (!drawCtx || !overlayCtx) return;
+  useEffect(() => {
+    const drawCtx = drawCanvasRef.current?.getContext('2d');
+    const overlayCtx = overlayCanvasRef.current?.getContext('2d');
+    if (!drawCtx || !overlayCtx) return;
 
-      stateRef.current = {
-        ops: [new CanvasDraw(drawCtx), new CanvasErase(drawCtx)],
-        cursor: new CanvasLocation(overlayCtx),
-        active: null,
-      };
-    }, []);
+    stateRef.current = {
+      ops: [new CanvasDraw(drawCtx), new CanvasErase(drawCtx)],
+      cursor: new CanvasLocation(overlayCtx),
+      active: null,
+    };
+  }, []);
 
-    useImperativeHandle(ref, () => ({
+  useImperativeHandle(
+    ref,
+    () => ({
       onFrame(landmarks, gesture) {
         const state = stateRef.current;
         const drawCanvas = drawCanvasRef.current;
@@ -82,51 +84,52 @@ const Canvas = forwardRef<CanvasHandle, CanvasProps>(
           state.cursor.clear();
         }
       },
-    }));
+    }),
+    [],
+  );
 
-    return (
+  return (
+    <div
+      style={{
+        display: 'flex',
+        flexDirection: 'column',
+        gap: '12px',
+        alignItems: 'center',
+      }}
+    >
+      <h2>Canvas</h2>
+
       <div
         style={{
-          display: 'flex',
-          flexDirection: 'column',
-          gap: '12px',
-          alignItems: 'center',
+          position: 'relative',
+          width,
+          height,
         }}
       >
-        <h2>Canvas</h2>
-
-        <div
+        <canvas
+          ref={drawCanvasRef}
+          width={width}
+          height={height}
           style={{
-            position: 'relative',
-            width,
-            height,
+            position: 'absolute',
+            inset: 0,
+            border: '2px solid gray',
+            background: 'white',
           }}
-        >
-          <canvas
-            ref={drawCanvasRef}
-            width={width}
-            height={height}
-            style={{
-              position: 'absolute',
-              inset: 0,
-              border: '2px solid gray',
-              background: 'white',
-            }}
-          />
-          <canvas
-            ref={overlayCanvasRef}
-            width={width}
-            height={height}
-            style={{
-              position: 'absolute',
-              inset: 0,
-              pointerEvents: 'none',
-            }}
-          />
-        </div>
+        />
+        <canvas
+          ref={overlayCanvasRef}
+          width={width}
+          height={height}
+          style={{
+            position: 'absolute',
+            inset: 0,
+            pointerEvents: 'none',
+          }}
+        />
       </div>
-    );
-  },
-);
+    </div>
+  );
+};
 
 export default Canvas;

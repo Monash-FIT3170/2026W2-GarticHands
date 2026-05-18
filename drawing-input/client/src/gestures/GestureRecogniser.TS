@@ -12,7 +12,7 @@ export function detectGesture(
   landmarks: HandLandmark[] | undefined,
 ): GestureType {
   if (!detectHandOnScreen(landmarks)) return GestureType.NO_HAND;
-  if (detectPinch(landmarks!)) return GestureType.PINCH;
-  if (detectOpenPalm(landmarks!)) return GestureType.OPEN_PALM;
+  if (detectPinch(landmarks)) return GestureType.PINCH;
+  if (detectOpenPalm(landmarks)) return GestureType.OPEN_PALM;
   return GestureType.HAND_PRESENT;
 }

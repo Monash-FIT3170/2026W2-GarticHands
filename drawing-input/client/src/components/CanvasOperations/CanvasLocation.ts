@@ -17,6 +17,7 @@ export class CanvasLocation {
   render(point: Point, gesture: GestureType): void {
     this.clear();
 
+    // currently using placeholders for things, and basic sizing.
     switch (gesture) {
       case GestureType.PINCH:
         this.drawIcon(point, '✏️'); // pencil
