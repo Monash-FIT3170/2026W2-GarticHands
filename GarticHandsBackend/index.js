@@ -27,6 +27,8 @@ app.post('/rooms/create', (req, res) => {
       {
         name: hostName || 'Host',
         status: 'host',
+        isHost: true,
+        ready: true,
         joinedAt: Date.now(),
       }
     ],
@@ -62,6 +64,9 @@ app.post('/rooms/join', (req, res) => {
 
   room.players.push({
     name: playerName,
+    status: 'waiting',
+    isHost: false,
+    ready: false,
     joinedAt: Date.now(),
   })
 
@@ -90,7 +95,7 @@ app.get('/rooms/:roomCode', (req, res) => {
 
 app.patch('/rooms/:roomCode/ready', (req, res) => {
   const roomCode = req.params.roomCode.toUpperCase()
-  const { playerName, ready } = req.body
+  const { playerName, ready: NewReady } = req.body
 
   const room = rooms[roomCode]
 
@@ -110,8 +115,9 @@ app.patch('/rooms/:roomCode/ready', (req, res) => {
     })
   }
 
-  if (player.status !== 'host') {
-    player.status = ready ? 'ready' : 'waiting'
+  if (!player.isHost) {
+    player.ready = NewReady
+    player.status = NewReady ? 'ready' : 'waiting'
   }
 
   res.json({

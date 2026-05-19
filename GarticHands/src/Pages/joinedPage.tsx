@@ -2,11 +2,13 @@ import { useState, useEffect } from "react";
 import { getRoom, updateReady } from "../api/room";
 import { useParams, useLocation } from "react-router-dom";
 
-const Badge = ({ status }: { status: string }) => {
-  if (status === "host")
+const Badge = ({ player }: { player: any }) => {
+  if (player.isHost)
     return <span className="text-xs font-bold px-3 py-0.5 rounded-full">Host</span>;
-  if (status === "ready")
+  
+  if (player.ready)
     return <span className="text-xs font-bold px-3 py-0.5 rounded-full">Ready</span>;
+  
   return <span className="text-xs font-bold px-3 py-0.5 rounded-full">Waiting</span>;
 };
 
@@ -34,7 +36,7 @@ export default function joinedPage() {
     );
 
     if (currentPlayer) {
-      setReady(currentPlayer.status === "ready");
+      setReady(currentPlayer.ready);
     }
   }
 }
@@ -71,9 +73,7 @@ export default function joinedPage() {
   }
 };
 
-  const readyCount = players.filter(
-    (p) => p.status === "ready" || p.status === "host"
-  ).length;
+  const readyCount = players.filter((p) => p.ready).length;
 
   return (
     <div className="joined-page">
@@ -95,9 +95,11 @@ export default function joinedPage() {
             className="flex items-center space-x-4 p-3 rounded bg-neutral-700 text-white"
           >
             <div className="flex-1">
-              <div className="font-semibold">{player.name}</div>
+              <div className="font-semibold">
+                {player.name} {player.name === playerName ? "(you)" : ""}
+                </div>
             </div>
-            <Badge status={player.status} />
+            <Badge player={player} />
           </div>
         ))}
       </div>
