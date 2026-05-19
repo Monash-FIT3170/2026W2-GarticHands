@@ -18,11 +18,19 @@ app.get('/', (req, res) => {
 })
 
 app.post('/rooms/create', (req, res) => {
+  const { hostName } = req.body
   const roomCode = generateRoomCode()
 
   rooms[roomCode] = {
     code: roomCode,
-    players: [],
+    players: [
+      {
+        name: hostName || 'Host',
+        status: 'host',
+        joinedAt: Date.now(),
+      }
+    ],
+    status: 'waiting',
     createdAt: Date.now(),
   }
 

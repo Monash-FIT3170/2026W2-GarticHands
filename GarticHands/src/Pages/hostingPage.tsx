@@ -14,13 +14,14 @@ export default function hostingPage() {
 
   const [roomCode, setRoomCode] = useState("");
   const [players, setPlayers] = useState<any[]>([]);
+  const [hostName, setHostName] = useState("Host"); 
   const [toast, setToast] = useState("");
   const [toastVisible, setToastVisible] = useState(false);
   const navigate = useNavigate();
 
   useEffect(() => {
     async function setupRoom() {
-      const data = await createRoom("Host");
+      const data = await createRoom(hostName);
 
       if (data.success) {
         setRoomCode(data.roomCode);
@@ -88,16 +89,20 @@ export default function hostingPage() {
 
       <div className="space-y-3">
         {players.map((player, index) => (
-          <div
-            key={index}
-            className="flex items-center space-x-4 p-3 rounded bg-neutral-700 text-white"
-          >
-            <div className="flex-1">
-              <div className="font-semibold">{player.name}</div>
-            </div>
-            <Badge status={player.status} />
-          </div>
-        ))}
+  <div
+    key={index}
+    className={`flex items-center space-x-4 p-3 rounded text-white ${
+      player.status === "host" ? "bg-blue-700" : "bg-neutral-700"
+    }`}
+  >
+    <div className="flex-1">
+      <div className="font-semibold">
+        {player.name} {player.status === "host" ? "(You)" : ""}
+      </div>
+    </div>
+    <Badge status={player.status} />
+  </div>
+))}
       </div>
 
       <button
@@ -110,8 +115,8 @@ export default function hostingPage() {
       </button>
 
       <p className="mt-4 text-sm text-gray-400">
-        {readyCount} of {players.length} players are ready
-      </p>
+  {readyCount} of {players.length} players ready (including you as host)
+</p>
 
       {toastVisible && (
         <div className="fixed bottom-4 left-1/2 transform -translate-x-1/2 bg-gray-700 text-white px-4 py-2 rounded">
