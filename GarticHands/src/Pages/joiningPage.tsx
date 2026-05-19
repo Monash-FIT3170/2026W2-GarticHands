@@ -1,18 +1,25 @@
 import { useState } from 'react'
-import { useNavigate } from 'react-router-dom'
+import { useNavigate, useLocation } from 'react-router-dom'
 import JoinForm from '../components/JoinForm'
 import { joinRoom } from '../api/room'
 
 function JoinPage() {
   const navigate = useNavigate();
+  const location = useLocation();
+
+  const playerName = location.state?.playerName
 
   const [roomCode, setRoomCode] = useState('')
-  const [playerName, setPlayerName] = useState('')
   const [error, setError] = useState('')
 
   async function handleJoin() {
-    if (!roomCode.trim() || !playerName.trim()) {
-      setError('Please enter both a room code and your name.')
+    if (!playerName) {
+      navigate('/')
+      return
+    }
+    
+    if (!roomCode.trim()) {
+      setError('Please enter room code.')
       return
     }
     
@@ -39,9 +46,7 @@ function JoinPage() {
       <p>Enter the room code shared by the host to join their game.</p>
       <JoinForm
         roomCode={roomCode}
-        playerName={playerName}
         onRoomCodeChange={setRoomCode}
-        onPlayerNameChange={setPlayerName}
         onJoin={handleJoin}
         error={error}
       />
