@@ -56,7 +56,11 @@ export function useHandTracking({
       }
 
       const ctx = canvas.getContext('2d')
-      if (!ctx) return
+
+      if (!ctx) {
+        frameId = requestAnimationFrame(processFrame)
+        return
+      }
 
       // Set canvas size once — not every frame.
       // Canvas clears when width/height is assigned so we only do it
@@ -115,18 +119,31 @@ export function useHandTracking({
         'https://cdn.jsdelivr.net/npm/@mediapipe/tasks-vision@0.10.35/wasm'
       )
 
-        handLandmarker = await HandLandmarker.createFromOptions(vision, {
+        const createHandLandmarker = async (
+        delegate: 'GPU' | 'CPU'
+      ) =>
+        HandLandmarker.createFromOptions(vision, {
           baseOptions: {
             modelAssetPath:
               'https://storage.googleapis.com/mediapipe-models/hand_landmarker/hand_landmarker/float16/1/hand_landmarker.task',
-            delegate: 'GPU',
+            delegate,
           },
           runningMode: 'VIDEO',
-          numHands: 1, // was 2 but only [0] was ever read — saves compute
+          numHands: 1, // only first hand is consumed downstream
           minHandDetectionConfidence: 0.5,
           minHandPresenceConfidence: 0.5,
           minTrackingConfidence: 0.5,
         })
+
+      try {
+        handLandmarker = await createHandLandmarker('GPU')
+      } catch {
+        console.warn(
+          'GPU delegate failed, falling back to CPU'
+        )
+
+        handLandmarker = await createHandLandmarker('CPU')
+      }
 
         if (cancelled) return
 
