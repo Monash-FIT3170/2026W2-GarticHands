@@ -39,31 +39,31 @@ Legend:
 - [x] Single canvas mixed cursor and drawing — cursor would bake into the artwork
 
 ### `client/src/components/HandTracking.tsx`
-- [ ] **Double-mirror bug** — camera context is mirrored in `onResults`
+- [X] **Double-mirror bug** — camera context is mirrored in `onResults`
       (lines 72-74) *and* again via CSS `transform: scaleX(-1)`
       (line 353). Net result: a non-mirrored display. Causes the drawing
       canvas to land strokes on the opposite side from where the user
       sees their hand.
-- [ ] Canvas buffer resized every frame (`canvas.width = 640;` inside
+- [X] Canvas buffer resized every frame (`canvas.width = 640;` inside
       `onResults`) — clears the canvas as a side effect, runs 30-60×/sec
-- [ ] File contradicts its own header — comments say "no smoothing /
+- [X] File contradicts its own header — comments say "no smoothing /
       no gesture state machines" but the file contains the 5-frame
       stability buffer
-- [ ] `drawLandmarks` and `drawConnections` defined inside `useEffect` —
+- [X] `drawLandmarks` and `drawConnections` defined inside `useEffect` —
       not testable, hide file length
-- [ ] `connections` array re-allocated on every call (should be a
+- [X] `connections` array re-allocated on every call (should be a
       module-scope `const`)
-- [ ] `React.FC` used (officially discouraged in modern React)
+- [X] `React.FC` used (officially discouraged in modern React)
 - [ ] `any` types throughout (`hands`, `results`, `landmarks`,
       `(window as any).Hands`)
-- [ ] `hands.send()` errors are unhandled — produces unhandled promise
+- [X] `hands.send()` errors are unhandled — produces unhandled promise
       rejections
-- [ ] rAF loop never exits — keeps scheduling forever even after cleanup
-- [ ] `<video style={{ display: 'none' }}>` can be throttled / paused by
+- [X] rAF loop never exits — keeps scheduling forever even after cleanup
+- [X] `<video style={{ display: 'none' }}>` can be throttled / paused by
       some browsers
 - [ ] No error recovery — once errored, only a page reload fixes
 - [ ] `maxNumHands: 2` set but only `multiHandLandmarks[0]` is read — wasted compute
-- [ ] O(n²) majority-vote reducer in the stability buffer (cosmetic)
+- [X] O(n²) majority-vote reducer in the stability buffer (cosmetic)
 - [x] **Bandaid applied:** MediaPipe CDN version pinned in `locateFile`
       (permanent solution: migrate to `@mediapipe/tasks-vision` — see
       cross-cutting issue below)
@@ -92,9 +92,8 @@ Legend:
 - [x] No documentation for forkers or LLMs
 
 ### Cross-cutting
-- [ ] Project is still on `@mediapipe/hands` (maintenance mode). The
-      version-pin bandaid stops the immediate crash but the permanent
-      fix is migration to `@mediapipe/tasks-vision`
+- [x] Migrated from `@mediapipe/hands` to `@mediapipe/tasks-vision`
+- [x] WASM runtime URL still loaded from CDN without explicit self-hosting
 
 ---
 
@@ -117,7 +116,12 @@ Legend:
     `HandTracking.tsx` are affected by the migration — every other
     file under `gestures/`, `Models/`, and `components/CanvasOperations/`
     works unchanged because the landmark shape is identical.
-
+    
+- **tasks-vision WASM version pin**
+  - WASM runtime URL is now explicitly version-pinned to match the
+    installed `@mediapipe/tasks-vision` package version.
+  - Permanent solution would be self-hosting the WASM assets instead
+    of loading from CDN.
 ### Permanent solutions applied
 
 - **Canvas architecture** — two stacked `<canvas>` elements (drawing
