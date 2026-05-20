@@ -126,6 +126,18 @@ app.patch('/rooms/:roomCode/ready', (req, res) => {
   })
 })
 
+app.patch('/rooms/:roomCode/start', (req, res) => {
+  const roomCode = req.params.roomCode.toUpperCase()
+  const room = rooms[roomCode]
+
+  if (!room) {
+    return res.status(404).json({ success: false, message: 'Room not found' })
+  }
+
+  room.status = 'started'
+  res.json({ success: true, room })
+})
+
 app.listen(PORT, () => {
   console.log(`Backend running on http://localhost:${PORT}`)
 })

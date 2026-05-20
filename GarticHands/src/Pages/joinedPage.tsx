@@ -1,6 +1,6 @@
 import { useState, useEffect } from "react";
 import { getRoom, updateReady } from "../api/room";
-import { useParams, useLocation } from "react-router-dom";
+import { useParams, useLocation, useNavigate } from "react-router-dom";
 
 const Badge = ({ player }: { player: any }) => {
   if (player.isHost)
@@ -16,7 +16,7 @@ export default function joinedPage() {
   const { roomCode } = useParams();
   const location = useLocation();
   const playerName = location.state?.playerName;
-
+  const navigate = useNavigate();
   const [players, setPlayers] = useState<any[]>(location.state?.room?.players || []);
   const [toast, setToast] = useState("");
   const [toastVisible, setToastVisible] = useState(false);
@@ -30,6 +30,12 @@ export default function joinedPage() {
 
   if (data.success) {
     setPlayers(data.room.players);
+
+    if (data.room.status === 'started') {
+      showToast("Starting game...");
+      setTimeout(() => navigate('/input'), 2000);
+      return;
+    }
 
     const currentPlayer = data.room.players.find(
       (p: any) => p.name === playerName

@@ -1,6 +1,6 @@
 import { useEffect, useState } from "react";
 import { useNavigate, useLocation } from "react-router-dom";
-import { createRoom, getRoom } from "../api/room";
+import { createRoom, getRoom, startRoom } from "../api/room";
 
 const Badge = ({ player }: { player: any }) => {
   if (player.isHost)
@@ -71,9 +71,10 @@ export default function hostingPage() {
     showToast("Room code copied!");
   };
 
-  const handleStart = () => {
+  const handleStart = async () => {
     if (!allReady) return;
 
+    await startRoom(roomCode);
     showToast("Starting game...");
     setTimeout(() => navigate('/input'), 2000);
 
