@@ -54,7 +54,7 @@ Legend:
 - [X] `connections` array re-allocated on every call (should be a
       module-scope `const`)
 - [X] `React.FC` used (officially discouraged in modern React)
-- [ ] `any` types throughout (`hands`, `results`, `landmarks`,
+- [X] `any` types throughout (`hands`, `results`, `landmarks`,
       `(window as any).Hands`)
 - [X] `hands.send()` errors are unhandled — produces unhandled promise
       rejections
@@ -62,11 +62,9 @@ Legend:
 - [X] `<video style={{ display: 'none' }}>` can be throttled / paused by
       some browsers
 - [ ] No error recovery — once errored, only a page reload fixes
-- [ ] `maxNumHands: 2` set but only `multiHandLandmarks[0]` is read — wasted compute
+- [X] `maxNumHands: 2` set but only `multiHandLandmarks[0]` is read — wasted compute
 - [X] O(n²) majority-vote reducer in the stability buffer (cosmetic)
-- [x] **Bandaid applied:** MediaPipe CDN version pinned in `locateFile`
-      (permanent solution: migrate to `@mediapipe/tasks-vision` — see
-      cross-cutting issue below)
+
 
 ### `client/src/components/CanvasOperations/`
 - [x] `CanvasOp` contract used `isActive: boolean` — pushed routing
@@ -93,7 +91,7 @@ Legend:
 
 ### Cross-cutting
 - [x] Migrated from `@mediapipe/hands` to `@mediapipe/tasks-vision`
-- [x] WASM runtime URL still loaded from CDN without explicit self-hosting
+- [x] WASM runtime migrated from CDN loading to self-hosted assets under `client/public/mediapipe-wasm/`
 
 ---
 
@@ -109,19 +107,11 @@ Legend:
   - *Why it's a bandaid:* keeps the project on a maintenance-mode
     package with no type safety, no proper lockfile-managed versioning,
     and CDN-based delivery (vulnerable to network and CDN cache issues).
-  - *Permanent solution (pending):* migrate to `@mediapipe/tasks-vision`.
-    Single npm install, TypeScript types included, synchronous
-    `detectForVideo()` instead of `onResults` callback, WASM versions
-    pinned by the package version itself. Only `index.html` and
-    `HandTracking.tsx` are affected by the migration — every other
-    file under `gestures/`, `Models/`, and `components/CanvasOperations/`
-    works unchanged because the landmark shape is identical.
-    
-- **tasks-vision WASM version pin**
-  - WASM runtime URL is now explicitly version-pinned to match the
-    installed `@mediapipe/tasks-vision` package version.
-  - Permanent solution would be self-hosting the WASM assets instead
-    of loading from CDN.
+  - *Permanent solution (completed):* migrated to
+  `@mediapipe/tasks-vision` using the typed npm package,
+  synchronous `detectForVideo()`, and self-hosted WASM assets
+  under `client/public/mediapipe-wasm/`.
+
 ### Permanent solutions applied
 
 - **Canvas architecture** — two stacked `<canvas>` elements (drawing
@@ -163,14 +153,11 @@ Legend:
 
 ### Permanent solutions pending
 
-- HandTracking refactor — see the file's full checklist above.
-  Highest-impact items: fix the double-mirror bug, hoist the helper
-  functions out of `useEffect`, reduce `any` usage, properly bound the
-  rAF loop on cleanup.
+
 - `Card.tsx` props typing (and decide whether to keep the Tailwind
   classes or remove them)
 - `main.tsx` cleanup
-- Migrate to `@mediapipe/tasks-vision` (replaces the version-pin bandaid)
+
 
 ---
 
