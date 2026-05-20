@@ -1,12 +1,14 @@
 import { useEffect, useState } from "react";
-import { useNavigate } from "react-router-dom";
+import { useNavigate, useLocation } from "react-router-dom";
 import { createRoom, getRoom } from "../api/room";
 
-const Badge = ({ status }: { status: string }) => {
-  if (status === "host")
+const Badge = ({ player }: { player: any }) => {
+  if (player.isHost)
     return <span className="text-xs font-bold px-3 py-0.5 rounded-full">Host</span>;
-  if (status === "ready")
+  
+  if (player.ready)
     return <span className="text-xs font-bold px-3 py-0.5 rounded-full">Ready</span>;
+  
   return <span className="text-xs font-bold px-3 py-0.5 rounded-full">Waiting</span>;
 };
 
@@ -14,13 +16,22 @@ export default function hostingPage() {
 
   const [roomCode, setRoomCode] = useState("");
   const [players, setPlayers] = useState<any[]>([]);
-  const [hostName, setHostName] = useState("Host"); 
+
   const [toast, setToast] = useState("");
   const [toastVisible, setToastVisible] = useState(false);
+ 
   const navigate = useNavigate();
+  const location = useLocation();
+
+  const hostName = location.state?.playerName
 
   useEffect(() => {
     async function setupRoom() {
+      if (!hostName) {
+        navigate('/')
+        return
+      }
+      
       const data = await createRoom(hostName);
 
       if (data.success) {
@@ -68,11 +79,9 @@ export default function hostingPage() {
 
   };
 
-  const readyCount = players.filter(
-    (p) => p.status === "ready" || p.status === "host"
-  ).length;
+  const readyCount = players.filter((p) => p.ready).length;
 
-  const allReady = players.length > 0 && readyCount === players.length;
+  const allReady = players.length > 0 && players.every((p) => p.ready);
 
   return (
     <div className="hosting-page">
@@ -92,15 +101,15 @@ export default function hostingPage() {
   <div
     key={index}
     className={`flex items-center space-x-4 p-3 rounded text-white ${
-      player.status === "host" ? "bg-blue-700" : "bg-neutral-700"
+      player.isHost ? "bg-blue-700" : "bg-neutral-700"
     }`}
   >
     <div className="flex-1">
       <div className="font-semibold">
-        {player.name} {player.status === "host" ? "(You)" : ""}
+        {player.name} {player.isHost ? "(You)" : ""}
       </div>
     </div>
-    <Badge status={player.status} />
+    <Badge player={player} />
   </div>
 ))}
       </div>
