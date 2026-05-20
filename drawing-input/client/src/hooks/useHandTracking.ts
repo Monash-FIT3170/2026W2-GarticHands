@@ -116,8 +116,8 @@ export function useHandTracking({
       try {
         // Load MediaPipe tasks-vision WASM
       const vision = await FilesetResolver.forVisionTasks(
-        'https://cdn.jsdelivr.net/npm/@mediapipe/tasks-vision@0.10.35/wasm'
-      )
+      '/mediapipe-wasm'
+    )
 
         const createHandLandmarker = async (
         delegate: 'GPU' | 'CPU'
