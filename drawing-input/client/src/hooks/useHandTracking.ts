@@ -115,35 +115,35 @@ export function useHandTracking({
     const start = async () => {
       try {
         // Load MediaPipe tasks-vision WASM
-      const vision = await FilesetResolver.forVisionTasks(
-      '/mediapipe-wasm'
-    )
-
-        const createHandLandmarker = async (
-        delegate: 'GPU' | 'CPU'
-      ) =>
-        HandLandmarker.createFromOptions(vision, {
-          baseOptions: {
-            modelAssetPath:
-              'https://storage.googleapis.com/mediapipe-models/hand_landmarker/hand_landmarker/float16/1/hand_landmarker.task',
-            delegate,
-          },
-          runningMode: 'VIDEO',
-          numHands: 1, // only first hand is consumed downstream
-          minHandDetectionConfidence: 0.5,
-          minHandPresenceConfidence: 0.5,
-          minTrackingConfidence: 0.5,
-        })
-
-      try {
-        handLandmarker = await createHandLandmarker('GPU')
-      } catch {
-        console.warn(
-          'GPU delegate failed, falling back to CPU'
+        const vision = await FilesetResolver.forVisionTasks(
+          '/mediapipe-wasm'
         )
 
-        handLandmarker = await createHandLandmarker('CPU')
-      }
+        const createHandLandmarker = async (
+          delegate: 'GPU' | 'CPU'
+        ) =>
+          HandLandmarker.createFromOptions(vision, {
+            baseOptions: {
+              modelAssetPath:
+                'https://storage.googleapis.com/mediapipe-models/hand_landmarker/hand_landmarker/float16/1/hand_landmarker.task',
+              delegate,
+            },
+            runningMode: 'VIDEO',
+            numHands: 1, // only first hand is consumed downstream
+            minHandDetectionConfidence: 0.5,
+            minHandPresenceConfidence: 0.5,
+            minTrackingConfidence: 0.5,
+          })
+
+        try {
+          handLandmarker = await createHandLandmarker('GPU')
+        } catch {
+          console.warn(
+            'GPU delegate failed, falling back to CPU'
+          )
+
+          handLandmarker = await createHandLandmarker('CPU')
+        }
 
         if (cancelled) return
 
