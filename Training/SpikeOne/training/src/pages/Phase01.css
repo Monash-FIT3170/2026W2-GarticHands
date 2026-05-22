@@ -1,0 +1,52 @@
+.app-container {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  padding: 32px;
+}
+
+.counter-widget {
+  display: inline-flex;
+  border: 2px solid var(--border);
+  margin-top: 32px;
+  flex-direction: column;
+  align-items: center;
+  gap: 16px;
+  padding: auto;
+}
+
+.counter-widget button {
+  font-family: var(--mono);
+  font-size: 15px;
+  line-height: 135%;
+  padding: 4px 8px;
+  border-radius: 4px;
+  color: var(--text-h);
+  background-color: var(--bg);
+  border: 1px solid var(--border);
+  cursor: pointer;
+}
+
+.display-section {
+  margin-top: 32px;
+  border: 2px solid var(--border);
+  padding: auto;
+}
+
+.display-text {
+  font-family: var(--mono);
+  font-size: 15px;
+  line-height: 135%;
+  padding: 4px 8px;
+  color:aquamarine;
+}
+
+.input-widget {
+  display: inline-flex;
+  border: 2px solid var(--border);
+  margin-top: 32px;
+  flex-direction: column;
+  align-items: center;
+  gap: 16px;
+  padding: auto;
+}
