@@ -25,7 +25,7 @@ export default function SubmitWidget() {
 
       const data = await response.json()
 
-      addSubmission(data.submittedText)
+      addSubmission(data.submission)
       setStatus(`Submitted: ${data.submittedText}`)
       setInput('')
     } catch {
