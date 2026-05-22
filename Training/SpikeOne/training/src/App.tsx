@@ -3,6 +3,8 @@ import Phase01 from "./pages/Phase01";
 import Phase02 from "./pages/Phase02";
 import Phase03 from "./pages/Phase03";
 import Phase04 from "./pages/Phase04";
+import SubmitPage from "./pages/SubmitPage";
+import RecentPage from "./pages/RecentPage";
 
 export default function App() {
   return (
@@ -12,6 +14,8 @@ export default function App() {
         <Link to="/phase02" className="border border-b-black px-4 py-2">Phase 02</Link>
         <Link to="/phase03" className="border border-b-black px-4 py-2">Phase 03</Link>
         <Link to="/phase04" className="border border-b-black px-4 py-2">Phase 04</Link>
+        <Link to="/submitpage" className="border border-b-black px-4 py-2">Submit Page</Link>
+        <Link to="/recentpage" className="border border-b-black px-4 py-2">Recent Submissions</Link>
       </nav>
       <Routes>
         <Route path="/" element={<Navigate to="/phase01" replace/>} />
@@ -19,6 +23,8 @@ export default function App() {
         <Route path="/phase02" element={<Phase02 />} />
         <Route path="/phase03" element={<Phase03 />} />
         <Route path="/phase04" element={<Phase04 />} />
+        <Route path="/submitpage" element={<SubmitPage />} />
+        <Route path="/recentpage" element={<RecentPage />} />
       </Routes>
     </BrowserRouter>
   )

@@ -10,6 +10,7 @@ app.use(express.json())
 
 // Routes
 app.use('/api/message', require('./routes/message'))
+app.use('/api/submissions', require('./routes/submissions'))
 
 app.listen(PORT, () => {
   console.log(`Server running on http://localhost:${PORT}`)
