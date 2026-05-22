@@ -1,11 +1,14 @@
 import { useEffect, useState } from 'react'
 import Skeleton from 'react-loading-skeleton'
 import Card from '../components/Card'
+import useBackendMessage from '../hooks/useBackendMessage'
 
 export default function Phase4() {
     const [count, setCount] = useState(0)
     const [text, setText] = useState('')
     const [loading, setLoading] = useState(true)
+    
+    const {message, error} = useBackendMessage()
 
     useEffect(() => {
     const timer = setTimeout(() => setLoading(false), 5000)
@@ -94,8 +97,7 @@ export default function Phase4() {
         <section>
           <h2 className='text-xl font-semibold mb-3'>Display for text</h2>
           <p className='text-xs'>
-            The purpose of this widget is to display text.
-            Idk what else to put here, We can finally be Bees. 
+            {error || message} 
           </p>
         </section>
       </Card>

@@ -10,7 +10,7 @@ export default function App() {
   return (
     <BrowserRouter>
       <div className='min-h-screen p-6'>
-        <h1 className='text-3xl font-bold mb-6'>Phase 6: Using Skeleton for Loading</h1>
+        <h1 className='text-3xl font-bold mb-6'>Phase 7: Connecting a backend</h1>
         <nav className='flex gap-3 mb-8'>
           <Link to='/Phase-1' className='border px-4 py-2 rounded'>
             Phase 1
