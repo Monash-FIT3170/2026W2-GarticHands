@@ -48,7 +48,7 @@ export default function RecentSubmissions() {
 
       {error && <p>{error}</p>}
 
-      {!loading && !error && submissions.length === 0 && (
+      {!loading && !error && submissions.length ===  0 && (
         <p>No Data in backend.</p>
       )}
 

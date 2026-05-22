@@ -50,6 +50,37 @@ function createSubmissionsRouter(SubmissionModel = Submission) {
     }
   })
 
+  router.get('/stats', async (req, res) => {
+    try {
+      const submissions = await Submission.find()
+
+      const grouped = {}
+
+      submissions.forEach((submission) => {
+        const date = submission.createdAt.toISOString().split('T')[0]
+
+        if (!grouped[date]) {
+          grouped[date] = 0
+        }
+
+        grouped[date]++
+      })
+
+      const submissionsPerDay = Object.entries(grouped).map(([date, count]) => ({
+        date,
+        count,
+      }))
+
+      res.json({
+        submissions_per_day: submissionsPerDay,
+      })
+    } catch (error) {
+      res.status(500).json({
+        message: 'Failed to fetch stats'
+      })
+    }
+  })
+
   return router
 }
 

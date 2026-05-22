@@ -4,6 +4,7 @@ import Phase2 from './Pages/Phase2'
 import Phase3 from './Pages/Phase3'
 import Phase4 from './Pages/Phase4'
 import Phase12 from './Pages/Phase12'
+import Phase13 from './Pages/Phase13'
 import 'react-loading-skeleton/dist/skeleton.css'
 
 export default function App() {
@@ -11,7 +12,7 @@ export default function App() {
   return (
     <BrowserRouter>
       <div className='min-h-screen p-6'>
-        <h1 className='text-3xl font-bold mb-6'>Phase 12: Completing the Loop</h1>
+        <h1 className='text-3xl font-bold mb-6'>Phase 13: Data Visualization</h1>
         <nav className='flex gap-3 mb-8'>
           <Link to='/Phase-1' className='border px-4 py-2 rounded'>
             Phase 1
@@ -28,6 +29,9 @@ export default function App() {
           <Link to='/Phase-12' className='border px-4 py-2 rounded'>
             Phase 12
           </Link>
+          <Link to='/Phase-13' className='border px-4 py-2 rounded'>
+            Phase 13
+          </Link>
         </nav>
 
         <Routes>
@@ -37,6 +41,7 @@ export default function App() {
           <Route path='/Phase-3' element={<Phase3 />}/>
           <Route path='/Phase-4' element={<Phase4 />}/>
           <Route path='/Phase-12' element={<Phase12 />}/>
+          <Route path='/Phase-13' element={<Phase13 />}/>
         </Routes>
       </div>
     </BrowserRouter>
