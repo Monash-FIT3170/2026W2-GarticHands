@@ -2,9 +2,10 @@ import { useEffect, useRef, useState } from 'react'
 import { useLocation, useNavigate } from 'react-router-dom'
 import {
   DrawingProvider,
-  DrawingCameraInput,
-  DrawingCameraCanvas,
+  DrawingStage,
+  DrawingModePicker,
   useDrawing,
+  useDrawingMode,
   useRecorder,
 } from '../drawing'
 import { Card, Button, RoundHeader, CountdownTimer } from '../components/ui'
@@ -13,14 +14,6 @@ import { usePhaseAdvance } from '../hooks/usePhaseAdvance'
 import { useRecordings } from '../state/RecordingsContext'
 
 const TotalTime = 60
-
-type DrawMode = 'split' | 'overlay' | 'both'
-
-const MODES: Array<{ id: DrawMode; label: string; description: string }> = [
-  { id: 'split', label: 'Camera + Canvas', description: 'Camera and canvas side-by-side.' },
-  { id: 'overlay', label: 'Draw on Camera', description: 'Strokes appear directly on the camera feed.' },
-  { id: 'both', label: 'Camera + Overlay + Canvas', description: 'Canvas alongside, plus strokes on the camera.' },
-]
 
 export default function DrawPage() {
   return (
@@ -40,11 +33,11 @@ function DrawPageInner() {
   const { getDrawingImage } = useDrawing()
   const recorder = useRecorder()
   const { saveRecording } = useRecordings()
+  const [mode, setMode] = useDrawingMode()
   const [submitted, setSubmitted] = useState(false)
   const [error, setError] = useState('')
   const [prompt, setPrompt] = useState<string>('')
   const [roundNum, setRoundNum] = useState<number | null>(null)
-  const [mode, setMode] = useState<DrawMode>(loadModePreference())
   const startedRef = useRef(false)
 
   useEffect(() => {
@@ -60,22 +53,16 @@ function DrawPageInner() {
     })
   }, [roomCode, playerName, navigate])
 
-  // Start recording once the room has been fetched and we know the round.
-  // `startedRef` guards against React 18 StrictMode's double-mount + re-renders.
+  // Start recording once we know the round. `startedRef` guards StrictMode double-mount.
   useEffect(() => {
     if (startedRef.current) return
     if (roundNum === null) return
     if (!recorder.isSupported) return
     startedRef.current = true
-    // Slight delay lets the camera canvas mount and start drawing frames.
+    // Slight delay so the camera canvas has mounted and started drawing frames.
     const t = setTimeout(() => recorder.start(), 400)
     return () => clearTimeout(t)
   }, [roundNum, recorder])
-
-  // Persist mode per-player so subsequent rounds remember the choice.
-  useEffect(() => {
-    saveModePreference(mode)
-  }, [mode])
 
   const { waitingFor, room } = usePhaseAdvance({
     roomCode,
@@ -98,7 +85,7 @@ function DrawPageInner() {
     setSubmitted(true)
     setError('')
 
-    // Stop recording in parallel with the submit so the playback is ready by /game.
+    // Stop recording in parallel with the submit so the playback is ready on /game.
     const recordingPromise = recorder.isRecording ? recorder.stop() : Promise.resolve(null)
 
     const [data, blobUrl] = await Promise.all([
@@ -150,11 +137,8 @@ function DrawPageInner() {
           />
         </div>
 
-        <ModePicker value={mode} onChange={setMode} disabled={submitted} />
-
-        {mode === 'split' && <SplitLayout />}
-        {mode === 'overlay' && <OverlayLayout />}
-        {mode === 'both' && <BothLayout />}
+        <DrawingModePicker mode={mode} onModeChange={setMode} disabled={submitted} />
+        <DrawingStage mode={mode} />
 
         <p className="text-xs text-white/70 mt-4 text-center">
           Pinch your index finger and thumb to draw &middot; Open palm to erase
@@ -176,136 +160,4 @@ function DrawPageInner() {
       </Card>
     </div>
   )
-}
-
-interface ModePickerProps {
-  value: DrawMode
-  onChange: (mode: DrawMode) => void
-  disabled?: boolean
-}
-
-/** Segmented control for the draw layout. Visible above the canvases. */
-function ModePicker({ value, onChange, disabled }: ModePickerProps) {
-  return (
-    <div className="mt-2 mb-2">
-      <div
-        className={`inline-flex rounded-full bg-white/80 p-1 gap-1 ${
-          disabled ? 'opacity-50 pointer-events-none' : ''
-        }`}
-      >
-        {MODES.map((m) => {
-          const selected = value === m.id
-          return (
-            <button
-              key={m.id}
-              type="button"
-              onClick={() => onChange(m.id)}
-              className={`px-3 py-1.5 rounded-full text-xs font-bold uppercase tracking-[0.12em] transition-colors ${
-                selected
-                  ? 'bg-[#2E5534] text-white shadow-sm'
-                  : 'text-[#3D6B64] hover:bg-white'
-              }`}
-              title={m.description}
-            >
-              {m.label}
-            </button>
-          )
-        })}
-      </div>
-    </div>
-  )
-}
-
-/** Side-by-side panels. Black strokes on a white canvas. */
-function SplitLayout() {
-  return (
-    <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mt-2">
-      <Panel label="Camera">
-        <DrawingCameraInput />
-      </Panel>
-      <Panel label="Canvas">
-        <DrawingCameraCanvas strokeColor="black" />
-      </Panel>
-    </div>
-  )
-}
-
-/** Camera with strokes drawn directly on top — no separate canvas surface. */
-function OverlayLayout() {
-  return (
-    <Panel label="Camera + Canvas">
-      <div className="relative">
-        <DrawingCameraInput />
-        <DrawingCameraCanvas
-          strokeColor="white"
-          className="absolute inset-0 w-full h-full"
-        />
-      </div>
-    </Panel>
-  )
-}
-
-/** Camera with overlay AND a separate canvas. Both canvases register with the
- *  same DrawingProvider, so strokes appear in both in lockstep. The black
- *  canvas is mounted first → it's the primary (submitted) one. */
-function BothLayout() {
-  return (
-    <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mt-2">
-      <Panel label="Camera + Overlay">
-        <div className="relative">
-          <DrawingCameraInput />
-          {/* Mounted second, so it's the shadow overlay — not submitted. */}
-          <DrawingCameraCanvas
-            strokeColor="white"
-            className="absolute inset-0 w-full h-full"
-          />
-        </div>
-      </Panel>
-      <Panel label="Canvas">
-        {/* Mounted first → primary canvas. This is what gets submitted. */}
-        <DrawingCameraCanvas strokeColor="black" />
-      </Panel>
-    </div>
-  )
-}
-
-interface PanelProps {
-  label: string
-  children: React.ReactNode
-}
-
-/** Small in-card panel — caption above a rounded surface. */
-function Panel({ label, children }: PanelProps) {
-  return (
-    <div className="flex flex-col gap-2">
-      <p className="text-xs font-extrabold uppercase tracking-[0.2em] text-white/80">
-        {label}
-      </p>
-      {children}
-    </div>
-  )
-}
-
-// ---------------------------------------------------------------------------
-// Mode preference persistence
-// ---------------------------------------------------------------------------
-
-const MODE_STORAGE_KEY = 'gartichands:drawMode'
-
-function loadModePreference(): DrawMode {
-  try {
-    const v = localStorage.getItem(MODE_STORAGE_KEY)
-    if (v === 'split' || v === 'overlay' || v === 'both') return v
-  } catch {
-    /* localStorage may be unavailable in some contexts — ignore. */
-  }
-  return 'split'
-}
-
-function saveModePreference(mode: DrawMode) {
-  try {
-    localStorage.setItem(MODE_STORAGE_KEY, mode)
-  } catch {
-    /* ignore */
-  }
 }
