@@ -1,59 +1,23 @@
-import { useState } from "react";
-import "./App.css";
-import Card from "./components/Card";
+import { BrowserRouter, Routes, Route, Link } from 'react-router-dom'
+import JoinPage from './pages/JoinPage'
 
 function App() {
-  const [count, setCount] = useState(0);
-  const [text, setText] = useState("Hello!");
-  const [formValue, setFormValue] = useState("");
-
   return (
-    <div className="app-container">
-
-      {/* Counter Widget */}
-      <Card>
-        <div className="widget">
-          <h2>Counter</h2>
-          <p>{count}</p>
-          <button onClick={() => setCount(count + 1)}>Increase</button>
-          <button onClick={() => setCount(count - 1)}>Decrease</button>
-        </div>
-      </Card>
-
-      {/* Text Display Widget */}
-      <Card>
-        <div className="widget">
-          <h2>Text Display</h2>
-          <p>{text}</p>
-          <button onClick={() => setText("You clicked the button!")}>
-            Change Text
-          </button>
-        </div>
-      </Card>
-
-      {/* Form Input Widget */}
-      <Card>
-        <div className="widget">
-          <h2>Form Input</h2>
-          <form
-            onSubmit={(e) => {
-              e.preventDefault();
-              alert("Submitted: " + formValue);
-            }}
-          >
-            <input
-              type="text"
-              value={formValue}
-              onChange={(e) => setFormValue(e.target.value)}
-              placeholder="Type something..."
-            />
-            <button type="submit">Submit</button>
-          </form>
-        </div>
-      </Card>
-
-    </div>
-  );
+    <BrowserRouter>
+      <nav style={{ padding: '12px 20px', backgroundColor: '#f3f4f6', borderBottom: '1px solid #ddd' }}>
+        <Link to="/join" style={{ color: '#2563eb' }}>Join Game</Link>
+      </nav>
+      <Routes>
+        <Route path="/join" element={<JoinPage />} />
+        <Route path="/" element={
+          <div style={{ padding: '40px' }}>
+            <h1>Gartic Hands</h1>
+            <p>Go to <a href="/join">/join</a> to join a game.</p>
+          </div>
+        } />
+      </Routes>
+    </BrowserRouter>
+  )
 }
 
-export default App;
+export default App
