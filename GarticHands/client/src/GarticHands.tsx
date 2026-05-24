@@ -7,21 +7,27 @@ import Game from './Pages/gamePage.tsx'
 import Input from './Pages/inputPage.tsx'
 import Draw from './Pages/drawPage.tsx'
 import Guess from './Pages/guessingPage.tsx'
+import Playground from './Pages/playgroundPage.tsx'
+import Solo from './Pages/soloPage.tsx'
+import { RecordingsProvider } from './state/RecordingsContext.tsx'
 
 export default function GarticHands() {
-
   return (
     <BrowserRouter>
-      <Routes>
-        <Route path='/' element={<Land />}/>
-        <Route path='/host' element={<Host />}/>
-        <Route path='/join' element={<Join />}/>
-        <Route path='/joined/:roomCode' element={<Joined />}/>
-        <Route path='/game' element={<Game />}/>
-        <Route path='/input' element={<Input />}/>
-        <Route path='/draw' element={<Draw />}/>
-        <Route path='/guess' element={<Guess />}/>
-      </Routes>
+      <RecordingsProvider>
+        <Routes>
+          <Route path='/' element={<Land />}/>
+          <Route path='/host' element={<Host />}/>
+          <Route path='/join' element={<Join />}/>
+          <Route path='/joined/:roomCode' element={<Joined />}/>
+          <Route path='/game' element={<Game />}/>
+          <Route path='/input' element={<Input />}/>
+          <Route path='/draw' element={<Draw />}/>
+          <Route path='/guess' element={<Guess />}/>
+          <Route path='/playground' element={<Playground />}/>
+          <Route path='/solo' element={<Solo />}/>
+        </Routes>
+      </RecordingsProvider>
     </BrowserRouter>
   )
 }

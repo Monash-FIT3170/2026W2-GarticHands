@@ -19,6 +19,7 @@
 export { DrawingProvider, useDrawing } from './DrawingContext'
 export { default as DrawingCameraInput } from './components/DrawingCameraInput'
 export { default as DrawingCameraCanvas } from './components/DrawingCameraCanvas'
+export { useRecorder } from './useRecorder'
 
 // Type re-exports for callers that need to type their own handlers
 export type { HandLandmark } from './Models/HandLandmark'

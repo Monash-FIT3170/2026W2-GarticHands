@@ -40,6 +40,24 @@ export default function LandingPage() {
             Host Game
           </Button>
         </div>
+
+        <div className="flex gap-2 w-full justify-center pt-2 text-white/90">
+          <button
+            type="button"
+            onClick={() => navigate('/solo')}
+            className="text-xs font-bold uppercase tracking-[0.18em] underline-offset-2 hover:underline transition-colors"
+          >
+            Solo (Computer Mode)
+          </button>
+          <span className="text-white/40">·</span>
+          <button
+            type="button"
+            onClick={() => navigate('/playground')}
+            className="text-xs font-bold uppercase tracking-[0.18em] underline-offset-2 hover:underline transition-colors"
+          >
+            Playground
+          </button>
+        </div>
       </Card>
     </Page>
   )

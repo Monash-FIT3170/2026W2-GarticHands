@@ -1,5 +1,6 @@
-import { useRef } from 'react'
+import { useEffect, useRef } from 'react'
 import { useHandTracking } from '../hooks/useHandTracking'
+import { useDrawingContext } from '../DrawingContext'
 import type { GestureType as GestureTypeValue } from '../gestures/GestureTypes'
 import type { HandLandmark } from '../Models/HandLandmark'
 
@@ -10,9 +11,17 @@ interface HandTrackingProps {
   ) => void
 }
 
+/**
+ * Webcam preview with overlaid landmark skeleton. No header text or chrome —
+ * status pills float over the bottom of the canvas so it slots into any layout.
+ *
+ * Also publishes its canvas DOM element to the surrounding `<DrawingProvider>`
+ * so the recorder hook can composite the camera feed into saved videos.
+ */
 export default function HandTracking({ onFrame }: HandTrackingProps) {
   const videoRef = useRef<HTMLVideoElement>(null)
   const canvasRef = useRef<HTMLCanvasElement>(null)
+  const { registerCameraCanvas } = useDrawingContext()
 
   const { isLoading, error, handDetected, gesture } = useHandTracking({
     videoRef,
@@ -20,39 +29,52 @@ export default function HandTracking({ onFrame }: HandTrackingProps) {
     onFrame,
   })
 
+  useEffect(() => {
+    const canvas = canvasRef.current
+    if (!canvas) return
+    return registerCameraCanvas(canvas)
+  }, [registerCameraCanvas])
+
   return (
-    <div style={{ display: 'flex', flexDirection: 'column', gap: '12px', alignItems: 'center' }}>
-      <h2>Hand Tracking</h2>
-
-      {error && <p style={{ color: 'red' }}>{error}</p>}
-
-      {!error && (
-        <>
-          <p>
-            {isLoading
-              ? 'Loading camera and model...'
-              : handDetected
-              ? '✅ Hand detected'
-              : '👋 No hand detected'}
-          </p>
-          <p>Gesture: <b>{gesture}</b></p>
-        </>
-      )}
-
-      {/* Hidden raw webcam — display:none can throttle in some browsers;
-          visibility:hidden keeps it active but invisible */}
+    <div className="relative w-full aspect-[4/3] rounded-xl overflow-hidden bg-white border border-white/30 shadow-inner">
+      {/* Hidden raw webcam — visibility:hidden keeps the track active while invisible. */}
       <video
         ref={videoRef}
         playsInline
         muted
-        style={{ visibility: 'hidden', position: 'absolute' }}
+        style={{ visibility: 'hidden', position: 'absolute', inset: 0 }}
       />
 
-      {/* No CSS scaleX(-1) here — mirroring is done once in the canvas context */}
       <canvas
         ref={canvasRef}
-        style={{ width: '640px', height: '480px', border: '2px solid gray' }}
+        className="absolute inset-0 w-full h-full"
       />
+
+      {/* Status overlay — pinned to bottom so it never crowds the drawing area. */}
+      <div className="absolute left-2 bottom-2 flex gap-2 text-xs font-semibold">
+        {error ? (
+          <span className="px-2 py-1 rounded-full bg-red-500/90 text-white">{error}</span>
+        ) : isLoading ? (
+          <span className="px-2 py-1 rounded-full bg-white/90 text-[#3D6B64]">
+            Loading camera...
+          </span>
+        ) : (
+          <>
+            <span
+              className={`px-2 py-1 rounded-full ${
+                handDetected
+                  ? 'bg-[#78EF57]/90 text-[#2E5534]'
+                  : 'bg-white/90 text-[#3D6B64]'
+              }`}
+            >
+              {handDetected ? 'Hand detected' : 'Show your hand'}
+            </span>
+            <span className="px-2 py-1 rounded-full bg-[#2F4542]/90 text-white">
+              {gesture}
+            </span>
+          </>
+        )}
+      </div>
     </div>
   )
 }

@@ -8,6 +8,7 @@ import {
 import type { HandLandmark } from '../Models/HandLandmark';
 import { GestureType } from '../gestures/GestureTypes';
 import { landmarkToCanvas } from '../gestures/coords';
+import { useDrawingContext } from '../DrawingContext';
 
 import type { CanvasOp } from './CanvasOperations/CanvasOps';
 import { CanvasDraw } from './CanvasOperations/CanvasDraw';
@@ -27,15 +28,36 @@ interface CanvasProps {
   width?: number;
   height?: number;
   ref?: Ref<CanvasHandle>;
+  /** Color for the draw-stroke op. Default black. Switch to e.g. 'white' when
+   *  overlaying on the camera feed for contrast. Changing this preserves the
+   *  existing canvas pixels — only future strokes adopt the new color. */
+  strokeColor?: string;
+  /** Wrapper class override. When omitted, the default rounded white panel is used.
+   *  Pass an absolute-positioned, transparent class set to overlay on the camera. */
+  className?: string;
 }
 
 // MediaPipe landmark index for the tip of the index finger — the single
 // "cursor point" used across all operations for consistency.
 const INDEX_FINGERTIP = 8;
 
-const Canvas = ({ width = 640, height = 480, ref }: CanvasProps) => {
+const Canvas = ({
+  width = 640,
+  height = 480,
+  ref,
+  strokeColor = 'black',
+  className,
+}: CanvasProps) => {
   const drawCanvasRef = useRef<HTMLCanvasElement>(null);
   const overlayCanvasRef = useRef<HTMLCanvasElement>(null);
+  const { registerDrawCanvasElement } = useDrawingContext();
+
+  // Publish the draw-canvas DOM node so the recorder can sample it per-frame.
+  useEffect(() => {
+    const canvas = drawCanvasRef.current;
+    if (!canvas) return;
+    return registerDrawCanvasElement(canvas);
+  }, [registerDrawCanvasElement]);
 
   // Ops, cursor, and the currently-routed op live in a ref so the
   // imperative onFrame handler can mutate them without re-renders.
@@ -45,17 +67,20 @@ const Canvas = ({ width = 640, height = 480, ref }: CanvasProps) => {
     active: CanvasOp | null;
   } | null>(null);
 
+  // Recreate ops when strokeColor changes — preserves the already-drawn pixels
+  // (those live on the canvas element, not in the op instances) while routing
+  // future strokes through the new-colored CanvasDraw.
   useEffect(() => {
     const drawCtx = drawCanvasRef.current?.getContext('2d');
     const overlayCtx = overlayCanvasRef.current?.getContext('2d');
     if (!drawCtx || !overlayCtx) return;
 
     stateRef.current = {
-      ops: [new CanvasDraw(drawCtx), new CanvasErase(drawCtx)],
+      ops: [new CanvasDraw(drawCtx, strokeColor), new CanvasErase(drawCtx)],
       cursor: new CanvasLocation(overlayCtx),
       active: null,
     };
-  }, []);
+  }, [strokeColor]);
 
   useImperativeHandle(
     ref,
@@ -93,46 +118,24 @@ const Canvas = ({ width = 640, height = 480, ref }: CanvasProps) => {
     [],
   );
 
-  return (
-    <div
-      style={{
-        display: 'flex',
-        flexDirection: 'column',
-        gap: '12px',
-        alignItems: 'center',
-      }}
-    >
-      <h2>Canvas</h2>
+  const wrapperClass =
+    className ??
+    'relative w-full aspect-[4/3] rounded-xl overflow-hidden bg-white border border-white/30 shadow-inner';
 
-      <div
-        style={{
-          position: 'relative',
-          width,
-          height,
-        }}
-      >
-        <canvas
-          ref={drawCanvasRef}
-          width={width}
-          height={height}
-          style={{
-            position: 'absolute',
-            inset: 0,
-            border: '2px solid gray',
-            background: 'white',
-          }}
-        />
-        <canvas
-          ref={overlayCanvasRef}
-          width={width}
-          height={height}
-          style={{
-            position: 'absolute',
-            inset: 0,
-            pointerEvents: 'none',
-          }}
-        />
-      </div>
+  return (
+    <div className={wrapperClass}>
+      <canvas
+        ref={drawCanvasRef}
+        width={width}
+        height={height}
+        className="absolute inset-0 w-full h-full"
+      />
+      <canvas
+        ref={overlayCanvasRef}
+        width={width}
+        height={height}
+        className="absolute inset-0 w-full h-full pointer-events-none"
+      />
     </div>
   );
 };
