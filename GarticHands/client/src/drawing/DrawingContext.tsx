@@ -8,6 +8,11 @@ interface DrawingContextValue {
   pushFrame: (landmarks: HandLandmark[] | null, gesture: GestureType) => void
   /** Canvas registers its imperative handle so the provider can forward frames. */
   registerCanvas: (handle: CanvasHandle | null) => void
+  /**
+   * Snapshot the current canvas content as a PNG data URL. Returns `null` if the
+   * canvas isn't mounted yet. Used at submit time on `/draw`.
+   */
+  getDrawingImage: () => string | null
 }
 
 const DrawingContext = createContext<DrawingContextValue | null>(null)
@@ -27,6 +32,9 @@ interface DrawingProviderProps {
  *   <DrawingCameraCanvas />
  * </DrawingProvider>
  * ```
+ *
+ * Use `useDrawing()` from within the provider to grab the drawing image at submit
+ * time: `const { getDrawingImage } = useDrawing()`.
  */
 export function DrawingProvider({ children }: DrawingProviderProps) {
   const canvasRef = useRef<CanvasHandle | null>(null)
@@ -42,8 +50,12 @@ export function DrawingProvider({ children }: DrawingProviderProps) {
     canvasRef.current = handle
   }, [])
 
+  const getDrawingImage = useCallback(() => {
+    return canvasRef.current?.getImage() ?? null
+  }, [])
+
   return (
-    <DrawingContext.Provider value={{ pushFrame, registerCanvas }}>
+    <DrawingContext.Provider value={{ pushFrame, registerCanvas, getDrawingImage }}>
       {children}
     </DrawingContext.Provider>
   )
@@ -58,4 +70,17 @@ export function useDrawingContext(): DrawingContextValue {
     )
   }
   return ctx
+}
+
+/**
+ * Public hook for pages — grab the canvas snapshot when submitting.
+ *
+ * ```tsx
+ * const { getDrawingImage } = useDrawing()
+ * const dataUrl = getDrawingImage()
+ * ```
+ */
+export function useDrawing() {
+  const { getDrawingImage } = useDrawingContext()
+  return { getDrawingImage }
 }

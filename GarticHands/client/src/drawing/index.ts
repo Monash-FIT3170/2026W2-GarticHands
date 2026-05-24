@@ -16,7 +16,7 @@
  * implementation detail of these public components — don't reach into it from
  * Pages.
  */
-export { DrawingProvider } from './DrawingContext'
+export { DrawingProvider, useDrawing } from './DrawingContext'
 export { default as DrawingCameraInput } from './components/DrawingCameraInput'
 export { default as DrawingCameraCanvas } from './components/DrawingCameraCanvas'
 

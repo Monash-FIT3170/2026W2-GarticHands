@@ -19,6 +19,8 @@ export interface CanvasHandle {
     landmarks: HandLandmark[] | null,
     gesture: GestureType,
   ) => void;
+  /** Returns the draw canvas as a PNG data URL, or null if the canvas is not yet mounted. */
+  getImage: () => string | null;
 }
 
 interface CanvasProps {
@@ -83,6 +85,9 @@ const Canvas = ({ width = 640, height = 480, ref }: CanvasProps) => {
         } else {
           state.cursor.clear();
         }
+      },
+      getImage() {
+        return drawCanvasRef.current?.toDataURL('image/png') ?? null;
       },
     }),
     [],

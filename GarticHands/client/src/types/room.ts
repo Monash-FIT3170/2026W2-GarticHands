@@ -18,9 +18,17 @@ export interface Player {
 
 export type RoomStatus = 'waiting' | 'started'
 
+export type RoomPhase = 'lobby' | 'prompt' | 'draw' | 'guess' | 'reveal'
+
 export interface Room {
   code: string
   players: Player[]
   status: RoomStatus
+  phase: RoomPhase
+  round: number
+  maxRounds: number
+  prompts: Record<string, string>
+  drawings: Record<string, string>
+  guesses: Record<string, string>
   createdAt: number
 }

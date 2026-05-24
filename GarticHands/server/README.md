@@ -28,13 +28,32 @@ type Player = {
   joinedAt: number          // Date.now()
 }
 
+type RoomPhase = 'lobby' | 'prompt' | 'draw' | 'guess' | 'reveal'
+
 type Room = {
   code: string              // 6 chars, [A-Z0-9]
   players: Player[]
   status: 'waiting' | 'started'
+  phase: RoomPhase
+  round: number             // increments on each "Play Again"
+  prompts: Record<string, string>   // playerName → prompt text
+  drawings: Record<string, string>  // playerName → PNG data URL
+  guesses: Record<string, string>   // playerName → guess text
   createdAt: number
 }
 ```
+
+### Phase machine
+
+```
+lobby ──start──▶ prompt ──all-prompts-in──▶ draw ──all-drawings-in──▶ guess ──all-guesses-in──▶ reveal
+                                                                                                  │
+                                                                                          restart │
+                                                                                                  ▼
+                                                                                              prompt (round + 1)
+```
+
+Each submit endpoint advances the phase exactly once — when every player has submitted for the current phase. Submitting during the wrong phase returns `409`.
 
 ## REST endpoints
 
@@ -104,12 +123,71 @@ Also broadcasts `room-update`.
 
 ### `PATCH /rooms/:roomCode/start`
 
-Mark the room as `started`. The lobby polls this transition and navigates players to `/input`.
+Mark the room as `started`, set `phase = 'prompt'`, reset `prompts`/`drawings`/`guesses`. The lobby polls this transition and navigates players to `/input`.
 
 **Response 200** `{ "success": true, "room": { ... } }`
 **Response 404** room not found.
 
-Also broadcasts `game-start`.
+Broadcasts both `game-start` and `room-update`.
+
+### `POST /rooms/:roomCode/prompts`
+
+Record one player's prompt. Auto-advances `phase` to `'draw'` when every player has submitted.
+
+**Body**
+
+```json
+{ "playerName": "Alice", "prompt": "a potato wearing a hat" }
+```
+
+**Response 200** `{ "success": true, "room": { ... } }`
+**Response 400** invalid (empty prompt).
+**Response 409** room is not in the `prompt` phase.
+**Response 404** room or player not found.
+
+Broadcasts `room-update`.
+
+### `POST /rooms/:roomCode/drawings`
+
+Record one player's drawing as a PNG data URL. Auto-advances `phase` to `'guess'` when every player has submitted. The body limit is `10mb`.
+
+**Body**
+
+```json
+{ "playerName": "Alice", "dataUrl": "data:image/png;base64,iVBORw0KGgo..." }
+```
+
+**Response 200** `{ "success": true, "room": { ... } }`
+**Response 400** payload is not a `data:image/...` URL.
+**Response 409** room is not in the `draw` phase.
+**Response 404** room or player not found.
+
+Broadcasts `room-update`.
+
+### `POST /rooms/:roomCode/guesses`
+
+Record one player's guess. Auto-advances `phase` to `'reveal'` when every player has submitted.
+
+**Body**
+
+```json
+{ "playerName": "Alice", "guess": "spud with a top hat" }
+```
+
+**Response 200** `{ "success": true, "room": { ... } }`
+**Response 409** room is not in the `guess` phase.
+**Response 404** room or player not found.
+
+Broadcasts `room-update`.
+
+### `PATCH /rooms/:roomCode/restart`
+
+Start a new round. Resets prompts/drawings/guesses, increments `round`, sets `phase = 'prompt'` and `status = 'started'`. Clients on `/game` (reveal) poll for this and navigate back to `/input`.
+
+**Response 200** `{ "success": true, "room": { ... } }`
+**Response 404** room not found.
+
+Broadcasts `room-update`.
 
 ## Socket events
 

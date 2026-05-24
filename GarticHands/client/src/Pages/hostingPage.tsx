@@ -51,10 +51,13 @@ export default function HostingPage() {
   }
 
   async function handleStart() {
-    if (!allReady) return
+    if (!allReady || !hostName) return
     await startRoom(roomCode)
     show('Starting game...')
-    setTimeout(() => navigate('/input'), 1200)
+    setTimeout(
+      () => navigate('/input', { state: { roomCode, playerName: hostName } }),
+      1200,
+    )
   }
 
   return (

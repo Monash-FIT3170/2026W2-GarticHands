@@ -60,39 +60,36 @@ GarticHands/
 The intended game flow is:
 
 ```
-Landing  →  Host/Join  →  Lobby  →  Prompt entry  →  Draw  →  Guess  →  Reveal/Next round
-   /          /host         /joined     /input        /draw    /guess        ?
-              /join         :code
+Landing → Host/Join → Lobby → Prompt → Draw → Guess → Reveal ↺
+   /        /host       /joined  /input   /draw  /guess  /game  (Play Again → /input)
+            /join       :code
 ```
 
-What currently works:
+| Stage          | Route           | Status | Notes                                                                      |
+| -------------- | --------------- | ------ | -------------------------------------------------------------------------- |
+| Landing        | `/`             | ✅     | Pick host or join.                                                          |
+| Hosting lobby  | `/host`         | ✅     | Creates room via REST, polls room state, host can start when all are ready. |
+| Joining form   | `/join`         | ✅     | Submit name + room code.                                                    |
+| Joined lobby   | `/joined/:code` | ✅     | Polls room, ready toggle, auto-navigates to `/input` on game start.         |
+| Prompt entry   | `/input`        | ✅     | Each player writes a sentence. Auto-advances to `/draw` when all submit.    |
+| Drawing        | `/draw`         | ✅     | MediaPipe hand-tracking canvas. Submits PNG to server; auto-advances to `/guess`. |
+| Guessing       | `/guess`        | ✅     | Each player guesses another's drawing (cyclic). Auto-advances to `/game`.   |
+| Reveal         | `/game`         | ✅     | Shows the prompt → drawing → guess chain for every player. Host can "Play Again" to start round N+1. |
 
-| Stage             | Route               | Status        | Notes                                                                  |
-| ----------------- | ------------------- | ------------- | ---------------------------------------------------------------------- |
-| Landing           | `/`                 | ✅ works       | Pick host or join                                                      |
-| Hosting lobby     | `/host`             | ✅ works       | Creates room via REST, polls room state every 1s, host can start       |
-| Joining form      | `/join`             | ✅ works       | Submit name + room code                                                |
-| Joined lobby      | `/joined/:code`     | ✅ works       | Polls room, ready toggle, auto-navigates to `/input` on game start     |
-| Prompt entry      | `/input`            | ⚠️ stub        | UI exists; submit is local-only, no API call, no navigation onward     |
-| Drawing (hands)   | `/draw`             | ⚠️ stub        | MediaPipe + Canvas wired; submit is local-only; drawing not networked  |
-| Guessing          | `/guess`            | ⚠️ stub        | Hard-coded "Drawn by Lily"; no real drawing displayed                  |
-| Game placeholder  | `/game`             | ❌ placeholder | Renders the literal text "Game Page"                                   |
+### How it advances
 
-### Key gaps for a playable MVP
+The server holds the round state machine. Each submit endpoint (`/prompts`, `/drawings`, `/guesses`) records that player's contribution; when **every player** in the room has submitted, the server flips `room.phase` to the next phase and broadcasts `room-update`. Clients on the current page poll `GET /rooms/:code` once per second and navigate forward as soon as they see the new phase. The pattern is encapsulated in [`hooks/usePhaseAdvance.ts`](client/src/hooks/usePhaseAdvance.ts).
 
-1. **No socket.io client wiring.** Server emits `room-update` / `drawing-update` / `hand-tracking-update`; nothing on the client subscribes. The HTTP polling in lobbies is the current fallback. See [`server/README.md`](server/README.md#socket-events) for the event contract.
-2. **No round state machine.** Routes `/input`, `/draw`, `/guess` are isolated screens. Nothing decides whose turn it is or what comes next.
-3. **No prompt → drawing handoff.** What you type in `/input` is dropped; `/draw` doesn't know the prompt; `/guess` doesn't know the drawing.
-4. **No persistence of drawings.** The `<Canvas>` component renders locally; drawing strokes aren't serialized or sent to the server.
-5. **`/game` is a literal stub.** Either remove the route or turn it into the post-round reveal screen.
+### Cyclic assignment
 
-### Suggested next slice (smallest playable loop)
+In `/guess`, player at index *i* sees the drawing of player at index *(i + 1) mod N*. The cycle is deterministic from the shared player-list order, so both clients agree on who guesses whose drawing without extra server coordination.
 
-1. Add a `socket.io-client` provider on the React side; subscribe to `room-update` so the lobby drops the 1s polling.
-2. Extend the `Room` object on the server with `currentRound`, `currentPlayer`, `phase` (`prompt` / `draw` / `guess`), and `prompts: string[]` / `drawings: string[]`.
-3. On prompt submit, `POST /rooms/:code/prompts` (or socket emit) and advance phase server-side; broadcast the new phase to all clients.
-4. Serialize canvas strokes as JSON (array of `{x, y, gesture}` points) and broadcast over `drawing-event`.
-5. Replace the hard-coded "Lily" in `/guess` with the previous player's drawing replayed from stroke data.
+### Known limitations
+
+1. **REST polling, not sockets.** Server already emits `room-update` over Socket.IO but the client doesn't subscribe yet. The 1s polling is the current substitute.
+2. **In-memory rooms.** Server restart wipes the room — every poll will then 404.
+3. **One round at a time.** "Play Again" increments `room.round` and restarts the loop, but no scoring or finals page exists.
+4. **No reconnect.** Refreshing during a game loses `location.state` and bounces the player to `/`.
 
 ---
 

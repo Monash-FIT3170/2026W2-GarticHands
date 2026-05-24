@@ -13,9 +13,11 @@ const io = new Server(server, {
 })
 
 const PORT = process.env.PORT || 3000
+const MAX_ROUNDS = 4
 
 app.use(cors())
-app.use(express.json())
+// PNG data URLs from the drawing canvas can be a few hundred KB; default is 100KB.
+app.use(express.json({ limit: '10mb' }))
 
 const rooms = {}
 
@@ -43,6 +45,12 @@ app.post('/rooms/create', (req, res) => {
       },
     ],
     status: 'waiting',
+    phase: 'lobby',
+    round: 1,
+    maxRounds: MAX_ROUNDS,
+    prompts: {},
+    drawings: {},
+    guesses: {},
     createdAt: Date.now(),
   }
 
@@ -116,8 +124,153 @@ app.patch('/rooms/:roomCode/start', (req, res) => {
   }
 
   room.status = 'started'
+  room.phase = 'prompt'
+  room.round = 1
+  room.prompts = {}
+  room.drawings = {}
+  room.guesses = {}
   io.to(room.code).emit('game-start', room)
+  io.to(room.code).emit('room-update', room)
   res.json({ success: true, room })
+})
+
+app.patch('/rooms/:roomCode/restart', (req, res) => {
+  const roomCode = req.params.roomCode.toUpperCase()
+  const room = rooms[roomCode]
+  if (!room) {
+    return res.status(404).json({ success: false, message: 'Room not found' })
+  }
+
+  if ((room.round || 1) >= MAX_ROUNDS) {
+    return res.status(409).json({
+      success: false,
+      message: `Cannot start round ${(room.round || 1) + 1} — max rounds is ${MAX_ROUNDS}. Use /end to return to the lobby.`,
+      maxRounds: MAX_ROUNDS,
+    })
+  }
+
+  room.status = 'started'
+  room.phase = 'prompt'
+  room.prompts = {}
+  room.drawings = {}
+  room.guesses = {}
+  room.round = (room.round || 1) + 1
+  io.to(room.code).emit('room-update', room)
+  res.json({ success: true, room, maxRounds: MAX_ROUNDS })
+})
+
+app.patch('/rooms/:roomCode/end', (req, res) => {
+  const roomCode = req.params.roomCode.toUpperCase()
+  const room = rooms[roomCode]
+  if (!room) {
+    return res.status(404).json({ success: false, message: 'Room not found' })
+  }
+
+  room.status = 'waiting'
+  room.phase = 'lobby'
+  room.round = 1
+  room.prompts = {}
+  room.drawings = {}
+  room.guesses = {}
+  for (const p of room.players) {
+    if (!p.isHost) {
+      p.ready = false
+      p.status = 'waiting'
+    }
+  }
+  io.to(room.code).emit('room-update', room)
+  res.json({ success: true, room })
+})
+
+function submitForPhase(roomCode, playerName, value, expectedPhase, bucket, nextPhase, validate) {
+  const room = rooms[roomCode]
+  if (!room) return { error: { status: 404, body: { success: false, message: 'Room not found' } } }
+
+  const player = room.players.find((p) => p.name === playerName)
+  if (!player) return { error: { status: 404, body: { success: false, message: 'Player not found' } } }
+
+  if (room.phase !== expectedPhase) {
+    return {
+      error: {
+        status: 409,
+        body: { success: false, message: `Cannot submit during '${room.phase}' phase` },
+      },
+    }
+  }
+
+  if (validate && !validate(value)) {
+    return { error: { status: 400, body: { success: false, message: 'Invalid submission' } } }
+  }
+
+  room[bucket] = room[bucket] || {}
+  room[bucket][playerName] = value
+
+  const everyoneSubmitted = room.players.every(
+    (p) => room[bucket][p.name] !== undefined && room[bucket][p.name] !== null,
+  )
+
+  if (everyoneSubmitted) {
+    room.phase = nextPhase
+  }
+
+  io.to(room.code).emit('room-update', room)
+  return { room }
+}
+
+app.post('/rooms/:roomCode/prompts', (req, res) => {
+  const roomCode = req.params.roomCode.toUpperCase()
+  const { playerName, prompt } = req.body
+  const trimmed = (prompt || '').trim()
+
+  const result = submitForPhase(
+    roomCode,
+    playerName,
+    trimmed,
+    'prompt',
+    'prompts',
+    'draw',
+    (v) => typeof v === 'string' && v.length > 0,
+  )
+
+  if (result.error) return res.status(result.error.status).json(result.error.body)
+  res.json({ success: true, room: result.room })
+})
+
+app.post('/rooms/:roomCode/drawings', (req, res) => {
+  const roomCode = req.params.roomCode.toUpperCase()
+  const { playerName, dataUrl } = req.body
+
+  const result = submitForPhase(
+    roomCode,
+    playerName,
+    dataUrl || '',
+    'draw',
+    'drawings',
+    'guess',
+    (v) => typeof v === 'string' && v.startsWith('data:image/'),
+  )
+
+  if (result.error) return res.status(result.error.status).json(result.error.body)
+  res.json({ success: true, room: result.room })
+})
+
+app.post('/rooms/:roomCode/guesses', (req, res) => {
+  const roomCode = req.params.roomCode.toUpperCase()
+  const { playerName, guess } = req.body
+  const trimmed = (guess || '').trim()
+
+  const result = submitForPhase(
+    roomCode,
+    playerName,
+    trimmed,
+    'guess',
+    'guesses',
+    'reveal',
+    (v) => typeof v === 'string',
+  )
+
+  if (result.error) return res.status(result.error.status).json(result.error.body)
+  res.json({ success: true, room: result.room })
 })
 
 io.on('connection', (socket) => {

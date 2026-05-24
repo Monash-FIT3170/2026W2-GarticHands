@@ -1,57 +1,92 @@
 import { useState } from 'react'
 import { useNavigate, useLocation } from 'react-router-dom'
-import JoinForm from '../components/JoinForm'
 import { joinRoom } from '../api/room'
+import { Page, Card, Button, Avatar } from '../components/ui'
 
-function JoinPage() {
-  const navigate = useNavigate();
-  const location = useLocation();
-
-  const playerName = location.state?.playerName
+export default function JoiningPage() {
+  const navigate = useNavigate()
+  const location = useLocation()
+  const playerName = location.state?.playerName as string | undefined
 
   const [roomCode, setRoomCode] = useState('')
   const [error, setError] = useState('')
+  const [submitting, setSubmitting] = useState(false)
 
   async function handleJoin() {
     if (!playerName) {
       navigate('/')
       return
     }
-    
     if (!roomCode.trim()) {
-      setError('Please enter room code.')
+      setError('Please enter a room code.')
       return
     }
-    
+
+    setSubmitting(true)
+    setError('')
+
     const data = await joinRoom(roomCode, playerName)
+    setSubmitting(false)
 
     if (!data.success) {
       setError(data.message || 'Room not found.')
       return
     }
 
-    setError('')
-
     navigate(`/joined/${data.room.code}`, {
-      state: {
-        room: data.room,
-        playerName,
-      }
+      state: { room: data.room, playerName },
     })
   }
 
+  function handleKey(e: React.KeyboardEvent<HTMLInputElement>) {
+    if (e.key === 'Enter') void handleJoin()
+  }
+
+  const canSubmit = roomCode.trim().length > 0 && !submitting
+
   return (
-    <div style={{ padding: '40px', maxWidth: '400px', margin: '0 auto' }}>
-      <h1>Join a Game</h1>
-      <p>Enter the room code shared by the host to join their game.</p>
-      <JoinForm
-        roomCode={roomCode}
-        onRoomCodeChange={setRoomCode}
-        onJoin={handleJoin}
-        error={error}
-      />
-    </div>
+    <Page variant="centered" logo padding="px-4 pb-24">
+      <Card variant="hero">
+        <Avatar variant="guest" />
+
+        <div className="w-full text-center">
+          <h2 className="text-white text-2xl font-extrabold tracking-wide mb-1">Join a Game</h2>
+          <p className="text-white/80 text-sm font-semibold">Enter the room code your host shared.</p>
+        </div>
+
+        <input
+          type="text"
+          value={roomCode}
+          onChange={(e) => setRoomCode(e.target.value.toUpperCase())}
+          onKeyDown={handleKey}
+          placeholder="ABC123"
+          maxLength={6}
+          className="w-full bg-white rounded-full px-6 py-3 text-center text-[#D4623E] placeholder-[#D4623E]/40 font-mono font-bold tracking-[0.4em] text-lg outline-none focus:ring-2 focus:ring-[#D4623E]/40"
+        />
+
+        {error && (
+          <p className="text-sm font-semibold text-red-200 -mt-2">{error}</p>
+        )}
+
+        <div className="flex gap-3 w-full">
+          <Button
+            variant="secondary"
+            onClick={() => navigate('/')}
+            disabled={submitting}
+            className="flex-1"
+          >
+            Back
+          </Button>
+          <Button
+            variant="primary"
+            onClick={handleJoin}
+            disabled={!canSubmit}
+            className="flex-1"
+          >
+            {submitting ? 'Joining...' : 'Join Game'}
+          </Button>
+        </div>
+      </Card>
+    </Page>
   )
 }
-
-export default JoinPage

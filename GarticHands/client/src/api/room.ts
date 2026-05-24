@@ -43,3 +43,58 @@ export async function startRoom(roomCode: string) {
 
   return res.json()
 }
+
+export async function submitPrompt(
+  roomCode: string,
+  playerName: string,
+  prompt: string,
+) {
+  const res = await fetch(`${API_URL}/rooms/${roomCode}/prompts`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ playerName, prompt }),
+  })
+  return res.json()
+}
+
+export async function submitDrawing(
+  roomCode: string,
+  playerName: string,
+  dataUrl: string,
+) {
+  const res = await fetch(`${API_URL}/rooms/${roomCode}/drawings`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ playerName, dataUrl }),
+  })
+  return res.json()
+}
+
+export async function submitGuess(
+  roomCode: string,
+  playerName: string,
+  guess: string,
+) {
+  const res = await fetch(`${API_URL}/rooms/${roomCode}/guesses`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ playerName, guess }),
+  })
+  return res.json()
+}
+
+export async function restartRoom(roomCode: string) {
+  const res = await fetch(`${API_URL}/rooms/${roomCode}/restart`, {
+    method: 'PATCH',
+    headers: { 'Content-Type': 'application/json' },
+  })
+  return res.json()
+}
+
+export async function endRoom(roomCode: string) {
+  const res = await fetch(`${API_URL}/rooms/${roomCode}/end`, {
+    method: 'PATCH',
+    headers: { 'Content-Type': 'application/json' },
+  })
+  return res.json()
+}
