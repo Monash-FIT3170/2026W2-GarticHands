@@ -9,9 +9,9 @@ interface BadgeProps {
 }
 
 const lobbyClasses: Record<BadgeKind, string> = {
-  host: 'flex items-center justify-center w-7 h-7 rounded-full bg-yellow-200 text-[#D4623E] border-2 border-[#D4623E] text-sm font-bold',
+  host: 'text-xs font-bold px-3 py-1 rounded-full bg-yellow-200 text-[#D4623E]',
   ready: 'text-xs font-bold px-3 py-1 rounded-full bg-green-200 text-[#2E5534]',
-  waiting: 'text-xs font-bold px-3 py-1 rounded-full bg-[#8EBAB3] text-[#3D6B64]',
+  waiting: 'text-xs font-bold px-3 py-1 rounded-full bg-orange-100 text-[#D4623E]',
 }
 
 const simpleClass = 'text-xs font-bold px-3 py-0.5 rounded-full'
@@ -23,7 +23,7 @@ export default function Badge({ tone = 'simple', kind }: BadgeProps) {
   }
 
   if (kind === 'host') {
-    return <span className={lobbyClasses.host}>★</span>
+    return <span className={lobbyClasses.host}>Host</span>
   }
 
   return <span className={lobbyClasses[kind]}>{labelFor(kind)}</span>

@@ -19,7 +19,7 @@ export default function LandingPage() {
   }
 
   return (
-    <Page variant="centered" logo padding="px-4 pb-24">
+    <Page variant="centered" logo>
       <Card variant="hero">
         <Avatar variant="guest" />
 
