@@ -1,12 +1,12 @@
 import { useState, useEffect, useCallback } from 'react'
 import { useParams, useLocation, useNavigate } from 'react-router-dom'
 import { getRoom, updateReady, startRoom } from '../api/room'
-import { Page, Card, Button, Avatar, useToast } from '../components/ui'
+import { Page, Card, Button, useToast } from '../components/ui'
 import PlayerList from '../components/PlayerList'
 import type { Player } from '../types/room'
 
 const MAX_PLAYERS_DISPLAY = 4
-const MAX_PLAYERS = 8
+const MAX_PLAYERS = 4
 
 export default function JoinedPage() {
   const { roomCode } = useParams()
@@ -142,7 +142,7 @@ export default function JoinedPage() {
                 disabled={starting}
                 className="mt-4"
               >
-                {ready ? 'Ready' : 'Not Ready'}
+                {ready ? 'Ready' : 'Ready Up'}
               </Button>
             )}
           </section>

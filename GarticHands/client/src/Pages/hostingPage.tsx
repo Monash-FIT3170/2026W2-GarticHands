@@ -1,7 +1,7 @@
 import { useEffect, useState } from 'react'
 import { useNavigate, useLocation } from 'react-router-dom'
 import { createRoom, getRoom, startRoom } from '../api/room'
-import { Page, Card, Button, Avatar, useToast } from '../components/ui'
+import { Page, Card, Button, useToast } from '../components/ui'
 import PlayerList from '../components/PlayerList'
 import type { Player } from '../types/room'
 

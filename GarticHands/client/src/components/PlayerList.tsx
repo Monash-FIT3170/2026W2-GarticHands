@@ -47,10 +47,9 @@ export default function PlayerList({
 }
 
 function LobbyRow({ player, isSelf }: { player: Player; isSelf: boolean }) {
-  const rowClasses = player.isHost
-    ? 'flex items-center gap-4 rounded-full px-4 py-3 border-2 shadow-sm bg-white border-[#78EF57]'
-    : 'flex items-center gap-4 rounded-full px-4 py-3 border-2 shadow-sm bg-white border-[#3D6B64]'
-  const nameClasses = player.isHost ? 'font-bold truncate text-[#D4623E]' : 'font-bold truncate text-[#D4623E]'
+  const borderClass = isSelf ? 'border-[#78EF57]' : 'border-transparent'
+  const rowClasses = `flex items-center gap-4 rounded-full px-4 py-3 border-4 shadow-sm bg-white ${borderClass}`
+  const nameClasses = 'font-bold truncate text-[#D4623E]'
 
   return (
     <div className={rowClasses}>
@@ -60,7 +59,7 @@ function LobbyRow({ player, isSelf }: { player: Player; isSelf: boolean }) {
       <div className="flex-1 min-w-0 text-center">
         <p className={nameClasses}>
           {player.name}
-          {isSelf ? ' (You)' : ''}
+          {/* {isSelf ? ' (You)' : ''} */}
         </p>
       </div>
       <div className="w-20 flex-shrink-0 flex items-center justify-end">
