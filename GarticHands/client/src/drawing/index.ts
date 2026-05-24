@@ -1,0 +1,25 @@
+/**
+ * Public API for the drawing subsystem.
+ *
+ * Pages should import from here, not from individual files inside `drawing/`:
+ *
+ * ```tsx
+ * import { DrawingProvider, DrawingCameraInput, DrawingCameraCanvas } from '../drawing'
+ *
+ * <DrawingProvider>
+ *   <DrawingCameraInput />
+ *   <DrawingCameraCanvas />
+ * </DrawingProvider>
+ * ```
+ *
+ * Everything else (`HandTracking`, `Canvas`, gesture detectors, hooks) is an
+ * implementation detail of these public components — don't reach into it from
+ * Pages.
+ */
+export { DrawingProvider } from './DrawingContext'
+export { default as DrawingCameraInput } from './components/DrawingCameraInput'
+export { default as DrawingCameraCanvas } from './components/DrawingCameraCanvas'
+
+// Type re-exports for callers that need to type their own handlers
+export type { HandLandmark } from './Models/HandLandmark'
+export type { GestureType } from './gestures/GestureTypes'
