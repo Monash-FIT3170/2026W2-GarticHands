@@ -193,7 +193,7 @@ function CardsView({ chains }: { chains: RevealChain[] }) {
             <img
               src={chain.drawing}
               alt={`Drawing by ${chain.drawer.name}`}
-              className="w-full h-56 object-contain bg-white rounded-lg my-3"
+              className="w-full h-56 object-contain bg-black rounded-lg my-3"
             />
           ) : (
             <div className="w-full h-56 bg-white/[0.14] rounded-lg my-3 flex items-center justify-center text-sm text-white/70">
@@ -237,7 +237,7 @@ function SlideshowView({ chains }: { chains: RevealChain[] }) {
 
   return (
     <div className="flex flex-col items-center">
-      <div className="bg-white rounded-xl w-full overflow-hidden">
+      <div className="bg-black rounded-xl w-full overflow-hidden">
         <img
           src={current.drawing}
           alt={`Drawing by ${current.drawer.name}`}
