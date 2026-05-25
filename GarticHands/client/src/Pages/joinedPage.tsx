@@ -1,11 +1,12 @@
 import { useState, useEffect, useCallback } from 'react'
 import { useParams, useLocation, useNavigate } from 'react-router-dom'
 import { getRoom, updateReady, startRoom } from '../api/room'
-import { Page, Card, Button, Avatar, useToast } from '../components/ui'
+import { Page, Card, Button, useToast } from '../components/ui'
 import PlayerList from '../components/PlayerList'
 import type { Player } from '../types/room'
 
 const MAX_PLAYERS_DISPLAY = 4
+const MAX_PLAYERS = 4
 
 export default function JoinedPage() {
   const { roomCode } = useParams()
@@ -25,7 +26,7 @@ export default function JoinedPage() {
 
   const copyCode = useCallback(() => {
     if (!roomCode) return
-    navigator.clipboard.writeText(roomCode).catch(() => {})
+    navigator.clipboard.writeText(roomCode).catch(() => { })
     show('Room code copied!')
   }, [roomCode, show])
 
@@ -81,15 +82,13 @@ export default function JoinedPage() {
   }
 
   return (
-    <Page variant="centered" logo compactLogo>
+    <Page variant="centered" logo>
       <Card variant="lobby">
-        <Avatar variant="host-large" letter={playerName?.charAt(0)} />
-
-        <div className="grid grid-cols-1 md:grid-cols-[1.4fr_1fr] gap-8 mt-8">
-          <section>
+        <div className="grid grid-cols-1 md:grid-cols-[1.4fr_1fr] gap-8">
+          <section className="rounded-xl p-6" style={{ backgroundColor: 'rgba(22, 89, 74, 0.2)' }}>
             <div className="flex items-center justify-between mb-5">
               <h2 className="text-white text-2xl font-extrabold tracking-wide">
-                PLAYERS {players.length}
+                PLAYERS {players.length}/{MAX_PLAYERS}
               </h2>
               <p className="text-white/80 text-sm font-semibold">
                 {readyCount}/{players.length} ready
@@ -105,16 +104,23 @@ export default function JoinedPage() {
           </section>
 
           <section className="flex flex-col items-center">
-            <h2 className="text-white text-2xl font-extrabold tracking-wide mb-5">LOBBY</h2>
+            <div className="rounded-xl p-6 w-full flex flex-col items-center" style={{ backgroundColor: 'rgba(22, 89, 74, 0.2)' }}>
+              <h2 className="text-white text-2xl font-extrabold tracking-wide mb-5">GAMEMODE</h2>
 
-            <p className="text-white/80 text-sm font-semibold text-center mb-5">
-              {isHost
-                ? 'Wait until every player is ready, then start the game.'
-                : 'Click "Ready" when you are ready to play.'}
-            </p>
+              <div className="bg-white rounded-lg border-4 border-[#78EF57] flex flex-col items-center justify-center shadow-sm w-full max-w-[200px]">
+                <img src="/gamemode_classic.png" alt="Classic" className="w-16 h-16 mb-2 object-contain" />
+                <p className="text-[#2E5534] font-extrabold">Classic</p>
+              </div>
+            </div>
 
-            <Button variant="outline" size="full" onClick={copyCode}>
-              Copy Invite Code
+            <Button variant="outline" size="full" onClick={copyCode} className="mt-6">
+              <span className="flex items-center justify-center gap-2">
+                <svg xmlns="http://www.w3.org/2000/svg" className="w-5 h-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                  <rect x="9" y="9" width="13" height="13" rx="2" ry="2" />
+                  <path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1" />
+                </svg>
+                Copy Room Code
+              </span>
             </Button>
 
             {isHost ? (
@@ -129,22 +135,16 @@ export default function JoinedPage() {
               </Button>
             ) : (
               <Button
-                variant="start"
+                variant="ready"
+                active={ready}
                 size="full"
                 onClick={handleReady}
                 disabled={starting}
                 className="mt-4"
               >
-                {ready ? "I'm Ready" : 'Click when Ready'}
+                {ready ? 'Ready' : 'Ready Up'}
               </Button>
             )}
-
-            <p className="mt-4 text-white/80 text-sm text-center font-semibold">
-              Room Code:{' '}
-              <button onClick={copyCode} className="font-mono underline">
-                {roomCode || '...'}
-              </button>
-            </p>
           </section>
         </div>
       </Card>

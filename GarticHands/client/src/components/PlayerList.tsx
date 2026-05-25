@@ -47,21 +47,24 @@ export default function PlayerList({
 }
 
 function LobbyRow({ player, isSelf }: { player: Player; isSelf: boolean }) {
-  const rowClasses = player.isHost
-    ? 'flex items-center gap-4 rounded-full px-4 py-3 border-2 shadow-sm bg-white border-[#78EF57]'
-    : 'flex items-center gap-4 rounded-full px-4 py-3 border-2 shadow-sm bg-[#79A8A0] border-[#3D6B64]'
-  const nameClasses = player.isHost ? 'font-bold truncate text-[#D4623E]' : 'font-bold truncate text-[#3D6B64]'
+  const borderClass = isSelf ? 'border-[#78EF57]' : 'border-transparent'
+  const rowClasses = `flex items-center gap-4 rounded-full px-4 py-3 border-4 shadow-sm bg-white ${borderClass}`
+  const nameClasses = 'font-bold truncate text-[#D4623E]'
 
   return (
     <div className={rowClasses}>
-      <Avatar variant={player.isHost ? 'host-row' : 'player-row'} />
-      <div className="flex-1 min-w-0">
+      <div className="w-20 flex-shrink-0 flex items-center">
+        <Avatar variant={player.isHost ? 'host-row' : 'player-row'} />
+      </div>
+      <div className="flex-1 min-w-0 text-center">
         <p className={nameClasses}>
           {player.name}
-          {isSelf ? ' (You)' : ''}
+          {/* {isSelf ? ' (You)' : ''} */}
         </p>
       </div>
-      <Badge tone="lobby" kind={badgeKind(player)} />
+      <div className="w-20 flex-shrink-0 flex items-center justify-end">
+        <Badge tone="lobby" kind={badgeKind(player)} />
+      </div>
     </div>
   )
 }
@@ -69,8 +72,11 @@ function LobbyRow({ player, isSelf }: { player: Player; isSelf: boolean }) {
 function EmptyLobbyRow() {
   return (
     <div className="flex items-center gap-4 rounded-full px-4 py-3 bg-[#79A8A0] border-2 border-[#3D6B64] opacity-80">
-      <Avatar variant="player-row" />
+      <div className="w-20 flex-shrink-0 flex items-center">
+        <Avatar variant="empty-row" />
+      </div>
       <p className="flex-1 text-center text-[#C8DDD9] font-bold">Empty</p>
+      <div className="w-20 flex-shrink-0" />
     </div>
   )
 }

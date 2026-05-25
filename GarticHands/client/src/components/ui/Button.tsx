@@ -7,6 +7,7 @@ type ButtonVariant =
   | 'start'      // host "Start Game" — lime-green rounded-lg
   | 'outline'    // host "Copy Invite Code" — orange outline
   | 'ghost'      // joined "Ready / Not Ready" toggle
+  | 'ready'      // joined ready toggle — green when active, teal-grey when inactive
 
 type ButtonSize = 'sm' | 'md' | 'lg' | 'full' | 'custom'
 
@@ -50,6 +51,10 @@ function variantClasses(
       return active
         ? 'bg-green-600 text-white hover:bg-green-700 rounded font-bold'
         : 'bg-gray-500 text-gray-300 rounded font-bold'
+    case 'ready':
+      return active
+        ? 'bg-[#78EF57] text-[#2E5534] hover:bg-[#67DD48] rounded-lg font-extrabold transition-colors'
+        : 'bg-[#79A8A0] text-[#C8DDD9] rounded-lg font-extrabold cursor-pointer'
   }
 }
 

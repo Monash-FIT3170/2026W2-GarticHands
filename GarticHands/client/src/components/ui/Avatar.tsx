@@ -4,7 +4,8 @@ type AvatarVariant =
   | 'guest'        // landing page large white circle with person icon
   | 'host-large'   // hostingPage header — dark shell, orange inner with letter
   | 'host-row'     // host row in player list — orange border + bg
-  | 'player-row'   // player row in player list — dark teal border + light teal bg
+  | 'player-row'   // player row in player list — orange border, transparent bg
+  | 'empty-row'    // empty slot in player list — teal border + light teal bg
 
 interface AvatarProps {
   variant?: AvatarVariant
@@ -20,6 +21,8 @@ const shellClasses: Record<AvatarVariant, string> = {
   'host-row':
     'w-8 h-8 rounded-full flex items-center justify-center border-2 border-[#D4623E] text-[#D4623E] bg-white',
   'player-row':
+    'w-8 h-8 rounded-full flex items-center justify-center border-2 border-[#D4623E] text-[#D4623E] bg-transparent',
+  'empty-row':
     'w-8 h-8 rounded-full flex items-center justify-center border-2 border-[#3D6B64] text-[#3D6B64] bg-[#8EBAB3]',
 }
 
