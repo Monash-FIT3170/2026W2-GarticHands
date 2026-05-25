@@ -1,0 +1,19 @@
+{
+  "name": "@gartichands/server",
+  "version": "0.1.0",
+  "description": "Gartic Hands backend (Express + Socket.IO)",
+  "main": "index.js",
+  "type": "commonjs",
+  "scripts": {
+    "dev": "nodemon index.js",
+    "start": "node index.js"
+  },
+  "dependencies": {
+    "cors": "^2.8.6",
+    "express": "^5.2.1",
+    "socket.io": "^4.8.1"
+  },
+  "devDependencies": {
+    "nodemon": "^3.1.14"
+  }
+}

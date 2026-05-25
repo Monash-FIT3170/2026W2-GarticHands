@@ -1,0 +1,29 @@
+@import url('https://fonts.googleapis.com/css2?family=Baloo+2:wght@400;500;600;700;800&display=swap');
+
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer base {
+  body {
+    font-family: 'Baloo 2', cursive;
+  }
+}
+
+@layer components {
+  /* Page-level background used by /input, /draw, /guess. Matches the lobby teal. */
+  .background {
+    @apply min-h-screen bg-[#6FADA0] flex flex-col items-center justify-center px-4 py-10 text-white;
+  }
+
+  /* Small label above each in-game card — "Round 1 of 4". */
+  .rounds {
+    @apply text-xs font-extrabold uppercase tracking-[0.2em] text-[#D4623E] bg-white/80 rounded-full px-3 py-1 inline-block mb-3;
+  }
+
+  /* Text-input baseline used inside glass cards on /input and /guess. */
+  .text.box,
+  .background input[type='text'] {
+    @apply w-full bg-white rounded-full px-5 py-3 text-[#3D6B64] placeholder-[#3D6B64]/40 font-semibold outline-none focus:ring-2 focus:ring-[#D4623E]/40 mt-3;
+  }
+}
