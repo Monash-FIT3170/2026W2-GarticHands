@@ -191,6 +191,17 @@ function OverlayLayout() {
     <Panel label="Camera + Canvas">
       <div className="relative">
         <DrawingCameraInput />
+        {/*
+          Hidden primary canvas — mounted FIRST so it's the one submitted via
+          `getDrawingImage()`. Black strokes; `Canvas.getImage()` composites the
+          result onto white, so the saved drawing is always black-on-white. Kept
+          invisible via `opacity-0`.
+        */}
+        <DrawingCameraCanvas
+          strokeColor="black"
+          className="absolute inset-0 w-full h-full opacity-0 pointer-events-none"
+        />
+        {/* Visible overlay — white strokes painted directly on the camera feed. */}
         <DrawingCameraCanvas
           strokeColor="white"
           className="absolute inset-0 w-full h-full"

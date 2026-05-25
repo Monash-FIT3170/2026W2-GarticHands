@@ -112,7 +112,21 @@ const Canvas = ({
         }
       },
       getImage() {
-        return drawCanvasRef.current?.toDataURL('image/png') ?? null;
+        // Composite onto a white background before exporting so the submitted
+        // PNG is always strokes-on-white — never a transparent canvas that
+        // renders as a black box on dark themes (and never white-on-white when
+        // the visible canvas used white strokes for camera overlay).
+        const src = drawCanvasRef.current;
+        if (!src) return null;
+        const composite = document.createElement('canvas');
+        composite.width = src.width;
+        composite.height = src.height;
+        const ctx = composite.getContext('2d');
+        if (!ctx) return null;
+        ctx.fillStyle = 'white';
+        ctx.fillRect(0, 0, composite.width, composite.height);
+        ctx.drawImage(src, 0, 0);
+        return composite.toDataURL('image/png');
       },
     }),
     [],

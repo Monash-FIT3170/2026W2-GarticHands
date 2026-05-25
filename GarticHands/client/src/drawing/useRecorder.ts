@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useRef, useState } from 'react'
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { useDrawingContext } from './DrawingContext'
 
 interface UseRecorderOptions {
@@ -10,17 +10,24 @@ interface UseRecorderOptions {
   fps?: number
 }
 
-interface UseRecorderResult {
+interface UseRecorderApi {
   /** Begin recording. Safe to call repeatedly; second call while recording is a no-op. */
   start: () => void
-  /** Stop recording. Resolves with the final blob URL (or null if nothing was captured). */
+  /**
+   * Stop recording. Resolves with the final blob URL, or `null` if nothing was
+   * being recorded (so callers can always await it without first checking
+   * `isRecording`).
+   */
   stop: () => Promise<string | null>
-  /** True between `start()` and `stop()`. */
-  isRecording: boolean
-  /** Most recent blob URL produced by `stop()`. */
-  lastBlobUrl: string | null
   /** True if `MediaRecorder` is available in this browser. */
   isSupported: boolean
+}
+
+interface UseRecorderResult extends UseRecorderApi {
+  /** True between `start()` and `stop()`. Reactive — use in render. */
+  isRecording: boolean
+  /** Most recent blob URL produced by `stop()`. Reactive — use in render. */
+  lastBlobUrl: string | null
 }
 
 const MIME_CANDIDATES = [
@@ -48,8 +55,14 @@ function pickMimeType(): string | null {
  * `<DrawingProvider>` via `getPrimaryDrawCanvas()` and `getCameraCanvas()`, so
  * the hook doesn't care which layout (split / overlay / both) the page chose.
  *
- * Returned `start` / `stop` are stable. `stop()` resolves with a blob URL you
- * can store in a `RecordingsContext` and replay on `/game`.
+ * The returned `start` / `stop` / `isSupported` are bundled into a stable API
+ * object (`useMemo` over their refs), so consumers can list the recorder in a
+ * `useEffect` deps list without forcing the effect to re-run on every render.
+ * Reactive state (`isRecording`, `lastBlobUrl`) lives outside that memo so
+ * render code still sees fresh values.
+ *
+ * `stop()` always resolves — it returns `null` if there was no active recording,
+ * so callers can just `await recorder.stop()` without guarding on state.
  */
 export function useRecorder({
   width = 640,
@@ -63,6 +76,14 @@ export function useRecorder({
   const rafRef = useRef<number | null>(null)
   const recorderRef = useRef<MediaRecorder | null>(null)
   const chunksRef = useRef<Blob[]>([])
+  // Stable refs to the canvas-getters so the render loop reads the latest
+  // without re-creating the captured closure on every render.
+  const getDrawRef = useRef(getPrimaryDrawCanvas)
+  const getCamRef = useRef(getCameraCanvas)
+  useEffect(() => {
+    getDrawRef.current = getPrimaryDrawCanvas
+    getCamRef.current = getCameraCanvas
+  }, [getPrimaryDrawCanvas, getCameraCanvas])
 
   const [isRecording, setIsRecording] = useState(false)
   const [lastBlobUrl, setLastBlobUrl] = useState<string | null>(null)
@@ -81,14 +102,7 @@ export function useRecorder({
     }
   }, [width, height])
 
-  // Revoke object URLs on unmount so we don't leak.
-  useEffect(() => {
-    return () => {
-      if (lastBlobUrl) URL.revokeObjectURL(lastBlobUrl)
-    }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [])
-
+  // Composite the drawing canvas (full-frame) with the camera canvas (PiP corner).
   const renderFrame = useCallback(() => {
     const ctx = ctxRef.current
     const composite = compositeRef.current
@@ -97,14 +111,12 @@ export function useRecorder({
     ctx.fillStyle = 'white'
     ctx.fillRect(0, 0, composite.width, composite.height)
 
-    // Drawing canvas as the main subject — fills the composite.
-    const draw = getPrimaryDrawCanvas()
+    const draw = getDrawRef.current()
     if (draw && draw.width > 0 && draw.height > 0) {
       ctx.drawImage(draw, 0, 0, composite.width, composite.height)
     }
 
-    // Camera canvas in the bottom-right corner, ~30% of the composite width.
-    const cam = getCameraCanvas()
+    const cam = getCamRef.current()
     if (cam && cam.width > 0 && cam.height > 0) {
       const cw = Math.round(composite.width * 0.3)
       const ch = Math.round(cw * (cam.height / cam.width))
@@ -120,7 +132,7 @@ export function useRecorder({
 
       ctx.drawImage(cam, x, y, cw, ch)
     }
-  }, [getPrimaryDrawCanvas, getCameraCanvas])
+  }, [])
 
   const start = useCallback(() => {
     if (recorderRef.current || !isSupported) return
@@ -135,7 +147,7 @@ export function useRecorder({
     try {
       recorder = new MediaRecorder(stream, { mimeType: mime })
     } catch (e) {
-      console.warn('MediaRecorder construction failed:', e)
+      console.warn('[useRecorder] MediaRecorder construction failed:', e)
       return
     }
     recorderRef.current = recorder
@@ -147,7 +159,6 @@ export function useRecorder({
 
     recorder.start(250) // collect a chunk every 250ms
 
-    // Drive the composite render loop.
     const loop = () => {
       if (!recorderRef.current) return
       renderFrame()
@@ -159,6 +170,8 @@ export function useRecorder({
 
   const stop = useCallback((): Promise<string | null> => {
     const recorder = recorderRef.current
+    // No active recorder → resolve null so callers can always `await stop()`
+    // without first checking `isRecording`.
     if (!recorder) return Promise.resolve(null)
 
     return new Promise<string | null>((resolve) => {
@@ -179,17 +192,19 @@ export function useRecorder({
           return
         }
         const url = URL.createObjectURL(blob)
-        setLastBlobUrl((prev) => {
-          if (prev) URL.revokeObjectURL(prev)
-          return url
-        })
+        // We keep `lastBlobUrl` for callers that want to read the latest in
+        // render. Note: URL ownership transfers to the caller — they should
+        // store it (e.g. in `RecordingsContext`) and revoke it themselves.
+        setLastBlobUrl(url)
         resolve(url)
       }
       recorder.stop()
     })
   }, [])
 
-  // Safety net — stop on unmount so we don't leave a recorder dangling.
+  // Safety net — stop the recorder on unmount so we don't leave a dangling one.
+  // Does NOT save the blob anywhere (no onstop handler set), so it's only for
+  // resource cleanup when the user navigates away without submitting.
   useEffect(() => {
     return () => {
       if (recorderRef.current) {
@@ -203,5 +218,12 @@ export function useRecorder({
     }
   }, [])
 
-  return { start, stop, isRecording, lastBlobUrl, isSupported }
+  // Stable API surface — `start` / `stop` / `isSupported` don't change across
+  // renders, so listing this object in a useEffect deps is safe.
+  const api = useMemo<UseRecorderApi>(
+    () => ({ start, stop, isSupported }),
+    [start, stop, isSupported],
+  )
+
+  return { ...api, isRecording, lastBlobUrl }
 }

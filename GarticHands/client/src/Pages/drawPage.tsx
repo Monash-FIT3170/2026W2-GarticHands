@@ -53,7 +53,12 @@ function DrawPageInner() {
     })
   }, [roomCode, playerName, navigate])
 
-  // Start recording once we know the round. `startedRef` guards StrictMode double-mount.
+  // Start recording once we know the round. `startedRef` guards StrictMode
+  // double-mount. `recorder` is intentionally NOT in the deps — its method refs
+  // are stable across renders (memoized in useRecorder), but the object that
+  // ALSO carries `isRecording`/`lastBlobUrl` state would re-run this effect on
+  // every 1s phase-advance poll and cancel the scheduled start timer before it
+  // fires. That was the bug behind the missing recordings.
   useEffect(() => {
     if (startedRef.current) return
     if (roundNum === null) return
@@ -62,7 +67,8 @@ function DrawPageInner() {
     // Slight delay so the camera canvas has mounted and started drawing frames.
     const t = setTimeout(() => recorder.start(), 400)
     return () => clearTimeout(t)
-  }, [roundNum, recorder])
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [roundNum])
 
   const { waitingFor, room } = usePhaseAdvance({
     roomCode,
@@ -85,12 +91,12 @@ function DrawPageInner() {
     setSubmitted(true)
     setError('')
 
-    // Stop recording in parallel with the submit so the playback is ready on /game.
-    const recordingPromise = recorder.isRecording ? recorder.stop() : Promise.resolve(null)
-
+    // Stop recording in parallel with the submit. `stop()` resolves with `null`
+    // if nothing was being recorded, so no isRecording-state check is needed —
+    // that check was racy (state lags by a render) and silently dropped saves.
     const [data, blobUrl] = await Promise.all([
       submitDrawing(roomCode, playerName, dataUrl),
-      recordingPromise,
+      recorder.stop(),
     ])
 
     if (blobUrl && roundNum !== null) {
