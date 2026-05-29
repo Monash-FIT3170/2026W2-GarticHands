@@ -1,0 +1,23 @@
+# Keep the build context small and never copy host artifacts into images.
+**/node_modules
+**/dist
+**/.tmp
+.git
+.gitignore
+
+# Large, non-app folders
+legacy
+Training
+Gantt Chart
+
+# Docs and local env
+*.md
+.env
+.env.*
+!.env.example
+
+# Docker files themselves (read by the builder, not needed in context)
+**/Dockerfile
+docker-compose.yml
+.dockerignore
+Makefile

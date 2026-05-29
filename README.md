@@ -14,11 +14,23 @@ npm run dev
 
 Open http://localhost:5173 in two browser windows.
 
+### Or run it all in Docker
+
+```bash
+cd GarticHands
+docker compose up -d --build
+```
+
+Open http://localhost:8080. See [`GarticHands/DOCKER.md`](GarticHands/DOCKER.md) for the full guide.
+
 ## Documentation
 
 - **[`GarticHands/README.md`](GarticHands/README.md)** — project overview, packages, MVP status, full merge log.
 - **[`GarticHands/ARCHITECTURE.md`](GarticHands/ARCHITECTURE.md)** — how the pieces fit together, with sequence diagrams.
 - **[`GarticHands/AGENTS.md`](GarticHands/AGENTS.md)** — quick context for coding agents (Claude / Cursor / Copilot / MCP tools).
+- **[`GarticHands/DOCKER.md`](GarticHands/DOCKER.md)** — run the whole stack in containers (`docker compose up`).
+- **[`GarticHands/FORKING.md`](GarticHands/FORKING.md)** — forkability seams + suggested prompts for future developers.
+- **[`INSTRUCTION_MANUAL.md`](INSTRUCTION_MANUAL.md)** — the working method (containerization, MCP, forkability, how-to standards).
 - **[`GarticHands/CONTRIBUTING.md`](GarticHands/CONTRIBUTING.md)** — dev workflow, branching, commit conventions.
 - **[`GarticHands/client/README.md`](GarticHands/client/README.md)** — front-end (React 19 + Vite 8 + TS).
 - **[`GarticHands/server/README.md`](GarticHands/server/README.md)** — back-end REST + Socket.IO API reference.
