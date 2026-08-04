@@ -13,9 +13,11 @@
     "dev:server": "npm run dev -w @gartichands/server",
     "build": "npm run build -w @gartichands/client",
     "start": "concurrently -n server,client -c blue,magenta \"npm run start -w @gartichands/server\" \"npm run preview -w @gartichands/client\"",
-    "lint": "npm run lint -w @gartichands/client"
+    "lint": "npm run lint -w @gartichands/client",
+    "test:e2e": "playwright test"
   },
   "devDependencies": {
+    "@playwright/test": "^1.62.1",
     "concurrently": "^8.2.2"
   },
   "repository": {
