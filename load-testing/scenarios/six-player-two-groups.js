@@ -8,6 +8,12 @@ import {
     playRound,
 } from '../helpers/game.js';
 
+/*
+ * Tests six players in one game, split into two groups representing
+ * players connecting from different locations. Checks that all
+ * players can complete the game together.
+ */
+
 export const options = {
     vus: 6,
     iterations: 6,

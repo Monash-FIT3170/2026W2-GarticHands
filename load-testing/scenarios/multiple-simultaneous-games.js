@@ -8,6 +8,12 @@ import {
     playRound,
 } from '../helpers/game.js';
 
+/*
+ * Tests two separate games running at the same time, with three
+ * players in each room. Checks that the games operate independently and
+ * that they can actually end without interference.
+ */
+
 const PLAYERS_PER_GAME = 3;
 const TOTAL_PLAYERS = 6;
 
