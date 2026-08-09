@@ -5,6 +5,7 @@ import {
     PLAYERS_PER_ROOM,
     TEST_DRAWING,
 } from '../data.js';
+import { check } from "k6";
 
 /*
  * Create a new Gartic Hands room.
