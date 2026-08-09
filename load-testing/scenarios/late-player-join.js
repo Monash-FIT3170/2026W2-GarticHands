@@ -10,6 +10,12 @@ import {
 } from '../helpers/game.js';
 import { post } from '../helpers/api.js';
 
+/*
+ * Tests whether players can join a game after it has started.
+ * Three players start the game, while two additional players attempt
+ * to join late. The test expects these late join attempts to be rejected.
+ */
+
 const INITIAL_PLAYERS = 3;
 const TOTAL_PLAYERS = 5;
 

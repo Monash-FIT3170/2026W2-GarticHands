@@ -2,6 +2,12 @@ import { check } from 'k6';
 import { createRoom, joinRoom, setReady, waitForPlayers, startGame, playRound } from '../helpers/game.js';
 import { PLAYERS_PER_ROOM } from '../data.js';
 
+/*
+ * Tests a complete five-player game.
+ * One player creates the room and hosts the game, while the other
+ * four players join, get ready, and all five players complete a round.
+ */
+
 export const options = {
     vus: PLAYERS_PER_ROOM,
     iterations: PLAYERS_PER_ROOM,
