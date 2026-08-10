@@ -1,20 +1,25 @@
 import { render, waitFor } from '@testing-library/react'
 import '@testing-library/jest-dom'
-import DrawingCameraCanvas from '../src/drawing/components/DrawingCameraCanvas'
+import DrawingCameraCanvas from '../client/src/drawing/components/DrawingCameraCanvas'
 
 const registerCanvas = vi.fn(() => vi.fn())
 
-const mockCanvas = vi.fn(() => (
+const mockCanvas = vi.fn((_props: {
+  width?: number
+  height?: number
+  strokeColor?: string
+  className?: string
+}) => (
   <canvas data-testid="drawing-canvas" />
 ))
 
-vi.mock('../src/drawing/DrawingContext', () => ({
+vi.mock('../client/src/drawing/DrawingContext', () => ({
   useDrawingContext: () => ({
     registerCanvas,
   }),
 }))
 
-vi.mock('../src/drawing/components/Canvas', () => ({
+vi.mock('../client/src/drawing/components/Canvas', () => ({
   default: (props: {
     width?: number
     height?: number

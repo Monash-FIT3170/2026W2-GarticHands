@@ -1,7 +1,7 @@
 import { render, screen } from '@testing-library/react'
 import '@testing-library/jest-dom'
 import { act } from 'react'
-import CountdownTimer from '../src/components/ui/CountdownTimer'
+import CountdownTimer from "../client/src/components/ui/CountdownTimer";
 
 describe('CountdownTimer', () => {
   beforeEach(() => {

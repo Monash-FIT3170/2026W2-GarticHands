@@ -1,12 +1,12 @@
 import { render, screen } from '@testing-library/react'
 import '@testing-library/jest-dom'
-import { DrawingStage } from '../src/drawing/DrawingStage'
+import { DrawingStage } from "../client/src/drawing/DrawingStage";
 
-vi.mock('../src/drawing/components/DrawingCameraInput', () => ({
+vi.mock('../client/src/drawing/components/DrawingCameraInput', () => ({
   default: () => <div data-testid="camera-input" />,
 }))
 
-vi.mock('../src/drawing/components/DrawingCameraCanvas', () => ({
+vi.mock('../client/src/drawing/components/DrawingCameraCanvas', () => ({
   default: () => <div data-testid="camera-canvas" />,
 }))
 
@@ -22,7 +22,7 @@ describe('DrawingStage', () => {
     render(<DrawingStage mode="overlay" />)
 
     expect(screen.getByTestId('camera-input')).toBeInTheDocument()
-    expect(screen.getByTestId('camera-canvas')).toBeInTheDocument()
+    expect(screen.getAllByTestId('camera-canvas')).toHaveLength(2)
   })
 
   test('renders the required drawing elements in both mode', () => {

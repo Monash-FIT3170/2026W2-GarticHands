@@ -1,9 +1,9 @@
 import { renderHook, act } from '@testing-library/react'
 import { MemoryRouter } from 'react-router-dom'
-import { usePhaseAdvance } from '../src/hooks/usePhaseAdvance'
-import { getRoom } from '../src/api/room'
+import { usePhaseAdvance } from '../client/src/hooks/usePhaseAdvance'
+import { getRoom } from '../client/src/api/room'
 
-vi.mock('../src/api/room', () => ({
+vi.mock('../client/src/api/room', () => ({
   getRoom: vi.fn(),
 }))
 

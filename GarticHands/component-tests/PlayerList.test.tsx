@@ -1,7 +1,7 @@
 import { render, screen } from '@testing-library/react'
 import '@testing-library/jest-dom'
-import PlayerList from '../src/components/PlayerList'
-import type { Player } from '../src/types/room'
+import PlayerList from '../client/src/components/PlayerList'
+import type { Player } from '../client/src/types/room'
 
 const players: Player[] = [
   {
@@ -63,6 +63,6 @@ describe('PlayerList', () => {
       />,
     )
 
-    expect(screen.getAllByText('Empty')).toHaveLength(0)
+    expect(screen.queryAllByText('Empty')).toHaveLength(0)
   })
 })
