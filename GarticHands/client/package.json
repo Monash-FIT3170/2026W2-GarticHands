@@ -7,7 +7,7 @@
     "dev": "vite --port 5173",
     "build": "tsc -b && vite build",
     "lint": "eslint . --format stylish",
-    "lint:fix": "eslint . --fix",
+    "lint:fix": "eslint . --fix --format stylish",
     "format": "prettier . --write",
     "format:check": "prettier . --check",
     "preview": "vite preview"
