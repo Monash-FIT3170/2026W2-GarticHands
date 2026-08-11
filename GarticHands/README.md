@@ -16,6 +16,8 @@ npm run dev        # runs server (:3000) + client (:5173) in one terminal
 
 Open http://localhost:5173 in two browser windows to test the lobby flow.
 
+**Prefer containers?** `docker compose up -d --build`, then open http://localhost:8080. Full guide: [`DOCKER.md`](DOCKER.md).
+
 | Command              | What it does                                          |
 | -------------------- | ----------------------------------------------------- |
 | `npm run dev`        | Server (Express + Socket.IO) + client (Vite) together |
@@ -206,6 +208,8 @@ Every package now uses the **highest version** found across the legacy projects.
 ## Further reading
 
 - [`ARCHITECTURE.md`](ARCHITECTURE.md) — how the modules fit together, request/event flow diagrams.
+- [`DOCKER.md`](DOCKER.md) — run the whole stack in containers, with verification + troubleshooting.
+- [`FORKING.md`](FORKING.md) — forkability seams and suggested prompts for future developers.
 - [`AGENTS.md`](AGENTS.md) — quick context for LLM coding agents picking up the codebase.
 - [`CONTRIBUTING.md`](CONTRIBUTING.md) — dev workflow, branching, commit conventions.
 - [`client/README.md`](client/README.md) — front-end specifics.
