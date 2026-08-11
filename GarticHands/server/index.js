@@ -308,3 +308,5 @@ io.on('connection', (socket) => {
 server.listen(PORT, () => {
   console.log(`Gartic Hands server listening on http://localhost:${PORT}`)
 })
+
+module.exports = server

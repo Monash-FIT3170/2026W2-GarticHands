@@ -1,4 +1,4 @@
-const API_URL = import.meta.env.VITE_API_URL ?? 'http://localhost:3000'
+const API_URL = import.meta.env.VITE_SERVER_URL || 'https://gartichands1.vercel.app'
 
 export async function createRoom(hostName: string) {
   const res = await fetch(`${API_URL}/rooms/create`, {
