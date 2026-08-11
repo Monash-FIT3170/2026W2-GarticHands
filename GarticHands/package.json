@@ -11,13 +11,16 @@
     "dev": "concurrently -n server,client -c blue,magenta \"npm run dev -w @gartichands/server\" \"npm run dev -w @gartichands/client\"",
     "dev:client": "npm run dev -w @gartichands/client",
     "dev:server": "npm run dev -w @gartichands/server",
+    "prebuild": "npm run lint",
     "build": "npm run build -w @gartichands/client",
     "start": "concurrently -n server,client -c blue,magenta \"npm run start -w @gartichands/server\" \"npm run preview -w @gartichands/client\"",
     "lint": "npm run lint -w @gartichands/client",
-    "lint:fix": "npm run lint:fix -w @gartichands/client"
+    "lint:fix": "npm run lint:fix -w @gartichands/client",
+    "prepare": "husky"
   },
   "devDependencies": {
-    "concurrently": "^8.2.2"
+    "concurrently": "^8.2.2",
+    "husky": "^9.1.7"
   },
   "repository": {
     "type": "git",
