@@ -42,7 +42,6 @@ Open http://localhost:8080. See [`GarticHands/DOCKER.md`](GarticHands/DOCKER.md)
 | --------------------- | ------------------------------------ | ------------------ |
 | Forrest Huang         | fhua0018@student.monash.edu          | forrestdesu12      |
 | Jayavi Meemaduma      | jmee0005@student.monash.edu          | jayavi999          |
-| Mitchell Rocks        | mroc0003@student.monash.edu          | mitchrock04        |
 | Bexley D'Rozario      | bdro0002@student.monash.edu          | bexley07           |
 | Ashutosh Shrivastav   | ashr0018@student.monash.edu          | hshdhshshjjjjj     |
 | Chinmay Purohit       | cpur0011@student.monash.edu          | ChinmayGit8765     |
