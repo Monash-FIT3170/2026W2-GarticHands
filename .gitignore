@@ -30,6 +30,8 @@ coverage/
 .nyc_output/
 
 # Editor / IDE
+.vscode/*
+!.vscode/settings.json
 .idea/
 *.swp
 *.swo
