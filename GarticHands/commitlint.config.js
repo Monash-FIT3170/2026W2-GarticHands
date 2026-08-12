@@ -1,5 +1,10 @@
 export default {
-  extends: ['@commitlint/config-conventional'],
+    "name": "gartichands",
+    "version": "1.0.0",
+    "private": true,
+    "type": "module",
+  
+    extends: ['@commitlint/config-conventional'],
 
   rules: {
     'type-enum': [

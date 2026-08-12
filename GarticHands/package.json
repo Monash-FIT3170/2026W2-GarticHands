@@ -2,6 +2,7 @@
   "name": "gartichands",
   "version": "1.0.0",
   "private": true,
+  "type": "module",
   "description": "Gartic Hands — multiplayer drawing game with hand-tracking input",
   "workspaces": [
     "client",
@@ -16,7 +17,7 @@
     "start": "concurrently -n server,client -c blue,magenta \"npm run start -w @gartichands/server\" \"npm run preview -w @gartichands/client\"",
     "lint": "npm run lint -w @gartichands/client",
     "lint:fix": "npm run lint:fix -w @gartichands/client",
-    "prepare": "husky"
+    "prepare": "cd .. && husky .husky"
   },
   "devDependencies": {
     "@commitlint/cli": "^21.2.1",
