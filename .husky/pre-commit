@@ -1,1 +1,2 @@
 cd GarticHands
+npm run check:branch
