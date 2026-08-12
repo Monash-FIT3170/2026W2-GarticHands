@@ -6,17 +6,17 @@
  * Canvas exposes an imperative handle (CanvasHandle) with onFrame and
  * getImage, rather than reacting to props changes directly. It renders
  * two stacked canvas elements (a draw canvas and an overlay canvas) inside
- * a wrapper div, and registers the draw canvas element with the
- * surrounding drawing context on mount.
+ * a wrapper div, and registers the draw canvas element with the surrounding
+ * drawing context on mount.
  *
  * These tests focus on Canvas own responsibilities: registering itself
- * with the drawing context, rendering both canvas elements with the
- * correct dimensions, applying the default or custom wrapper class, and
- * exposing a working getImage handle that returns null before mount data
- * exists and a data URL once it does. The gesture pipeline internals
- * (CanvasDraw, CanvasErase, CanvasLocation) are exercised indirectly via
- * onFrame rather than unit tested here, since this file is scoped to
- * Canvas itself, not its op classes.
+ * with the drawing context, rendering both canvas elements with the correct
+ * dimensions, applying the default or custom wrapper class, and exposing a
+ * working getImage handle that returns null before mount data exists and a
+ * data URL once it does. The gesture pipeline internals (CanvasDraw,
+ * CanvasErase, CanvasLocation) are exercised indirectly via onFrame rather
+ * than unit tested here, since this file is scoped to Canvas itself, not its
+ * op classes.
  */
 
 import { render } from '@testing-library/react'
@@ -33,6 +33,33 @@ vi.mock('../client/src/drawing/DrawingContext', () => ({
   }),
 }))
 
+// jsdom does not implement canvas getContext or toDataURL.
+// Stub the canvas APIs so Canvas can be tested without the real
+// browser canvas implementation.
+beforeAll(() => {
+  HTMLCanvasElement.prototype.getContext = vi.fn(() => ({
+    canvas: {
+      width: 640,
+      height: 480,
+    },
+    fillRect: vi.fn(),
+    drawImage: vi.fn(),
+    clearRect: vi.fn(),
+    beginPath: vi.fn(),
+    closePath: vi.fn(),
+    moveTo: vi.fn(),
+    lineTo: vi.fn(),
+    stroke: vi.fn(),
+    fillStyle: '',
+    strokeStyle: '',
+    lineWidth: 1,
+  })) as unknown as typeof HTMLCanvasElement.prototype.getContext
+
+  HTMLCanvasElement.prototype.toDataURL = vi.fn(
+    () => 'data:image/png;base64,fake',
+  )
+})
+
 describe('Canvas', () => {
   beforeEach(() => {
     vi.clearAllMocks()
@@ -42,7 +69,9 @@ describe('Canvas', () => {
     render(<Canvas />)
 
     expect(registerDrawCanvasElement).toHaveBeenCalledTimes(1)
-    expect(registerDrawCanvasElement).toHaveBeenCalledWith(expect.any(HTMLCanvasElement))
+    expect(registerDrawCanvasElement).toHaveBeenCalledWith(
+      expect.any(HTMLCanvasElement),
+    )
   })
 
   test('renders two canvas elements with the default dimensions', () => {
@@ -50,6 +79,7 @@ describe('Canvas', () => {
 
     const canvases = container.querySelectorAll('canvas')
     expect(canvases).toHaveLength(2)
+
     canvases.forEach((canvas) => {
       expect(canvas).toHaveAttribute('width', '640')
       expect(canvas).toHaveAttribute('height', '480')
@@ -60,6 +90,7 @@ describe('Canvas', () => {
     const { container } = render(<Canvas width={320} height={240} />)
 
     const canvases = container.querySelectorAll('canvas')
+
     canvases.forEach((canvas) => {
       expect(canvas).toHaveAttribute('width', '320')
       expect(canvas).toHaveAttribute('height', '240')
@@ -77,7 +108,10 @@ describe('Canvas', () => {
       <Canvas className="absolute inset-0 w-full h-full opacity-0 pointer-events-none" />,
     )
 
-    expect(container.firstChild).toHaveClass('opacity-0', 'pointer-events-none')
+    expect(container.firstChild).toHaveClass(
+      'opacity-0',
+      'pointer-events-none',
+    )
     expect(container.firstChild).not.toHaveClass('bg-white')
   })
 

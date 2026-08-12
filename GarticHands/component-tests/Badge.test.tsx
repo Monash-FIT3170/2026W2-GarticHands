@@ -5,10 +5,10 @@
  *
  * `Badge` renders a small status pill next to a player's name, and has two
  * independent axes of variation:
- *  - `tone`: 'lobby' (colourful, per-kind background colours — used on the
- *            hosting page) vs 'simple' (a single flat style — used on the
+ *  - `tone`: 'lobby' (colourful, per-kind background colours used on the
+ *            hosting page) vs 'simple' (a single flat style used on the
  *            joined page). Defaults to 'simple'.
- *  - `kind`: 'host' | 'ready' | 'waiting' — determines the label text, and
+ *  - `kind`: 'host' | 'ready' | 'waiting' determines the label text, and
  *            (for 'lobby' tone) the background/text colour.
  *
  * Both the rendered label text and the applied classes are asserted here,
@@ -24,7 +24,7 @@ describe('Badge', () => {
   test('defaults to the simple tone when no tone is given', () => {
     render(<Badge kind="ready" />)
 
-    // Simple tone uses a flat class shared across all kinds — no
+    // Simple tone uses a flat class shared across all kinds, no
     // kind-specific background colour.
     expect(screen.getByText('Ready')).toHaveClass(
       'text-xs',
