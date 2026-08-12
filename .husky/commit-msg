@@ -1,0 +1,2 @@
+cd Gartichands
+npx --no -- commitlint --edit "$1"
