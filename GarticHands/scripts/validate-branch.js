@@ -13,25 +13,26 @@ if (protectedBranches.includes(branch)) {
 
 // Allowed format: type/description
 const branchPattern =
-  /^(feature|bugfix|docs|refactor|test|chore)\/[a-z0-9]+(?:-[a-z0-9]+)*$/
+  /^(feature|bugfix|docs|refactor|test|chore)\/[a-zA-Z0-9]+(?:-[a-zA-Z0-9]+)*$/
 
 if (!branchPattern.test(branch)) {
-  console.error(`
-❌ Invalid branch name
-
-Current:
-  ${branch}
-
-Required format:
-  <type>/<description>
-
-Allowed types:
-  feature, bugfix, docs, refactor, test, chore
-
-Examples:
-  feature/lobby-resize
-  bugfix/crash-on-guess
-`)
+  console.error('')
+  console.error('❌ COMMIT BLOCKED: Invalid branch name')
+  console.error('')
+  console.error(`Current branch: ${branch}`)
+  console.error('')
+  console.error('Required format:')
+  console.error('  <type>/<description>')
+  console.error('')
+  console.error('Allowed types:')
+  console.error('  feature, bugfix, docs, refactor, test, chore')
+  console.error('')
+  console.error('Examples:')
+  console.error('  feature/lobby-resize')
+  console.error('  bugfix/crash-on-guess')
+  console.error('')
+  console.error('Rename your branch before committing.')
+  console.error('')
 
   process.exit(1)
 }
