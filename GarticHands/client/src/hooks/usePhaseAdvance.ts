@@ -66,12 +66,12 @@ export function usePhaseAdvance({
 
       if (enabled && fresh.phase === whenPhase) {
         cancelled = true
-        navigate(to, { state: { roomCode, playerName } })
+        void navigate(to, { state: { roomCode, playerName } })
       }
     }
 
-    tick()
-    const interval = setInterval(tick, intervalMs)
+    void tick()
+    const interval = setInterval(() => {void tick()}, intervalMs)
     return () => {
       cancelled = true
       clearInterval(interval)

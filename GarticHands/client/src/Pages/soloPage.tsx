@@ -69,7 +69,7 @@ function SoloInner() {
           </div>
           <div className="flex flex-col items-end gap-2">
             <CountdownTimer key={timerKey} seconds={TotalTime} />
-            <Button variant="secondary" size="sm" onClick={() => navigate('/')}>
+            <Button variant="secondary" size="sm" onClick={() => void navigate('/')}>
               Home
             </Button>
           </div>
