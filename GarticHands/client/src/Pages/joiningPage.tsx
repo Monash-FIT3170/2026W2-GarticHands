@@ -2,11 +2,13 @@ import { useState } from 'react'
 import { useNavigate, useLocation } from 'react-router-dom'
 import { joinRoom } from '../api/room'
 import { Page, Card, Button, Avatar } from '../components/ui'
+import type { DrawLocationState } from '../types/room'
 
 export default function JoiningPage() {
   const navigate = useNavigate()
   const location = useLocation()
-  const playerName = location.state?.playerName as string | undefined
+  const state = location.state as DrawLocationState | null
+  const playerName = state?.playerName
 
   const [roomCode, setRoomCode] = useState('')
   const [error, setError] = useState('')
@@ -14,7 +16,7 @@ export default function JoiningPage() {
 
   async function handleJoin() {
     if (!playerName) {
-      navigate('/')
+      void navigate('/')
       return
     }
     if (!roomCode.trim()) {
@@ -33,7 +35,7 @@ export default function JoiningPage() {
       return
     }
 
-    navigate(`/joined/${data.room.code}`, {
+    void navigate(`/joined/${data.room.code}`, {
       state: { room: data.room, playerName },
     })
   }
@@ -71,7 +73,7 @@ export default function JoiningPage() {
         <div className="flex gap-3 w-full">
           <Button
             variant="secondary"
-            onClick={() => navigate('/')}
+            onClick={() => void navigate('/')}
             disabled={submitting}
             className="flex-1"
           >
@@ -79,7 +81,7 @@ export default function JoiningPage() {
           </Button>
           <Button
             variant="primary"
-            onClick={handleJoin}
+            onClick={() => void handleJoin()}
             disabled={!canSubmit}
             className="flex-1"
           >

@@ -3,7 +3,7 @@ import { useNavigate, useLocation } from 'react-router-dom'
 import { createRoom, getRoom, startRoom } from '../api/room'
 import { Page, Card, Button, useToast } from '../components/ui'
 import PlayerList from '../components/PlayerList'
-import type { Player } from '../types/room'
+import type { Player, DrawLocationState } from '../types/room'
 
 const MAX_PLAYERS_DISPLAY = 4
 const MAX_PLAYERS = 4
@@ -15,12 +15,13 @@ export default function HostingPage() {
 
   const navigate = useNavigate()
   const location = useLocation()
-  const hostName = location.state?.playerName as string | undefined
+  const state = location.state as DrawLocationState | null
+  const hostName = state?.playerName
 
   useEffect(() => {
     async function setupRoom() {
       if (!hostName) {
-        navigate('/')
+        void navigate('/')
         return
       }
       const data = await createRoom(hostName)
@@ -29,7 +30,7 @@ export default function HostingPage() {
         setPlayers(data.room.players)
       }
     }
-    setupRoom()
+    void setupRoom()
   }, [hostName, navigate])
 
   useEffect(() => {
@@ -38,7 +39,8 @@ export default function HostingPage() {
       const data = await getRoom(roomCode)
       if (data.success) setPlayers(data.room.players)
     }
-    const interval = setInterval(loadRoom, 1000)
+    void loadRoom()
+    const interval = setInterval(() => {void loadRoom()}, 1000)
     return () => clearInterval(interval)
   }, [roomCode])
 
@@ -55,10 +57,7 @@ export default function HostingPage() {
     if (!allReady || !hostName) return
     await startRoom(roomCode)
     show('Starting game...')
-    setTimeout(
-      () => navigate('/input', { state: { roomCode, playerName: hostName } }),
-      1200,
-    )
+    setTimeout(() => { void navigate('/input', { state: { roomCode, playerName: hostName }, })}, 1200,)
   }
 
   return (
@@ -98,7 +97,7 @@ export default function HostingPage() {
               </Button>
             </div>
 
-            <Button variant="start" size="full" onClick={handleStart} disabled={!allReady} className="mt-4">
+            <Button variant="start" size="full" onClick={() => void handleStart()} disabled={!allReady} className="mt-4">
               {allReady ? 'Start Game' : 'Waiting for Players'}
             </Button>
           </section>

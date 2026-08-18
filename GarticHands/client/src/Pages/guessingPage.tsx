@@ -3,16 +3,17 @@ import { useLocation, useNavigate } from 'react-router-dom'
 import { Card, Button, RoundHeader, CountdownTimer } from '../components/ui'
 import { getRoom, submitGuess } from '../api/room'
 import { usePhaseAdvance } from '../hooks/usePhaseAdvance'
-import type { Player } from '../types/room'
+import type { Player, DrawLocationState } from '../types/room'
 
 const MaxChars = 120
 const TotalTime = 60
 
 export default function GuessingPage() {
   const location = useLocation()
+  const state = location.state as DrawLocationState | null
   const navigate = useNavigate()
-  const roomCode = location.state?.roomCode as string | undefined
-  const playerName = location.state?.playerName as string | undefined
+  const roomCode = state?.roomCode
+  const playerName = state?.playerName
 
   const [guess, setGuess] = useState('')
   const [submitted, setSubmitted] = useState(false)
@@ -22,14 +23,14 @@ export default function GuessingPage() {
 
   useEffect(() => {
     if (!roomCode || !playerName) {
-      navigate('/')
+      void navigate('/')
       return
     }
 
     // Pick the player whose drawing we'll guess: the next player in the player list,
     // wrapping around. Deterministic across clients because the list order is shared.
-    getRoom(roomCode).then((data) => {
-      if (!data.success) return
+    void getRoom(roomCode).then((data) => {
+      if (!data.success || !data.room) return
       const players: Player[] = data.room.players
       const myIndex = players.findIndex((p) => p.name === playerName)
       if (myIndex === -1) return
@@ -62,7 +63,7 @@ export default function GuessingPage() {
     }
 
     if (data.room?.phase === 'reveal') {
-      navigate('/game', { state: { roomCode, playerName } })
+      void navigate('/game', { state: { roomCode, playerName } })
     }
   }
 
@@ -109,7 +110,7 @@ export default function GuessingPage() {
         <Button
           variant="submit"
           size="sm"
-          onClick={handleSubmit}
+          onClick={() => void handleSubmit()}
           disabled={!guess.trim() || submitted}
         >
           Submit Guess

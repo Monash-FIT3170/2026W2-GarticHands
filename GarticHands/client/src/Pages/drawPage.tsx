@@ -12,6 +12,7 @@ import { Card, Button, RoundHeader, CountdownTimer } from '../components/ui'
 import { getRoom, submitDrawing } from '../api/room'
 import { usePhaseAdvance } from '../hooks/usePhaseAdvance'
 import { useRecordings } from '../state/RecordingsContext'
+import type { DrawLocationState } from '../types/room'
 
 const TotalTime = 60
 
@@ -26,9 +27,10 @@ export default function DrawPage() {
 /** Inner component so `useDrawing()` finds the surrounding `<DrawingProvider>`. */
 function DrawPageInner() {
   const location = useLocation()
+  const state = location.state as DrawLocationState | null
   const navigate = useNavigate()
-  const roomCode = location.state?.roomCode as string | undefined
-  const playerName = location.state?.playerName as string | undefined
+  const roomCode = state?.roomCode
+  const playerName = state?.playerName
 
   const { getDrawingImage } = useDrawing()
   const recorder = useRecorder()
@@ -42,11 +44,12 @@ function DrawPageInner() {
 
   useEffect(() => {
     if (!roomCode || !playerName) {
-      navigate('/')
+      void navigate('/')
       return
     }
-    getRoom(roomCode).then((data) => {
-      if (data.success) {
+
+    void getRoom(roomCode).then((data) => {
+      if (data.success && data.room) {
         if (data.room.prompts) setPrompt(data.room.prompts[playerName] || '')
         setRoundNum(data.room.round ?? 1)
       }
@@ -65,7 +68,7 @@ function DrawPageInner() {
     if (!recorder.isSupported) return
     startedRef.current = true
     // Slight delay so the camera canvas has mounted and started drawing frames.
-    const t = setTimeout(() => recorder.start(), 400)
+    const t = setTimeout(() => void recorder.start(), 400)
     return () => clearTimeout(t)
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [roundNum])
@@ -115,7 +118,7 @@ function DrawPageInner() {
     }
 
     if (data.room?.phase === 'guess') {
-      navigate('/guess', { state: { roomCode, playerName } })
+      void navigate('/guess', { state: { roomCode, playerName } })
     }
   }
 
@@ -151,7 +154,7 @@ function DrawPageInner() {
         </p>
 
         <div className="flex flex-col items-end mt-4 gap-2">
-          <Button variant="submit" size="sm" onClick={handleSubmit} disabled={submitted}>
+          <Button variant="submit" size="sm" onClick={() => void handleSubmit()} disabled={submitted}>
             Submit Drawing
           </Button>
           {submitted && !error && (

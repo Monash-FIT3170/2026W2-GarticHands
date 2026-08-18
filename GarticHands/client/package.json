@@ -6,7 +6,10 @@
   "scripts": {
     "dev": "vite --port 5173",
     "build": "tsc -b && vite build",
-    "lint": "eslint .",
+    "lint": "eslint . --format stylish",
+    "lint:fix": "eslint . --fix --format stylish",
+    "format": "prettier . --write",
+    "format:check": "prettier . --check",
     "preview": "vite preview"
   },
   "dependencies": {
@@ -23,6 +26,8 @@
     "@vitejs/plugin-react": "^6.0.1",
     "autoprefixer": "^10.5.0",
     "eslint": "^9.39.4",
+    "eslint-config-prettier": "^10.1.8",
+    "eslint-plugin-react": "^7.37.5",
     "eslint-plugin-react-hooks": "^7.0.1",
     "eslint-plugin-react-refresh": "^0.5.2",
     "globals": "^17.4.0",

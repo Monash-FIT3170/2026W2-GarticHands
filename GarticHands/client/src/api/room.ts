@@ -1,4 +1,13 @@
+import type { Room } from "../types/room"
+
 const API_URL = import.meta.env.VITE_API_URL ?? 'http://localhost:3000'
+
+interface RoomResponse {
+  success: boolean
+  message?: string
+  room?: Room
+  roomCode?: string
+}
 
 export async function createRoom(hostName: string) {
   const res = await fetch(`${API_URL}/rooms/create`, {
@@ -7,7 +16,7 @@ export async function createRoom(hostName: string) {
     body: JSON.stringify({ hostName }),
   })
 
-  return res.json()
+  return (await res.json()) as RoomResponse
 }
 
 export async function joinRoom(roomCode: string, playerName: string) {
@@ -17,12 +26,12 @@ export async function joinRoom(roomCode: string, playerName: string) {
     body: JSON.stringify({ roomCode, playerName }),
   })
 
-  return res.json()
+  return (await res.json()) as RoomResponse
 }
 
 export async function getRoom(roomCode: string) {
   const res = await fetch(`${API_URL}/rooms/${roomCode}`)
-  return res.json()
+  return (await res.json()) as RoomResponse
 }
 
 export async function updateReady(roomCode: string, playerName: string, ready: boolean) {
@@ -32,7 +41,7 @@ export async function updateReady(roomCode: string, playerName: string, ready: b
     body: JSON.stringify({ playerName, ready }),
   });
 
-  return res.json();
+  return (await res.json()) as RoomResponse
 }
 
 export async function startRoom(roomCode: string) {
@@ -41,7 +50,7 @@ export async function startRoom(roomCode: string) {
     headers: { 'Content-Type': 'application/json' },
   })
 
-  return res.json()
+  return (await res.json()) as RoomResponse
 }
 
 export async function submitPrompt(
@@ -54,7 +63,7 @@ export async function submitPrompt(
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify({ playerName, prompt }),
   })
-  return res.json()
+  return (await res.json()) as RoomResponse
 }
 
 export async function submitDrawing(
@@ -67,7 +76,7 @@ export async function submitDrawing(
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify({ playerName, dataUrl }),
   })
-  return res.json()
+  return (await res.json()) as RoomResponse
 }
 
 export async function submitGuess(
@@ -80,7 +89,7 @@ export async function submitGuess(
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify({ playerName, guess }),
   })
-  return res.json()
+  return (await res.json()) as RoomResponse
 }
 
 export async function restartRoom(roomCode: string) {
@@ -88,7 +97,7 @@ export async function restartRoom(roomCode: string) {
     method: 'PATCH',
     headers: { 'Content-Type': 'application/json' },
   })
-  return res.json()
+  return (await res.json()) as RoomResponse
 }
 
 export async function endRoom(roomCode: string) {
@@ -96,5 +105,5 @@ export async function endRoom(roomCode: string) {
     method: 'PATCH',
     headers: { 'Content-Type': 'application/json' },
   })
-  return res.json()
+  return (await res.json()) as RoomResponse
 }

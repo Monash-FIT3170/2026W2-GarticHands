@@ -3,22 +3,24 @@ import { useLocation, useNavigate } from 'react-router-dom'
 import { Card, Button, RoundHeader, CountdownTimer } from '../components/ui'
 import { submitPrompt } from '../api/room'
 import { usePhaseAdvance } from '../hooks/usePhaseAdvance'
+import type { DrawLocationState } from '../types/room'
 
 const MaxChars = 120
 const TotalTime = 60
 
 export default function InputPage() {
   const location = useLocation()
+  const state = location.state as DrawLocationState | null
   const navigate = useNavigate()
-  const roomCode = location.state?.roomCode as string | undefined
-  const playerName = location.state?.playerName as string | undefined
+  const roomCode = state?.roomCode
+  const playerName = state?.playerName
 
   const [input, setInput] = useState('')
   const [submitted, setSubmitted] = useState(false)
   const [error, setError] = useState('')
 
   useEffect(() => {
-    if (!roomCode || !playerName) navigate('/')
+    if (!roomCode || !playerName) void navigate('/')
   }, [roomCode, playerName, navigate])
 
   const { waitingFor, room } = usePhaseAdvance({
@@ -44,7 +46,7 @@ export default function InputPage() {
     }
 
     if (data.room?.phase === 'draw') {
-      navigate('/draw', { state: { roomCode, playerName } })
+      void navigate('/draw', { state: { roomCode, playerName } })
     }
   }
 
@@ -68,7 +70,7 @@ export default function InputPage() {
         />
         <div className="flex items-center justify-between mt-3">
           <CountdownTimer seconds={TotalTime} paused={submitted} onExpire={handleExpire} />
-          <Button variant="submit" size="sm" onClick={handleSubmit} disabled={submitted}>
+          <Button variant="submit" size="sm" onClick={() => void handleSubmit()} disabled={submitted}>
             Submit
           </Button>
         </div>
