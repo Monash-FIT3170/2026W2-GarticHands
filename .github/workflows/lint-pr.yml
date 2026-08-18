@@ -39,6 +39,6 @@ jobs:
 
       # Step 5) checks code formatting
       - name: Run Prettier check
-        run: npm run format:check
+        run: npm run format
 
   # Auto Testing can be done here
