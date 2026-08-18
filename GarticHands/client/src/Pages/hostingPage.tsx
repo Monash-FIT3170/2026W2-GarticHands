@@ -20,7 +20,7 @@ export default function HostingPage() {
   useEffect(() => {
     async function setupRoom() {
       if (!hostName) {
-        navigate('/')
+        void navigate('/')
         return
       }
       const data = await createRoom(hostName)

@@ -13,11 +13,11 @@ export default function JoiningPage() {
   const [error, setError] = useState('')
   const [submitting, setSubmitting] = useState(false)
 
-  async function handleJoin() {
-    if (!playerName) {
-      navigate('/')
-      return
-    }
+    async function handleJoin() {
+      if (!playerName) {
+        void navigate('/')
+        return
+      }
     if (!roomCode.trim()) {
       setError('Please enter a room code.')
       return
@@ -34,7 +34,7 @@ export default function JoiningPage() {
       return
     }
 
-    navigate(`/joined/${data.room.code}`, {
+    void navigate(`/joined/${data.room.code}`, {
       state: { room: data.room, playerName },
     })
   }
@@ -72,7 +72,7 @@ export default function JoiningPage() {
         <div className="flex gap-3 w-full">
           <Button
             variant="secondary"
-            onClick={() => navigate('/')}
+            onClick={() => { void navigate('/') }}
             disabled={submitting}
             className="flex-1"
           >
