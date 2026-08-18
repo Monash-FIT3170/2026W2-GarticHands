@@ -129,7 +129,7 @@ export default function JoinedPage() {
               <Button
                 variant="start"
                 size="full"
-                onClick={handleStart}
+                onClick={() => void handleStart()}
                 disabled={!allReady || starting}
                 className="mt-4"
               >
@@ -140,7 +140,7 @@ export default function JoinedPage() {
                 variant="ready"
                 active={ready}
                 size="full"
-                onClick={handleReady}
+                onClick={() => void handleReady()}
                 disabled={starting}
                 className="mt-4"
               >
