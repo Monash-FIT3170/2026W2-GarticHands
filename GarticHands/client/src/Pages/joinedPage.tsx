@@ -111,7 +111,6 @@ export default function JoinedPage() {
               style={{ backgroundColor: 'rgba(22, 89, 74, 0.2)' }}
             >
               <h2 className="text-white text-2xl font-extrabold tracking-wide mb-5">GAMEMODE</h2>
-
               <div className="bg-white rounded-lg border-4 border-[#78EF57] flex flex-col items-center justify-center shadow-sm w-full max-w-[200px]">
                 <img
                   src="/gamemode_classic.png"
@@ -122,24 +121,19 @@ export default function JoinedPage() {
               </div>
             </div>
 
-            <Button variant="outline" size="full" onClick={copyCode} className="mt-6">
-              <span className="flex items-center justify-center gap-2">
-                <svg
-                  xmlns="http://www.w3.org/2000/svg"
-                  className="w-5 h-5"
-                  viewBox="0 0 24 24"
-                  fill="none"
-                  stroke="currentColor"
-                  strokeWidth="2"
-                  strokeLinecap="round"
-                  strokeLinejoin="round"
-                >
-                  <rect x="9" y="9" width="13" height="13" rx="2" ry="2" />
-                  <path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1" />
-                </svg>
-                Copy Room Code
-              </span>
-            </Button>
+            <div className="mt-6 w-full flex flex-col items-center gap-2">
+              <p className="text-white/60 text-xs font-semibold uppercase tracking-widest">Room Code</p>
+              <p className="text-white font-mono font-extrabold text-4xl tracking-[0.3em]">{roomCode}</p>
+              <Button variant="outline" size="full" onClick={copyCode}>
+                <span className="flex items-center justify-center gap-2">
+                  <svg xmlns="http://www.w3.org/2000/svg" className="w-5 h-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                    <rect x="9" y="9" width="13" height="13" rx="2" ry="2" />
+                    <path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1" />
+                  </svg>
+                  Copy Room Code
+                </span>
+              </Button>
+            </div>
 
             {isHost ? (
               <Button
@@ -158,7 +152,7 @@ export default function JoinedPage() {
                 size="full"
                 onClick={() => void handleReady()}
                 disabled={starting}
-                className="mt-4"
+                className="mt-4 disabled:opacity-50 disabled:cursor-not-allowed"
               >
                 {ready ? 'Ready' : 'Ready Up'}
               </Button>
