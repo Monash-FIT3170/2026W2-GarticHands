@@ -1,5 +1,5 @@
-import HandTracking from './HandTracking'
-import { useDrawingContext } from '../DrawingContext'
+import HandTracking from './HandTracking';
+import { useDrawingContext } from '../DrawingContext';
 
 /**
  * Webcam-fed hand-tracking input. Renders the video element + landmark overlay and
@@ -9,6 +9,6 @@ import { useDrawingContext } from '../DrawingContext'
  * wiring is internal.
  */
 export default function DrawingCameraInput() {
-  const { pushFrame } = useDrawingContext()
-  return <HandTracking onFrame={pushFrame} />
+  const { pushFrame } = useDrawingContext();
+  return <HandTracking onFrame={pushFrame} />;
 }

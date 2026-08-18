@@ -6,35 +6,35 @@
  * and [`../../ARCHITECTURE.md`](../../ARCHITECTURE.md#data-shapes-canonical) for context.
  */
 
-export type PlayerStatus = 'host' | 'waiting' | 'ready'
+export type PlayerStatus = 'host' | 'waiting' | 'ready';
 
 export interface Player {
-  name: string
-  status: PlayerStatus
-  isHost: boolean
-  ready: boolean
-  joinedAt: number
+  name: string;
+  status: PlayerStatus;
+  isHost: boolean;
+  ready: boolean;
+  joinedAt: number;
 }
 
-export type RoomStatus = 'waiting' | 'started'
+export type RoomStatus = 'waiting' | 'started';
 
-export type RoomPhase = 'lobby' | 'prompt' | 'draw' | 'guess' | 'reveal'
+export type RoomPhase = 'lobby' | 'prompt' | 'draw' | 'guess' | 'reveal';
 
 export interface Room {
-  code: string
-  players: Player[]
-  status: RoomStatus
-  phase: RoomPhase
-  round: number
-  maxRounds: number
-  prompts: Record<string, string>
-  drawings: Record<string, string>
-  guesses: Record<string, string>
-  createdAt: number
+  code: string;
+  players: Player[];
+  status: RoomStatus;
+  phase: RoomPhase;
+  round: number;
+  maxRounds: number;
+  prompts: Record<string, string>;
+  drawings: Record<string, string>;
+  guesses: Record<string, string>;
+  createdAt: number;
 }
 
 export interface DrawLocationState {
-  roomCode?: string
-  playerName?: string
-  room?: Room
+  roomCode?: string;
+  playerName?: string;
+  room?: Room;
 }

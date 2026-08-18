@@ -1,21 +1,21 @@
-import { useState } from 'react'
-import { useNavigate } from 'react-router-dom'
-import { Page, Card, Button, Avatar } from '../components/ui'
+import { useState } from 'react';
+import { useNavigate } from 'react-router-dom';
+import { Page, Card, Button, Avatar } from '../components/ui';
 
 export default function LandingPage() {
-  const navigate = useNavigate()
-  const [playerName, setPlayerName] = useState('')
+  const navigate = useNavigate();
+  const [playerName, setPlayerName] = useState('');
 
-  const canContinue = playerName.trim().length > 0
+  const canContinue = playerName.trim().length > 0;
 
   function joinRoom() {
-    if (!canContinue) return
-    void navigate('/join', { state: { playerName } })
+    if (!canContinue) return;
+    void navigate('/join', { state: { playerName } });
   }
 
   function hostRoom() {
-    if (!canContinue) return
-    void navigate('/host', { state: { playerName } })
+    if (!canContinue) return;
+    void navigate('/host', { state: { playerName } });
   }
 
   return (
@@ -60,5 +60,5 @@ export default function LandingPage() {
         </div>
       </Card>
     </Page>
-  )
+  );
 }

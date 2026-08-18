@@ -1,19 +1,15 @@
-import js from '@eslint/js'
-import globals from 'globals'
-import react from 'eslint-plugin-react'
-import reactHooks from 'eslint-plugin-react-hooks'
-import reactRefresh from 'eslint-plugin-react-refresh'
-import tseslint from 'typescript-eslint'
-import eslintConfigPrettier from 'eslint-config-prettier'
+import js from '@eslint/js';
+import globals from 'globals';
+import react from 'eslint-plugin-react';
+import reactHooks from 'eslint-plugin-react-hooks';
+import reactRefresh from 'eslint-plugin-react-refresh';
+import tseslint from 'typescript-eslint';
+import eslintConfigPrettier from 'eslint-config-prettier';
 
 export default tseslint.config(
-  { 
+  {
     // Ignores linting on packages, coverage tests, generated outputs
-    ignores: [
-      'dist',
-      'node_modules',
-      'coverage'
-    ], 
+    ignores: ['dist', 'node_modules', 'coverage'],
   },
 
   {
@@ -31,7 +27,6 @@ export default tseslint.config(
 
     // Ensures affected files are all the .ts and .tsx files
     files: ['**/*.{ts,tsx}'],
-
 
     languageOptions: {
       // Selects the version of the scripting rules to be followed
@@ -67,28 +62,25 @@ export default tseslint.config(
       ...reactHooks.configs.recommended.rules,
 
       // Helps maintain React fast refresh capability without breaking the linting
-      'react-refresh/only-export-components': [
-        'warn',
-        { allowConstantExport: true },
-      ],
+      'react-refresh/only-export-components': ['warn', { allowConstantExport: true }],
 
       // Generalised Code quality rules
-      
+
       // Requires triple === or !== signs
-      'eqeqeq': ['error', 'always'],
-      
+      eqeqeq: ['error', 'always'],
+
       // Prevents debugger statements from remaining in live code
       'no-debugger': 'error',
-      
+
       // If a value is declared and never change, needs to be a const
       'prefer-const': 'error',
-      
+
       // Will allow console messages to pass without breaking linting but will notify developer
       'no-console': [
-        'warn', 
-        { 
+        'warn',
+        {
           // Exception of the log message is a warning or error
-          allow: ['warn', 'error'], 
+          allow: ['warn', 'error'],
         },
       ],
 
@@ -106,4 +98,4 @@ export default tseslint.config(
 
   // prevents conflicts between prettier and ESLINT
   eslintConfigPrettier,
-)
+);
