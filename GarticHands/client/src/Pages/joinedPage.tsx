@@ -3,7 +3,7 @@ import { useParams, useLocation, useNavigate } from 'react-router-dom'
 import { getRoom, updateReady, startRoom } from '../api/room'
 import { Page, Card, Button, useToast } from '../components/ui'
 import PlayerList from '../components/PlayerList'
-import type { Player, DrawLocationState } from '../types/room'
+import type { Player } from '../types/room'
 
 const MAX_PLAYERS_DISPLAY = 4
 const MAX_PLAYERS = 4
@@ -11,11 +11,10 @@ const MAX_PLAYERS = 4
 export default function JoinedPage() {
   const { roomCode } = useParams()
   const location = useLocation()
-  const state = location.state as DrawLocationState | null
-  const playerName = state?.playerName
+  const playerName = location.state?.playerName as string | undefined
   const navigate = useNavigate()
 
-  const [players, setPlayers] = useState<Player[]>(state?.room?.players ?? [])
+  const [players, setPlayers] = useState<Player[]>(location.state?.room?.players || [])
   const [ready, setReady] = useState(false)
   const [starting, setStarting] = useState(false)
   const { toast, show } = useToast('pill')
@@ -46,7 +45,10 @@ export default function JoinedPage() {
         alreadyStarted = true
         setStarting(true)
         show('Starting game...')
-        setTimeout(() => { void navigate('/input', { state: { roomCode, playerName }, })}, 2000,)
+        setTimeout(
+          () => navigate('/input', { state: { roomCode, playerName } }),
+          2000,
+        )
         return
       }
 
@@ -56,8 +58,8 @@ export default function JoinedPage() {
       if (meFresh) setReady(meFresh.ready)
     }
 
-    void loadRoom()
-    const interval = setInterval(() => {void loadRoom()}, 1000)
+    loadRoom()
+    const interval = setInterval(loadRoom, 1000)
     return () => clearInterval(interval)
   }, [roomCode, playerName, navigate, show])
 
@@ -65,7 +67,7 @@ export default function JoinedPage() {
     if (!roomCode || !playerName || starting) return
     const next = !ready
     const data = await updateReady(roomCode, playerName, next)
-    if (data.success) {
+    if (data.success && data.room) {
       setReady(next)
       setPlayers(data.room.players)
     }
@@ -127,7 +129,7 @@ export default function JoinedPage() {
               <Button
                 variant="start"
                 size="full"
-                onClick={() => void handleStart()}
+                onClick={handleStart}
                 disabled={!allReady || starting}
                 className="mt-4"
               >
@@ -138,9 +140,9 @@ export default function JoinedPage() {
                 variant="ready"
                 active={ready}
                 size="full"
-                onClick={() => void handleReady()}
+                onClick={handleReady}
                 disabled={starting}
-                className="mt-4 disabled:opacity-50 disabled:cursor-not-allowed"
+                className="mt-4"
               >
                 {ready ? 'Ready' : 'Ready Up'}
               </Button>

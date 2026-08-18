@@ -3,7 +3,7 @@ import { useNavigate, useLocation } from 'react-router-dom'
 import { createRoom, getRoom, startRoom } from '../api/room'
 import { Page, Card, Button, useToast } from '../components/ui'
 import PlayerList from '../components/PlayerList'
-import type { Player, DrawLocationState } from '../types/room'
+import type { Player } from '../types/room'
 
 const MAX_PLAYERS_DISPLAY = 4
 const MAX_PLAYERS = 4
@@ -15,32 +15,30 @@ export default function HostingPage() {
 
   const navigate = useNavigate()
   const location = useLocation()
-  const state = location.state as DrawLocationState | null
-  const hostName = state?.playerName
+  const hostName = location.state?.playerName as string | undefined
 
   useEffect(() => {
     async function setupRoom() {
       if (!hostName) {
-        void navigate('/')
+        navigate('/')
         return
       }
       const data = await createRoom(hostName)
-      if (data.success) {
+      if (data.success && data.roomCode && data.room) {
         setRoomCode(data.roomCode)
         setPlayers(data.room.players)
       }
     }
-    void setupRoom()
+    setupRoom()
   }, [hostName, navigate])
 
   useEffect(() => {
     if (!roomCode) return
     async function loadRoom() {
       const data = await getRoom(roomCode)
-      if (data.success) setPlayers(data.room.players)
+      if (data.success && data.room) setPlayers(data.room.players)
     }
-    void loadRoom()
-    const interval = setInterval(() => {void loadRoom()}, 1000)
+    const interval = setInterval(loadRoom, 1000)
     return () => clearInterval(interval)
   }, [roomCode])
 
@@ -57,7 +55,10 @@ export default function HostingPage() {
     if (!allReady || !hostName) return
     await startRoom(roomCode)
     show('Starting game...')
-    setTimeout(() => { void navigate('/input', { state: { roomCode, playerName: hostName }, })}, 1200,)
+    setTimeout(
+      () => navigate('/input', { state: { roomCode, playerName: hostName } }),
+      1200,
+    )
   }
 
   return (
@@ -97,7 +98,7 @@ export default function HostingPage() {
               </Button>
             </div>
 
-            <Button variant="start" size="full" onClick={() => void handleStart()} disabled={!allReady} className="mt-4">
+            <Button variant="start" size="full" onClick={handleStart} disabled={!allReady} className="mt-4">
               {allReady ? 'Start Game' : 'Waiting for Players'}
             </Button>
           </section>
