@@ -2,7 +2,7 @@
   "name": "gartichands",
   "version": "1.0.0",
   "private": true,
-  "description": "Gartic Hands — multiplayer drawing game with hand-tracking input",
+  "description": "Gartic Hands multiplayer drawing game with hand-tracking input",
   "workspaces": [
     "client",
     "server"
