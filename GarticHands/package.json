@@ -17,6 +17,8 @@
     "start": "concurrently -n server,client -c blue,magenta \"npm run start -w @gartichands/server\" \"npm run preview -w @gartichands/client\"",
     "lint": "npm run lint -w @gartichands/client",
     "lint:fix": "npm run lint:fix -w @gartichands/client",
+    "format": "npm run format -w @gartichands/client",
+    "format:check": "npm run format:check -w @gartichands/client",
     "prepare": "cd .. && husky .husky",
     "check:branch": "node scripts/validate-branch.js"
   },
