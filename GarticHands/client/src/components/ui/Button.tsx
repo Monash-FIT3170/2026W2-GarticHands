@@ -56,8 +56,8 @@ function variantClasses(
         return 'bg-[#4a6e69] text-[#8aaba6] rounded-lg font-extrabold cursor-not-allowed opacity-50'
       }
       return active
-        ? 'bg-[#78EF57] text-[#2E5534] hover:bg-[#67DD48] rounded-lg font-extrabold transition-colors'
-        : 'bg-[#79A8A0] text-[#C8DDD9] rounded-lg font-extrabold cursor-pointer';
+        ? 'bg-red-500 text-white hover:bg-red-600 rounded-lg font-extrabold transition-colors'
+        : 'bg-[#78EF57] text-[#2E5534] hover:bg-[#67DD48] rounded-lg font-extrabold transition-colors'
   }
 }
 

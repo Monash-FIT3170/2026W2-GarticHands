@@ -140,11 +140,11 @@ export default function JoinedPage() {
                 variant="ready"
                 active={ready}
                 size="full"
-                onClick={handleReady}
+                onClick={() => void handleReady()}
                 disabled={starting}
                 className="mt-4"
               >
-                {ready ? 'Ready' : 'Ready Up'}
+                {ready ? 'Unready' : 'Ready Up'}
               </Button>
             )}
           </section>
