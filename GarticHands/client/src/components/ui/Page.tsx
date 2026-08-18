@@ -1,6 +1,6 @@
-import type { ReactNode } from 'react'
-import TopRightButtons from './TopRightButtons'
-import Logo from './Logo'
+import type { ReactNode } from 'react';
+import TopRightButtons from './TopRightButtons';
+import Logo from './Logo';
 
 interface PageProps {
   /**
@@ -8,19 +8,19 @@ interface PageProps {
    * - `centered`: vertically + horizontally centers a single content card (landing, lobby).
    * - `flow`: top-aligned content for screens that scroll or stretch (input, draw, guess).
    */
-  variant?: 'centered' | 'flow'
+  variant?: 'centered' | 'flow';
   /** Show top-right utility buttons. Default: true. */
-  topRight?: boolean
+  topRight?: boolean;
   /** Show the GarticHand logo at the top. Default: false. */
-  logo?: boolean
+  logo?: boolean;
   /** Compact logo (scale-90, negative bottom margin). Use when stacking with a lobby card. */
-  compactLogo?: boolean
+  compactLogo?: boolean;
   /** Background color class. Default: `bg-[#6FADA0]` (brand teal). */
-  background?: string
+  background?: string;
   /** Padding utility classes. Default: `px-4 py-10`. */
-  padding?: string
-  className?: string
-  children: ReactNode
+  padding?: string;
+  className?: string;
+  children: ReactNode;
 }
 
 /**
@@ -40,7 +40,7 @@ export default function Page({
   const layout =
     variant === 'centered'
       ? 'flex flex-col items-center justify-center'
-      : 'flex flex-col items-center'
+      : 'flex flex-col items-center';
 
   return (
     <div className={`min-h-screen ${background} ${layout} relative ${padding} ${className}`}>
@@ -48,5 +48,5 @@ export default function Page({
       {logo && <Logo compact={compactLogo} />}
       {children}
     </div>
-  )
+  );
 }

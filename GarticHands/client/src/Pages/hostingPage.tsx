@@ -1,63 +1,67 @@
-import { useEffect, useState } from 'react'
-import { useNavigate, useLocation } from 'react-router-dom'
-import { createRoom, getRoom, startRoom } from '../api/room'
-import { Page, Card, Button, useToast } from '../components/ui'
-import PlayerList from '../components/PlayerList'
-import type { Player, DrawLocationState } from '../types/room'
+import { useEffect, useState } from 'react';
+import { useNavigate, useLocation } from 'react-router-dom';
+import { createRoom, getRoom, startRoom } from '../api/room';
+import { Page, Card, Button, useToast } from '../components/ui';
+import PlayerList from '../components/PlayerList';
+import type { Player, DrawLocationState } from '../types/room';
 
-const MAX_PLAYERS_DISPLAY = 4
-const MAX_PLAYERS = 4
+const MAX_PLAYERS_DISPLAY = 4;
+const MAX_PLAYERS = 4;
 
 export default function HostingPage() {
-  const [roomCode, setRoomCode] = useState('')
-  const [players, setPlayers] = useState<Player[]>([])
-  const { toast, show } = useToast('pill')
+  const [roomCode, setRoomCode] = useState('');
+  const [players, setPlayers] = useState<Player[]>([]);
+  const { toast, show } = useToast('pill');
 
-  const navigate = useNavigate()
-  const location = useLocation()
-  const state = location.state as DrawLocationState | null
-  const hostName = state?.playerName
+  const navigate = useNavigate();
+  const location = useLocation();
+  const state = location.state as DrawLocationState | null;
+  const hostName = state?.playerName;
 
   useEffect(() => {
     async function setupRoom() {
       if (!hostName) {
-        void navigate('/')
-        return
+        void navigate('/');
+        return;
       }
-      const data = await createRoom(hostName)
+      const data = await createRoom(hostName);
       if (data.success) {
-        setRoomCode(data.roomCode)
-        setPlayers(data.room.players)
+        setRoomCode(data.roomCode);
+        setPlayers(data.room.players);
       }
     }
-    void setupRoom()
-  }, [hostName, navigate])
+    void setupRoom();
+  }, [hostName, navigate]);
 
   useEffect(() => {
-    if (!roomCode) return
+    if (!roomCode) return;
     async function loadRoom() {
-      const data = await getRoom(roomCode)
-      if (data.success) setPlayers(data.room.players)
+      const data = await getRoom(roomCode);
+      if (data.success) setPlayers(data.room.players);
     }
-    void loadRoom()
-    const interval = setInterval(() => {void loadRoom()}, 1000)
-    return () => clearInterval(interval)
-  }, [roomCode])
+    void loadRoom();
+    const interval = setInterval(() => {
+      void loadRoom();
+    }, 1000);
+    return () => clearInterval(interval);
+  }, [roomCode]);
 
-  const readyCount = players.filter((p) => p.ready || p.isHost).length
-  const allReady = players.length > 0 && players.every((p) => p.ready || p.isHost)
+  const readyCount = players.filter((p) => p.ready || p.isHost).length;
+  const allReady = players.length > 0 && players.every((p) => p.ready || p.isHost);
 
   function copyCode() {
-    if (!roomCode) return
-    navigator.clipboard.writeText(roomCode).catch(() => { })
-    show('Invite code copied!')
+    if (!roomCode) return;
+    navigator.clipboard.writeText(roomCode).catch(() => {});
+    show('Invite code copied!');
   }
 
   async function handleStart() {
-    if (!allReady || !hostName) return
-    await startRoom(roomCode)
-    show('Starting game...')
-    setTimeout(() => { void navigate('/input', { state: { roomCode, playerName: hostName }, })}, 1200,)
+    if (!allReady || !hostName) return;
+    await startRoom(roomCode);
+    show('Starting game...');
+    setTimeout(() => {
+      void navigate('/input', { state: { roomCode, playerName: hostName } });
+    }, 1200);
   }
 
   return (
@@ -74,11 +78,19 @@ export default function HostingPage() {
               </p>
             </div>
 
-            <PlayerList players={players} selfName={hostName} variant="lobby" padTo={MAX_PLAYERS_DISPLAY} />
+            <PlayerList
+              players={players}
+              selfName={hostName}
+              variant="lobby"
+              padTo={MAX_PLAYERS_DISPLAY}
+            />
           </section>
 
           <section className="flex flex-col items-center">
-            <div className="rounded-xl p-6 w-full flex flex-col items-center" style={{ backgroundColor: 'rgba(22, 89, 74, 0.2)' }}>
+            <div
+              className="rounded-xl p-6 w-full flex flex-col items-center"
+              style={{ backgroundColor: 'rgba(22, 89, 74, 0.2)' }}
+            >
               <h2 className="text-white text-2xl font-extrabold tracking-wide mb-5">GAMEMODE</h2>
               <GamemodeSelect />
             </div>
@@ -97,7 +109,13 @@ export default function HostingPage() {
               </Button>
             </div>
 
-            <Button variant="start" size="full" onClick={() => void handleStart()} disabled={!allReady} className="mt-4">
+            <Button
+              variant="start"
+              size="full"
+              onClick={() => void handleStart()}
+              disabled={!allReady}
+              className="mt-4"
+            >
               {allReady ? 'Start Game' : 'Waiting for Players'}
             </Button>
           </section>
@@ -106,7 +124,7 @@ export default function HostingPage() {
 
       {toast}
     </Page>
-  )
+  );
 }
 
 function GamemodeSelect() {
@@ -117,5 +135,5 @@ function GamemodeSelect() {
         <p className="text-[#2E5534] font-extrabold">Classic</p>
       </button>
     </div>
-  )
+  );
 }
