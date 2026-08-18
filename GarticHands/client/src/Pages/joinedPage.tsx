@@ -152,7 +152,7 @@ export default function JoinedPage() {
                 size="full"
                 onClick={() => void handleReady()}
                 disabled={starting}
-                className="mt-4 disabled:opacity-50 disabled:cursor-not-allowed"
+                className="mt-4"
               >
                 {ready ? 'Ready' : 'Ready Up'}
               </Button>
