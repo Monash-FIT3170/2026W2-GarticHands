@@ -43,7 +43,7 @@ function PlaygroundInner() {
               No timer, no network — try every layout and gesture.
             </p>
           </div>
-          <Button variant="secondary" size="sm" onClick={() => navigate('/')}>
+          <Button variant="secondary" size="sm" onClick={() => void navigate('/')}>
             Home
           </Button>
         </div>

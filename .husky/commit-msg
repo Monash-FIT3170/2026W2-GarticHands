@@ -1,0 +1,16 @@
+cd GarticHands
+if ! npx --no -- commitlint --edit "$1" --quiet; then
+  echo ""
+  echo "❌ Invalid commit message"
+  echo ""
+  echo "Required format:"
+  echo "  <type>(<scope>): <summary>"
+  echo ""
+  echo "Allowed types:"
+  echo "  feat, fix, docs, refactor, test, chore"
+  echo ""
+  echo "Example:"
+  echo "  feat(lobby): add responsive player layout"
+  echo ""
+  exit 1
+fi

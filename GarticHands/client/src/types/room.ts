@@ -32,3 +32,9 @@ export interface Room {
   guesses: Record<string, string>
   createdAt: number
 }
+
+export interface DrawLocationState {
+  roomCode?: string
+  playerName?: string
+  room?: Room
+}

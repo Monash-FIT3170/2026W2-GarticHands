@@ -10,12 +10,12 @@ export default function LandingPage() {
 
   function joinRoom() {
     if (!canContinue) return
-    navigate('/join', { state: { playerName } })
+    void navigate('/join', { state: { playerName } })
   }
 
   function hostRoom() {
     if (!canContinue) return
-    navigate('/host', { state: { playerName } })
+    void navigate('/host', { state: { playerName } })
   }
 
   return (
@@ -44,7 +44,7 @@ export default function LandingPage() {
         <div className="flex gap-2 w-full justify-center pt-2 text-white/90">
           <button
             type="button"
-            onClick={() => navigate('/solo')}
+            onClick={() => void navigate('/solo')}
             className="text-xs font-bold uppercase tracking-[0.18em] underline-offset-2 hover:underline transition-colors"
           >
             Solo (Computer Mode)
@@ -52,7 +52,7 @@ export default function LandingPage() {
           <span className="text-white/40">·</span>
           <button
             type="button"
-            onClick={() => navigate('/playground')}
+            onClick={() => void navigate('/playground')}
             className="text-xs font-bold uppercase tracking-[0.18em] underline-offset-2 hover:underline transition-colors"
           >
             Playground

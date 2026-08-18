@@ -3,7 +3,7 @@ import { useLocation, useNavigate } from 'react-router-dom'
 import { Card, Button, RoundHeader } from '../components/ui'
 import { getRoom, restartRoom, endRoom } from '../api/room'
 import { useRecordings, type Recording } from '../state/RecordingsContext'
-import type { Player, Room } from '../types/room'
+import type { Player, Room, DrawLocationState } from '../types/room'
 
 interface RevealChain {
   drawer: Player
@@ -17,9 +17,10 @@ type EndView = 'cards' | 'slideshow' | 'recordings'
 
 export default function GamePage() {
   const location = useLocation()
+  const state = location.state as DrawLocationState | null
   const navigate = useNavigate()
-  const roomCode = location.state?.roomCode as string | undefined
-  const playerName = location.state?.playerName as string | undefined
+  const roomCode = state?.roomCode
+  const playerName = state?.playerName
 
   const [room, setRoom] = useState<Room | null>(null)
   const [working, setWorking] = useState(false)
@@ -28,7 +29,7 @@ export default function GamePage() {
 
   useEffect(() => {
     if (!roomCode || !playerName) {
-      navigate('/')
+      void navigate('/')
       return
     }
 
@@ -37,22 +38,23 @@ export default function GamePage() {
     async function load() {
       if (!roomCode) return
       const data = await getRoom(roomCode)
-      if (cancelled || !data.success) return
-      setRoom(data.room as Room)
+      if (cancelled || !data.success || !data.room) return
+      setRoom(data.room)
 
       if (data.room.phase === 'prompt') {
         cancelled = true
-        navigate('/input', { state: { roomCode, playerName } })
+        void navigate('/input', { state: { roomCode, playerName } })
         return
       }
       if (data.room.phase === 'lobby') {
         cancelled = true
-        navigate(`/joined/${roomCode}`, { state: { roomCode, playerName } })
+        void navigate(`/joined/${roomCode}`, { state: { roomCode, playerName } })
       }
     }
 
-    load()
-    const interval = setInterval(load, 1500)
+
+    void load()
+    const interval = setInterval(() => {void load()}, 1500)
     return () => {
       cancelled = true
       clearInterval(interval)
@@ -110,11 +112,11 @@ export default function GamePage() {
         <div className="flex flex-col items-end mt-6 gap-2">
           {isHost ? (
             isFinalRound ? (
-              <Button variant="outline" size="full" onClick={handleBackToLobby} disabled={working}>
+              <Button variant="outline" size="full" onClick={() => void handleBackToLobby()} disabled={working}>
                 {working ? 'Returning...' : 'Back to Lobby'}
               </Button>
             ) : (
-              <Button variant="start" size="full" onClick={handlePlayAgain} disabled={working}>
+              <Button variant="start" size="full" onClick={() => void handlePlayAgain()} disabled={working}>
                 {working ? 'Starting...' : `Play Round ${round + 1}`}
               </Button>
             )
@@ -187,7 +189,7 @@ function CardsView({ chains }: { chains: RevealChain[] }) {
         >
           <p className="text-sm text-white/80">
             <span className="font-semibold">{chain.drawer.name}</span> wrote:{' '}
-            <span className="italic">"{chain.prompt || '(no prompt)'}"</span>
+            <span className="italic">&quot;{chain.prompt || '(no prompt)'}&quot;</span>
           </p>
           {chain.drawing ? (
             <img
@@ -202,7 +204,7 @@ function CardsView({ chains }: { chains: RevealChain[] }) {
           )}
           <p className="text-sm text-white/80">
             <span className="font-semibold">{chain.guesserName}</span> guessed:{' '}
-            <span className="italic">"{chain.guess || '(no guess)'}"</span>
+            <span className="italic">&quot;{chain.guess || '(no guess)'}&quot;</span>
           </p>
         </div>
       ))}
@@ -246,11 +248,11 @@ function SlideshowView({ chains }: { chains: RevealChain[] }) {
       </div>
       <p className="text-sm text-white/80 mt-3 text-center">
         <span className="font-semibold">{current.drawer.name}</span> drew{' '}
-        <span className="italic">"{current.prompt || '(no prompt)'}"</span>
+        <span className="italic">&quot;{current.prompt || '(no prompt)'}&quot;</span>
       </p>
       <p className="text-xs text-white/60 mt-1 text-center">
         Guessed by <span className="font-semibold">{current.guesserName}</span>:{' '}
-        <span className="italic">"{current.guess || '(no guess)'}"</span>
+        <span className="italic">&quot;{current.guess || '(no guess)'}&quot;</span>
       </p>
 
       <div className="flex items-center gap-2 mt-4">

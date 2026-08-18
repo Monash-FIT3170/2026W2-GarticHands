@@ -42,6 +42,8 @@ export function useHandTracking({
     let cancelled = false
     let frameId: number
     let handLandmarker: HandLandmarker | null = null
+    let mediaStream: MediaStream | null = null
+
     const gestureBuffer = new GestureBuffer(5)
 
     const processFrame = () => {
@@ -148,19 +150,19 @@ export function useHandTracking({
         if (cancelled) return
 
         // Start webcam
-        const stream = await navigator.mediaDevices.getUserMedia({
+        mediaStream = await navigator.mediaDevices.getUserMedia({
           video: { width: 640, height: 480 },
         })
 
         if (cancelled) {
-          stream.getTracks().forEach(t => t.stop())
+          mediaStream.getTracks().forEach(t => t.stop())
           return
         }
 
         const video = videoRef.current
         if (!video) return
 
-        video.srcObject = stream
+        video.srcObject = mediaStream
 
         await new Promise<void>(resolve => {
           video.onloadedmetadata = async () => {
@@ -181,17 +183,15 @@ export function useHandTracking({
       }
     }
 
-    start()
+    void start()
 
     return () => {
       cancelled = true
       cancelAnimationFrame(frameId)
       handLandmarker?.close()
-
-      const stream = videoRef.current?.srcObject as MediaStream | null
-      stream?.getTracks().forEach(t => t.stop())
+      mediaStream?.getTracks().forEach((track) => track.stop())
     }
-  }, [])
+  }, [videoRef, canvasRef])
 
   return { isLoading, error, handDetected, gesture }
 }
