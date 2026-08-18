@@ -1,14 +1,11 @@
-import { useEffect, useRef } from 'react'
-import { useHandTracking } from '../hooks/useHandTracking'
-import { useDrawingContext } from '../DrawingContext'
-import type { GestureType as GestureTypeValue } from '../gestures/GestureTypes'
-import type { HandLandmark } from '../Models/HandLandmark'
+import { useEffect, useRef } from 'react';
+import { useHandTracking } from '../hooks/useHandTracking';
+import { useDrawingContext } from '../DrawingContext';
+import type { GestureType as GestureTypeValue } from '../gestures/GestureTypes';
+import type { HandLandmark } from '../Models/HandLandmark';
 
 interface HandTrackingProps {
-  onFrame?: (
-    landmarks: HandLandmark[] | null,
-    gesture: GestureTypeValue,
-  ) => void
+  onFrame?: (landmarks: HandLandmark[] | null, gesture: GestureTypeValue) => void;
 }
 
 /**
@@ -19,21 +16,21 @@ interface HandTrackingProps {
  * so the recorder hook can composite the camera feed into saved videos.
  */
 export default function HandTracking({ onFrame }: HandTrackingProps) {
-  const videoRef = useRef<HTMLVideoElement>(null)
-  const canvasRef = useRef<HTMLCanvasElement>(null)
-  const { registerCameraCanvas } = useDrawingContext()
+  const videoRef = useRef<HTMLVideoElement>(null);
+  const canvasRef = useRef<HTMLCanvasElement>(null);
+  const { registerCameraCanvas } = useDrawingContext();
 
   const { isLoading, error, handDetected, gesture } = useHandTracking({
     videoRef,
     canvasRef,
     onFrame,
-  })
+  });
 
   useEffect(() => {
-    const canvas = canvasRef.current
-    if (!canvas) return
-    return registerCameraCanvas(canvas)
-  }, [registerCameraCanvas])
+    const canvas = canvasRef.current;
+    if (!canvas) return;
+    return registerCameraCanvas(canvas);
+  }, [registerCameraCanvas]);
 
   return (
     <div className="relative w-full aspect-[4/3] rounded-xl overflow-hidden bg-white border border-white/30 shadow-inner">
@@ -45,10 +42,7 @@ export default function HandTracking({ onFrame }: HandTrackingProps) {
         style={{ visibility: 'hidden', position: 'absolute', inset: 0 }}
       />
 
-      <canvas
-        ref={canvasRef}
-        className="absolute inset-0 w-full h-full"
-      />
+      <canvas ref={canvasRef} className="absolute inset-0 w-full h-full" />
 
       {/* Status overlay — pinned to bottom so it never crowds the drawing area. */}
       <div className="absolute left-2 bottom-2 flex gap-2 text-xs font-semibold">
@@ -62,19 +56,15 @@ export default function HandTracking({ onFrame }: HandTrackingProps) {
           <>
             <span
               className={`px-2 py-1 rounded-full ${
-                handDetected
-                  ? 'bg-[#78EF57]/90 text-[#2E5534]'
-                  : 'bg-white/90 text-[#3D6B64]'
+                handDetected ? 'bg-[#78EF57]/90 text-[#2E5534]' : 'bg-white/90 text-[#3D6B64]'
               }`}
             >
               {handDetected ? 'Hand detected' : 'Show your hand'}
             </span>
-            <span className="px-2 py-1 rounded-full bg-[#2F4542]/90 text-white">
-              {gesture}
-            </span>
+            <span className="px-2 py-1 rounded-full bg-[#2F4542]/90 text-white">{gesture}</span>
           </>
         )}
       </div>
     </div>
-  )
+  );
 }

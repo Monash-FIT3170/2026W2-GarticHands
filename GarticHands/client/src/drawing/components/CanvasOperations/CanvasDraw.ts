@@ -61,12 +61,7 @@ export class CanvasDraw implements CanvasOp {
     if (this.prevMid) {
       // From the previous mid-point, curve through the previous landmark to the new mid-point.
       this.ctx.moveTo(this.prevMid.x, this.prevMid.y);
-      this.ctx.quadraticCurveTo(
-        this.prevSmoothed.x,
-        this.prevSmoothed.y,
-        mid.x,
-        mid.y,
-      );
+      this.ctx.quadraticCurveTo(this.prevSmoothed.x, this.prevSmoothed.y, mid.x, mid.y);
     } else {
       // First segment — straight line into the first mid-point.
       this.ctx.moveTo(this.prevSmoothed.x, this.prevSmoothed.y);

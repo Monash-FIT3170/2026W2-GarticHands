@@ -1,0 +1,9 @@
+node_modules
+dist
+build
+coverage
+package-lock.json
+*.md
+.vscode
+Training
+client/public/mediapipe-wasm

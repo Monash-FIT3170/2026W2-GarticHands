@@ -1,14 +1,14 @@
-import { useEffect, useRef } from 'react'
-import Canvas, { type CanvasHandle } from './Canvas'
-import { useDrawingContext } from '../DrawingContext'
+import { useEffect, useRef } from 'react';
+import Canvas, { type CanvasHandle } from './Canvas';
+import { useDrawingContext } from '../DrawingContext';
 
 interface DrawingCameraCanvasProps {
-  width?: number
-  height?: number
+  width?: number;
+  height?: number;
   /** Stroke color (default 'black'). Switch to e.g. 'white' for camera overlay. */
-  strokeColor?: string
+  strokeColor?: string;
   /** Wrapper class override — pass `absolute inset-0` for overlay use. */
-  className?: string
+  className?: string;
 }
 
 /**
@@ -26,15 +26,15 @@ export default function DrawingCameraCanvas({
   strokeColor,
   className,
 }: DrawingCameraCanvasProps) {
-  const { registerCanvas } = useDrawingContext()
-  const canvasRef = useRef<CanvasHandle>(null)
+  const { registerCanvas } = useDrawingContext();
+  const canvasRef = useRef<CanvasHandle>(null);
 
   useEffect(() => {
-    const handle = canvasRef.current
-    if (!handle) return
-    const unregister = registerCanvas(handle)
-    return unregister
-  }, [registerCanvas])
+    const handle = canvasRef.current;
+    if (!handle) return;
+    const unregister = registerCanvas(handle);
+    return unregister;
+  }, [registerCanvas]);
 
   return (
     <Canvas
@@ -44,5 +44,5 @@ export default function DrawingCameraCanvas({
       strokeColor={strokeColor}
       className={className}
     />
-  )
+  );
 }

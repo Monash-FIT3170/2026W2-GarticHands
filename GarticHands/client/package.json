@@ -8,8 +8,8 @@
     "build": "tsc -b && vite build",
     "lint": "eslint . --format stylish",
     "lint:fix": "eslint . --fix --format stylish",
-    "format": "prettier . --write",
-    "format:check": "prettier . --check",
+    "format": "prettier . --write --ignore-path ../.prettierignore",
+    "format:check": "prettier . --check --ignore-path ../.prettierignore",
     "preview": "vite preview"
   },
   "dependencies": {

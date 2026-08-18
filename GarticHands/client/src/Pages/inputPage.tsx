@@ -1,27 +1,27 @@
-import { useEffect, useState } from 'react'
-import { useLocation, useNavigate } from 'react-router-dom'
-import { Card, Button, RoundHeader, CountdownTimer } from '../components/ui'
-import { submitPrompt } from '../api/room'
-import { usePhaseAdvance } from '../hooks/usePhaseAdvance'
-import type { DrawLocationState } from '../types/room'
+import { useEffect, useState } from 'react';
+import { useLocation, useNavigate } from 'react-router-dom';
+import { Card, Button, RoundHeader, CountdownTimer } from '../components/ui';
+import { submitPrompt } from '../api/room';
+import { usePhaseAdvance } from '../hooks/usePhaseAdvance';
+import type { DrawLocationState } from '../types/room';
 
-const MaxChars = 120
-const TotalTime = 60
+const MaxChars = 120;
+const TotalTime = 60;
 
 export default function InputPage() {
-  const location = useLocation()
-  const state = location.state as DrawLocationState | null
-  const navigate = useNavigate()
-  const roomCode = state?.roomCode
-  const playerName = state?.playerName
+  const location = useLocation();
+  const state = location.state as DrawLocationState | null;
+  const navigate = useNavigate();
+  const roomCode = state?.roomCode;
+  const playerName = state?.playerName;
 
-  const [input, setInput] = useState('')
-  const [submitted, setSubmitted] = useState(false)
-  const [error, setError] = useState('')
+  const [input, setInput] = useState('');
+  const [submitted, setSubmitted] = useState(false);
+  const [error, setError] = useState('');
 
   useEffect(() => {
-    if (!roomCode || !playerName) void navigate('/')
-  }, [roomCode, playerName, navigate])
+    if (!roomCode || !playerName) void navigate('/');
+  }, [roomCode, playerName, navigate]);
 
   const { waitingFor, room } = usePhaseAdvance({
     roomCode,
@@ -30,28 +30,28 @@ export default function InputPage() {
     whenPhase: 'draw',
     to: '/draw',
     countBucket: 'prompts',
-  })
+  });
 
   async function handleSubmit() {
-    if (!input.trim() || submitted || !roomCode || !playerName) return
+    if (!input.trim() || submitted || !roomCode || !playerName) return;
 
-    setSubmitted(true)
-    setError('')
+    setSubmitted(true);
+    setError('');
 
-    const data = await submitPrompt(roomCode, playerName, input.trim())
+    const data = await submitPrompt(roomCode, playerName, input.trim());
     if (!data.success) {
-      setError(data.message || 'Failed to submit prompt.')
-      setSubmitted(false)
-      return
+      setError(data.message || 'Failed to submit prompt.');
+      setSubmitted(false);
+      return;
     }
 
     if (data.room?.phase === 'draw') {
-      void navigate('/draw', { state: { roomCode, playerName } })
+      void navigate('/draw', { state: { roomCode, playerName } });
     }
   }
 
   function handleExpire() {
-    if (!submitted) void handleSubmit()
+    if (!submitted) void handleSubmit();
   }
 
   return (
@@ -70,7 +70,12 @@ export default function InputPage() {
         />
         <div className="flex items-center justify-between mt-3">
           <CountdownTimer seconds={TotalTime} paused={submitted} onExpire={handleExpire} />
-          <Button variant="submit" size="sm" onClick={() => void handleSubmit()} disabled={submitted}>
+          <Button
+            variant="submit"
+            size="sm"
+            onClick={() => void handleSubmit()}
+            disabled={submitted}
+          >
             Submit
           </Button>
         </div>
@@ -85,5 +90,5 @@ export default function InputPage() {
         {error && <p className="text-sm text-red-400 mt-3">{error}</p>}
       </Card>
     </div>
-  )
+  );
 }

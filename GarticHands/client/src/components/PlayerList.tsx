@@ -1,19 +1,19 @@
-import type { Player } from '../types/room'
-import Badge from './ui/Badge'
-import Avatar from './ui/Avatar'
+import type { Player } from '../types/room';
+import Badge from './ui/Badge';
+import Avatar from './ui/Avatar';
 
 interface PlayerListProps {
-  players: Player[]
+  players: Player[];
   /** Name of the local viewer. Renders "(you)" / "(You)" next to their entry. */
-  selfName?: string
+  selfName?: string;
   /**
    * Visual flavor.
    * - `lobby`: large rounded pills used on the host's lobby page.
    * - `compact`: simple horizontal rows used on the joined-player lobby.
    */
-  variant?: 'lobby' | 'compact'
+  variant?: 'lobby' | 'compact';
   /** Fill missing rows up to `padTo` slots with empty-state placeholders. */
-  padTo?: number
+  padTo?: number;
 }
 
 /** Player roster — used on both hosting and joined lobbies. */
@@ -24,7 +24,7 @@ export default function PlayerList({
   padTo,
 }: PlayerListProps) {
   if (variant === 'lobby') {
-    const empties = Math.max(0, (padTo ?? players.length) - players.length)
+    const empties = Math.max(0, (padTo ?? players.length) - players.length);
     return (
       <div className="space-y-4 max-h-72 overflow-y-auto pr-3">
         {players.map((player, i) => (
@@ -34,7 +34,7 @@ export default function PlayerList({
           <EmptyLobbyRow key={`e-${i}`} />
         ))}
       </div>
-    )
+    );
   }
 
   return (
@@ -43,13 +43,13 @@ export default function PlayerList({
         <CompactRow key={`p-${i}`} player={player} isSelf={player.name === selfName} />
       ))}
     </div>
-  )
+  );
 }
 
 function LobbyRow({ player, isSelf }: { player: Player; isSelf: boolean }) {
-  const borderClass = isSelf ? 'border-[#78EF57]' : 'border-transparent'
-  const rowClasses = `flex items-center gap-4 rounded-full px-4 py-3 border-4 shadow-sm bg-white ${borderClass}`
-  const nameClasses = 'font-bold truncate text-[#D4623E]'
+  const borderClass = isSelf ? 'border-[#78EF57]' : 'border-transparent';
+  const rowClasses = `flex items-center gap-4 rounded-full px-4 py-3 border-4 shadow-sm bg-white ${borderClass}`;
+  const nameClasses = 'font-bold truncate text-[#D4623E]';
 
   return (
     <div className={rowClasses}>
@@ -66,7 +66,7 @@ function LobbyRow({ player, isSelf }: { player: Player; isSelf: boolean }) {
         <Badge tone="lobby" kind={badgeKind(player)} />
       </div>
     </div>
-  )
+  );
 }
 
 function EmptyLobbyRow() {
@@ -78,7 +78,7 @@ function EmptyLobbyRow() {
       <p className="flex-1 text-center text-[#C8DDD9] font-bold">Empty</p>
       <div className="w-20 flex-shrink-0" />
     </div>
-  )
+  );
 }
 
 function CompactRow({ player, isSelf }: { player: Player; isSelf: boolean }) {
@@ -92,11 +92,11 @@ function CompactRow({ player, isSelf }: { player: Player; isSelf: boolean }) {
       </div>
       <Badge tone="simple" kind={badgeKind(player)} />
     </div>
-  )
+  );
 }
 
 function badgeKind(player: Player): 'host' | 'ready' | 'waiting' {
-  if (player.isHost) return 'host'
-  if (player.ready) return 'ready'
-  return 'waiting'
+  if (player.isHost) return 'host';
+  if (player.ready) return 'ready';
+  return 'waiting';
 }
