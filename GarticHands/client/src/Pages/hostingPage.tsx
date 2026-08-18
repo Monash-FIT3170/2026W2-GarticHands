@@ -15,7 +15,7 @@ export default function HostingPage() {
 
   const navigate = useNavigate()
   const location = useLocation()
-  const hostName = location.state?.playerName as string | undefined
+  const hostName = (location.state as { playerName?: string } | null)?.playerName
 
   useEffect(() => {
     async function setupRoom() {
@@ -29,7 +29,7 @@ export default function HostingPage() {
         setPlayers(data.room.players)
       }
     }
-    setupRoom()
+    void setupRoom()
   }, [hostName, navigate])
 
   useEffect(() => {
@@ -38,7 +38,7 @@ export default function HostingPage() {
       const data = await getRoom(roomCode)
       if (data.success && data.room) setPlayers(data.room.players)
     }
-    const interval = setInterval(loadRoom, 1000)
+    const interval = setInterval(() => { void loadRoom() }, 1000)
     return () => clearInterval(interval)
   }, [roomCode])
 
@@ -98,7 +98,7 @@ export default function HostingPage() {
               </Button>
             </div>
 
-            <Button variant="start" size="full" onClick={handleStart} disabled={!allReady} className="mt-4">
+            <Button variant="start" size="full" onClick={() => void handleStart()} disabled={!allReady} className="mt-4">
               {allReady ? 'Start Game' : 'Waiting for Players'}
             </Button>
           </section>

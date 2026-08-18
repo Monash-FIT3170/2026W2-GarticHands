@@ -11,10 +11,11 @@ const MAX_PLAYERS = 4
 export default function JoinedPage() {
   const { roomCode } = useParams()
   const location = useLocation()
-  const playerName = location.state?.playerName as string | undefined
+  const locationState = location.state as { playerName?: string; room?: { players: Player[] } } | null
+  const playerName = locationState?.playerName
   const navigate = useNavigate()
 
-  const [players, setPlayers] = useState<Player[]>(location.state?.room?.players || [])
+  const [players, setPlayers] = useState<Player[]>(locationState?.room?.players ?? [])
   const [ready, setReady] = useState(false)
   const [starting, setStarting] = useState(false)
   const { toast, show } = useToast('pill')
@@ -58,8 +59,8 @@ export default function JoinedPage() {
       if (meFresh) setReady(meFresh.ready)
     }
 
-    loadRoom()
-    const interval = setInterval(loadRoom, 1000)
+    void loadRoom()
+    const interval = setInterval(() => { void loadRoom() }, 1000)
     return () => clearInterval(interval)
   }, [roomCode, playerName, navigate, show])
 
@@ -129,7 +130,7 @@ export default function JoinedPage() {
               <Button
                 variant="start"
                 size="full"
-                onClick={handleStart}
+                onClick={() => void handleStart()}
                 disabled={!allReady || starting}
                 className="mt-4"
               >

@@ -6,7 +6,8 @@ import { Page, Card, Button, Avatar } from '../components/ui'
 export default function JoiningPage() {
   const navigate = useNavigate()
   const location = useLocation()
-  const playerName = location.state?.playerName as string | undefined
+  const locationState = location.state as { playerName?: string } | null
+  const playerName = locationState?.playerName
 
   const [roomCode, setRoomCode] = useState('')
   const [error, setError] = useState('')
@@ -29,7 +30,7 @@ export default function JoiningPage() {
     setSubmitting(false)
 
     if (!data.success || !data.room) {
-      setError(data.message || 'Room not found.')
+      setError(data.message ?? 'Room not found.')
       return
     }
 
@@ -79,7 +80,7 @@ export default function JoiningPage() {
           </Button>
           <Button
             variant="primary"
-            onClick={handleJoin}
+            onClick={() => void handleJoin()}
             disabled={!canSubmit}
             className="flex-1"
           >
