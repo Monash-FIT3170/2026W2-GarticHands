@@ -1,84 +1,85 @@
-import { useEffect, useMemo, useRef, useState } from 'react'
-import { useLocation, useNavigate } from 'react-router-dom'
-import { Card, Button, RoundHeader } from '../components/ui'
-import { getRoom, restartRoom, endRoom } from '../api/room'
-import { useRecordings, type Recording } from '../state/RecordingsContext'
-import type { Player, Room, DrawLocationState } from '../types/room'
+import { useEffect, useMemo, useRef, useState } from 'react';
+import { useLocation, useNavigate } from 'react-router-dom';
+import { Card, Button, RoundHeader } from '../components/ui';
+import { getRoom, restartRoom, endRoom } from '../api/room';
+import { useRecordings, type Recording } from '../state/RecordingsContext';
+import type { Player, Room, DrawLocationState } from '../types/room';
 
 interface RevealChain {
-  drawer: Player
-  prompt: string
-  drawing: string
-  guesserName: string
-  guess: string
+  drawer: Player;
+  prompt: string;
+  drawing: string;
+  guesserName: string;
+  guess: string;
 }
 
-type EndView = 'cards' | 'slideshow' | 'recordings'
+type EndView = 'cards' | 'slideshow' | 'recordings';
 
 export default function GamePage() {
-  const location = useLocation()
-  const state = location.state as DrawLocationState | null
-  const navigate = useNavigate()
-  const roomCode = state?.roomCode
-  const playerName = state?.playerName
+  const location = useLocation();
+  const state = location.state as DrawLocationState | null;
+  const navigate = useNavigate();
+  const roomCode = state?.roomCode;
+  const playerName = state?.playerName;
 
-  const [room, setRoom] = useState<Room | null>(null)
-  const [working, setWorking] = useState(false)
-  const [view, setView] = useState<EndView>('cards')
-  const { recordings, clearRecordings } = useRecordings()
+  const [room, setRoom] = useState<Room | null>(null);
+  const [working, setWorking] = useState(false);
+  const [view, setView] = useState<EndView>('cards');
+  const { recordings, clearRecordings } = useRecordings();
 
   useEffect(() => {
     if (!roomCode || !playerName) {
-      void navigate('/')
-      return
+      void navigate('/');
+      return;
     }
 
-    let cancelled = false
+    let cancelled = false;
 
     async function load() {
-      if (!roomCode) return
-      const data = await getRoom(roomCode)
-      if (cancelled || !data.success || !data.room) return
-      setRoom(data.room)
+      if (!roomCode) return;
+      const data = await getRoom(roomCode);
+      if (cancelled || !data.success || !data.room) return;
+      setRoom(data.room);
 
       if (data.room.phase === 'prompt') {
-        cancelled = true
-        void navigate('/input', { state: { roomCode, playerName } })
-        return
+        cancelled = true;
+        void navigate('/input', { state: { roomCode, playerName } });
+        return;
       }
       if (data.room.phase === 'lobby') {
-        cancelled = true
-        void navigate(`/joined/${roomCode}`, { state: { roomCode, playerName } })
+        cancelled = true;
+        void navigate(`/joined/${roomCode}`, { state: { roomCode, playerName } });
       }
     }
 
-
-    void load()
-    const interval = setInterval(() => {void load()}, 1500)
+    void load();
+    const interval = setInterval(() => {
+      void load();
+    }, 1500);
     return () => {
-      cancelled = true
-      clearInterval(interval)
-    }
-  }, [roomCode, playerName, navigate])
+      cancelled = true;
+      clearInterval(interval);
+    };
+  }, [roomCode, playerName, navigate]);
 
-  const isHost = room?.players.find((p) => p.name === playerName)?.isHost ?? false
-  const round = room?.round ?? 1
-  const maxRounds = room?.maxRounds ?? 4
-  const isFinalRound = round >= maxRounds
-  const chains = room ? buildRevealChains(room) : []
+  const isHost = room?.players.find((p) => p.name === playerName)?.isHost ?? false;
+  const round = room?.round ?? 1;
+  const maxRounds = room?.maxRounds ?? 4;
+  const isFinalRound = round >= maxRounds;
+  const chains = room ? buildRevealChains(room) : [];
 
   async function handlePlayAgain() {
-    if (!roomCode || working) return
-    setWorking(true)
-    await restartRoom(roomCode)
+    if (!roomCode || working) return;
+    setWorking(true);
+    await restartRoom(roomCode);
   }
 
   async function handleBackToLobby() {
-    if (!roomCode || working) return
-    setWorking(true)
+    if (!roomCode || working) return;
+    setWorking(true);
     // Recordings are local to the player's browser — clear them at end-of-game.
-    clearRecordings()
-    await endRoom(roomCode)
+    clearRecordings();
+    await endRoom(roomCode);
   }
 
   return (
@@ -89,34 +90,32 @@ export default function GamePage() {
 
         {!room && <p className="text-sm text-white/70">Loading results...</p>}
 
-        {room && (
-          <ViewTabs
-            view={view}
-            onChange={setView}
-            recordingsCount={recordings.length}
-          />
-        )}
+        {room && <ViewTabs view={view} onChange={setView} recordingsCount={recordings.length} />}
 
-        {view === 'cards' && (
-          <CardsView chains={chains} />
-        )}
+        {view === 'cards' && <CardsView chains={chains} />}
 
-        {view === 'slideshow' && (
-          <SlideshowView chains={chains.filter((c) => c.drawing)} />
-        )}
+        {view === 'slideshow' && <SlideshowView chains={chains.filter((c) => c.drawing)} />}
 
-        {view === 'recordings' && (
-          <RecordingsView recordings={recordings} />
-        )}
+        {view === 'recordings' && <RecordingsView recordings={recordings} />}
 
         <div className="flex flex-col items-end mt-6 gap-2">
           {isHost ? (
             isFinalRound ? (
-              <Button variant="outline" size="full" onClick={() => void handleBackToLobby()} disabled={working}>
+              <Button
+                variant="outline"
+                size="full"
+                onClick={() => void handleBackToLobby()}
+                disabled={working}
+              >
                 {working ? 'Returning...' : 'Back to Lobby'}
               </Button>
             ) : (
-              <Button variant="start" size="full" onClick={() => void handlePlayAgain()} disabled={working}>
+              <Button
+                variant="start"
+                size="full"
+                onClick={() => void handlePlayAgain()}
+                disabled={working}
+              >
                 {working ? 'Starting...' : `Play Round ${round + 1}`}
               </Button>
             )
@@ -130,7 +129,7 @@ export default function GamePage() {
         </div>
       </Card>
     </div>
-  )
+  );
 }
 
 // ---------------------------------------------------------------------------
@@ -138,9 +137,9 @@ export default function GamePage() {
 // ---------------------------------------------------------------------------
 
 interface ViewTabsProps {
-  view: EndView
-  onChange: (v: EndView) => void
-  recordingsCount: number
+  view: EndView;
+  onChange: (v: EndView) => void;
+  recordingsCount: number;
 }
 
 function ViewTabs({ view, onChange, recordingsCount }: ViewTabsProps) {
@@ -148,28 +147,26 @@ function ViewTabs({ view, onChange, recordingsCount }: ViewTabsProps) {
     { id: 'cards', label: 'Reveal' },
     { id: 'slideshow', label: 'Slideshow' },
     { id: 'recordings', label: `My Recordings (${recordingsCount})` },
-  ]
+  ];
   return (
     <div className="mb-4 inline-flex rounded-full bg-white/80 p-1 gap-1">
       {tabs.map((t) => {
-        const selected = view === t.id
+        const selected = view === t.id;
         return (
           <button
             key={t.id}
             type="button"
             onClick={() => onChange(t.id)}
             className={`px-3 py-1.5 rounded-full text-xs font-bold uppercase tracking-[0.12em] transition-colors ${
-              selected
-                ? 'bg-[#2E5534] text-white shadow-sm'
-                : 'text-[#3D6B64] hover:bg-white'
+              selected ? 'bg-[#2E5534] text-white shadow-sm' : 'text-[#3D6B64] hover:bg-white'
             }`}
           >
             {t.label}
           </button>
-        )
+        );
       })}
     </div>
-  )
+  );
 }
 
 // ---------------------------------------------------------------------------
@@ -178,7 +175,7 @@ function ViewTabs({ view, onChange, recordingsCount }: ViewTabsProps) {
 
 function CardsView({ chains }: { chains: RevealChain[] }) {
   if (chains.length === 0) {
-    return <p className="text-sm text-white/70">No drawings to reveal.</p>
+    return <p className="text-sm text-white/70">No drawings to reveal.</p>;
   }
   return (
     <div className="space-y-6">
@@ -209,33 +206,31 @@ function CardsView({ chains }: { chains: RevealChain[] }) {
         </div>
       ))}
     </div>
-  )
+  );
 }
 
 // ---------------------------------------------------------------------------
 // Slideshow — auto-advance through every drawing
 // ---------------------------------------------------------------------------
 
-const SLIDE_INTERVAL_MS = 4000
+const SLIDE_INTERVAL_MS = 4000;
 
 function SlideshowView({ chains }: { chains: RevealChain[] }) {
-  const [index, setIndex] = useState(0)
-  const [playing, setPlaying] = useState(true)
-  const safeIndex = chains.length === 0 ? 0 : index % chains.length
+  const [index, setIndex] = useState(0);
+  const [playing, setPlaying] = useState(true);
+  const safeIndex = chains.length === 0 ? 0 : index % chains.length;
 
   useEffect(() => {
-    if (!playing || chains.length <= 1) return
-    const t = setInterval(() => setIndex((i) => i + 1), SLIDE_INTERVAL_MS)
-    return () => clearInterval(t)
-  }, [playing, chains.length])
+    if (!playing || chains.length <= 1) return;
+    const t = setInterval(() => setIndex((i) => i + 1), SLIDE_INTERVAL_MS);
+    return () => clearInterval(t);
+  }, [playing, chains.length]);
 
   if (chains.length === 0) {
-    return (
-      <p className="text-sm text-white/70">No drawings were submitted this round.</p>
-    )
+    return <p className="text-sm text-white/70">No drawings were submitted this round.</p>;
   }
 
-  const current = chains[safeIndex]
+  const current = chains[safeIndex];
 
   return (
     <div className="flex flex-col items-center">
@@ -282,7 +277,7 @@ function SlideshowView({ chains }: { chains: RevealChain[] }) {
         </span>
       </div>
     </div>
-  )
+  );
 }
 
 // ---------------------------------------------------------------------------
@@ -290,9 +285,9 @@ function SlideshowView({ chains }: { chains: RevealChain[] }) {
 // ---------------------------------------------------------------------------
 
 function RecordingsView({ recordings }: { recordings: Recording[] }) {
-  const sorted = useMemo(() => [...recordings].sort((a, b) => a.round - b.round), [recordings])
-  const [index, setIndex] = useState(0)
-  const videoRef = useRef<HTMLVideoElement | null>(null)
+  const sorted = useMemo(() => [...recordings].sort((a, b) => a.round - b.round), [recordings]);
+  const [index, setIndex] = useState(0);
+  const videoRef = useRef<HTMLVideoElement | null>(null);
 
   if (sorted.length === 0) {
     return (
@@ -304,13 +299,13 @@ function RecordingsView({ recordings }: { recordings: Recording[] }) {
           (Recordings stay on your device — other players see only their own.)
         </p>
       </div>
-    )
+    );
   }
 
-  const current = sorted[Math.min(index, sorted.length - 1)]
+  const current = sorted[Math.min(index, sorted.length - 1)];
 
   function handleEnded() {
-    setIndex((i) => (i + 1 < sorted.length ? i + 1 : i))
+    setIndex((i) => (i + 1 < sorted.length ? i + 1 : i));
   }
 
   return (
@@ -350,7 +345,7 @@ function RecordingsView({ recordings }: { recordings: Recording[] }) {
         </span>
       </div>
     </div>
-  )
+  );
 }
 
 /**
@@ -358,17 +353,17 @@ function RecordingsView({ recordings }: { recordings: Recording[] }) {
  * so the guesser for drawer at index `i` is the player at index (i − 1 + N) % N.
  */
 function buildRevealChains(room: Room): RevealChain[] {
-  const players = room.players
-  if (players.length === 0) return []
+  const players = room.players;
+  if (players.length === 0) return [];
   return players.map((drawer, i) => {
-    const guesserIndex = (i - 1 + players.length) % players.length
-    const guesser = players[guesserIndex]
+    const guesserIndex = (i - 1 + players.length) % players.length;
+    const guesser = players[guesserIndex];
     return {
       drawer,
       prompt: room.prompts?.[drawer.name] ?? '',
       drawing: room.drawings?.[drawer.name] ?? '',
       guesserName: guesser.name,
       guess: room.guesses?.[guesser.name] ?? '',
-    }
-  })
+    };
+  });
 }

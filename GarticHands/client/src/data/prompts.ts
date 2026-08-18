@@ -119,23 +119,23 @@ export const PROMPT_WORDS: readonly string[] = [
   'crown',
   'sword',
   'shield',
-] as const
+] as const;
 
 /** Pick a uniformly random prompt. */
 export function randomPrompt(): string {
-  const i = Math.floor(Math.random() * PROMPT_WORDS.length)
-  return PROMPT_WORDS[i]
+  const i = Math.floor(Math.random() * PROMPT_WORDS.length);
+  return PROMPT_WORDS[i];
 }
 
 /** Pick N distinct random prompts. Caps at the list length. */
 export function randomPrompts(count: number): string[] {
-  const n = Math.min(count, PROMPT_WORDS.length)
-  const pool = [...PROMPT_WORDS]
-  const picked: string[] = []
+  const n = Math.min(count, PROMPT_WORDS.length);
+  const pool = [...PROMPT_WORDS];
+  const picked: string[] = [];
   for (let i = 0; i < n; i++) {
-    const idx = Math.floor(Math.random() * pool.length)
-    picked.push(pool[idx])
-    pool.splice(idx, 1)
+    const idx = Math.floor(Math.random() * pool.length);
+    picked.push(pool[idx]);
+    pool.splice(idx, 1);
   }
-  return picked
+  return picked;
 }

@@ -36,4 +36,9 @@ jobs:
       # Step 4) Run the linting
       - name: Run ESLint
         run: npm run lint
+
+      # Step 5) checks code formatting
+      - name: Run Prettier check
+        run: npm run format
+
   # Auto Testing can be done here

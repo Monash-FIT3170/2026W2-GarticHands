@@ -1,5 +1,5 @@
-import { useEffect, useRef, useState } from 'react'
-import { useLocation, useNavigate } from 'react-router-dom'
+import { useEffect, useRef, useState } from 'react';
+import { useLocation, useNavigate } from 'react-router-dom';
 import {
   DrawingProvider,
   DrawingStage,
@@ -7,54 +7,54 @@ import {
   useDrawing,
   useDrawingMode,
   useRecorder,
-} from '../drawing'
-import { Card, Button, RoundHeader, CountdownTimer } from '../components/ui'
-import { getRoom, submitDrawing } from '../api/room'
-import { usePhaseAdvance } from '../hooks/usePhaseAdvance'
-import { useRecordings } from '../state/RecordingsContext'
-import type { DrawLocationState } from '../types/room'
+} from '../drawing';
+import { Card, Button, RoundHeader, CountdownTimer } from '../components/ui';
+import { getRoom, submitDrawing } from '../api/room';
+import { usePhaseAdvance } from '../hooks/usePhaseAdvance';
+import { useRecordings } from '../state/RecordingsContext';
+import type { DrawLocationState } from '../types/room';
 
-const TotalTime = 60
+const TotalTime = 60;
 
 export default function DrawPage() {
   return (
     <DrawingProvider>
       <DrawPageInner />
     </DrawingProvider>
-  )
+  );
 }
 
 /** Inner component so `useDrawing()` finds the surrounding `<DrawingProvider>`. */
 function DrawPageInner() {
-  const location = useLocation()
-  const state = location.state as DrawLocationState | null
-  const navigate = useNavigate()
-  const roomCode = state?.roomCode
-  const playerName = state?.playerName
+  const location = useLocation();
+  const state = location.state as DrawLocationState | null;
+  const navigate = useNavigate();
+  const roomCode = state?.roomCode;
+  const playerName = state?.playerName;
 
-  const { getDrawingImage } = useDrawing()
-  const recorder = useRecorder()
-  const { saveRecording } = useRecordings()
-  const [mode, setMode] = useDrawingMode()
-  const [submitted, setSubmitted] = useState(false)
-  const [error, setError] = useState('')
-  const [prompt, setPrompt] = useState<string>('')
-  const [roundNum, setRoundNum] = useState<number | null>(null)
-  const startedRef = useRef(false)
+  const { getDrawingImage } = useDrawing();
+  const recorder = useRecorder();
+  const { saveRecording } = useRecordings();
+  const [mode, setMode] = useDrawingMode();
+  const [submitted, setSubmitted] = useState(false);
+  const [error, setError] = useState('');
+  const [prompt, setPrompt] = useState<string>('');
+  const [roundNum, setRoundNum] = useState<number | null>(null);
+  const startedRef = useRef(false);
 
   useEffect(() => {
     if (!roomCode || !playerName) {
-      void navigate('/')
-      return
+      void navigate('/');
+      return;
     }
 
     void getRoom(roomCode).then((data) => {
       if (data.success && data.room) {
-        if (data.room.prompts) setPrompt(data.room.prompts[playerName] || '')
-        setRoundNum(data.room.round ?? 1)
+        if (data.room.prompts) setPrompt(data.room.prompts[playerName] || '');
+        setRoundNum(data.room.round ?? 1);
       }
-    })
-  }, [roomCode, playerName, navigate])
+    });
+  }, [roomCode, playerName, navigate]);
 
   // Start recording once we know the round. `startedRef` guards StrictMode
   // double-mount. `recorder` is intentionally NOT in the deps — its method refs
@@ -63,15 +63,15 @@ function DrawPageInner() {
   // every 1s phase-advance poll and cancel the scheduled start timer before it
   // fires. That was the bug behind the missing recordings.
   useEffect(() => {
-    if (startedRef.current) return
-    if (roundNum === null) return
-    if (!recorder.isSupported) return
-    startedRef.current = true
+    if (startedRef.current) return;
+    if (roundNum === null) return;
+    if (!recorder.isSupported) return;
+    startedRef.current = true;
     // Slight delay so the camera canvas has mounted and started drawing frames.
-    const t = setTimeout(() => void recorder.start(), 400)
-    return () => clearTimeout(t)
+    const t = setTimeout(() => void recorder.start(), 400);
+    return () => clearTimeout(t);
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [roundNum])
+  }, [roundNum]);
 
   const { waitingFor, room } = usePhaseAdvance({
     roomCode,
@@ -80,19 +80,19 @@ function DrawPageInner() {
     whenPhase: 'guess',
     to: '/guess',
     countBucket: 'drawings',
-  })
+  });
 
   async function handleSubmit() {
-    if (submitted || !roomCode || !playerName) return
+    if (submitted || !roomCode || !playerName) return;
 
-    const dataUrl = getDrawingImage()
+    const dataUrl = getDrawingImage();
     if (!dataUrl) {
-      setError('Canvas is not ready yet.')
-      return
+      setError('Canvas is not ready yet.');
+      return;
     }
 
-    setSubmitted(true)
-    setError('')
+    setSubmitted(true);
+    setError('');
 
     // Stop recording in parallel with the submit. `stop()` resolves with `null`
     // if nothing was being recorded, so no isRecording-state check is needed —
@@ -100,7 +100,7 @@ function DrawPageInner() {
     const [data, blobUrl] = await Promise.all([
       submitDrawing(roomCode, playerName, dataUrl),
       recorder.stop(),
-    ])
+    ]);
 
     if (blobUrl && roundNum !== null) {
       saveRecording({
@@ -108,22 +108,22 @@ function DrawPageInner() {
         blobUrl,
         prompt: prompt || undefined,
         createdAt: Date.now(),
-      })
+      });
     }
 
     if (!data.success) {
-      setError(data.message || 'Failed to submit drawing.')
-      setSubmitted(false)
-      return
+      setError(data.message || 'Failed to submit drawing.');
+      setSubmitted(false);
+      return;
     }
 
     if (data.room?.phase === 'guess') {
-      void navigate('/guess', { state: { roomCode, playerName } })
+      void navigate('/guess', { state: { roomCode, playerName } });
     }
   }
 
   function handleExpire() {
-    if (!submitted) void handleSubmit()
+    if (!submitted) void handleSubmit();
   }
 
   return (
@@ -139,11 +139,7 @@ function DrawPageInner() {
               </p>
             )}
           </div>
-          <CountdownTimer
-            seconds={TotalTime}
-            paused={submitted}
-            onExpire={handleExpire}
-          />
+          <CountdownTimer seconds={TotalTime} paused={submitted} onExpire={handleExpire} />
         </div>
 
         <DrawingModePicker mode={mode} onModeChange={setMode} disabled={submitted} />
@@ -154,7 +150,12 @@ function DrawPageInner() {
         </p>
 
         <div className="flex flex-col items-end mt-4 gap-2">
-          <Button variant="submit" size="sm" onClick={() => void handleSubmit()} disabled={submitted}>
+          <Button
+            variant="submit"
+            size="sm"
+            onClick={() => void handleSubmit()}
+            disabled={submitted}
+          >
             Submit Drawing
           </Button>
           {submitted && !error && (
@@ -168,5 +169,5 @@ function DrawPageInner() {
         </div>
       </Card>
     </div>
-  )
+  );
 }

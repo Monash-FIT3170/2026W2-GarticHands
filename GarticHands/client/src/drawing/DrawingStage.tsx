@@ -1,6 +1,6 @@
-import { useEffect, useState, type ReactNode } from 'react'
-import DrawingCameraInput from './components/DrawingCameraInput'
-import DrawingCameraCanvas from './components/DrawingCameraCanvas'
+import { useEffect, useState, type ReactNode } from 'react';
+import DrawingCameraInput from './components/DrawingCameraInput';
+import DrawingCameraCanvas from './components/DrawingCameraCanvas';
 
 /**
  * Drawing-layout primitives shared by `/draw`, `/playground`, and `/solo`.
@@ -14,12 +14,12 @@ import DrawingCameraCanvas from './components/DrawingCameraCanvas'
  * lands in one place.
  */
 
-export type DrawMode = 'split' | 'overlay' | 'both'
+export type DrawMode = 'split' | 'overlay' | 'both';
 
 export interface DrawModeOption {
-  id: DrawMode
-  label: string
-  description: string
+  id: DrawMode;
+  label: string;
+  description: string;
 }
 
 export const DRAW_MODES: readonly DrawModeOption[] = [
@@ -38,28 +38,28 @@ export const DRAW_MODES: readonly DrawModeOption[] = [
     label: 'Camera + Overlay + Canvas',
     description: 'Canvas alongside, plus strokes on the camera.',
   },
-] as const
+] as const;
 
 // ---------------------------------------------------------------------------
 // useDrawingMode — state + localStorage persistence
 // ---------------------------------------------------------------------------
 
-const MODE_STORAGE_KEY = 'gartichands:drawMode'
-const VALID_MODES = new Set<DrawMode>(['split', 'overlay', 'both'])
+const MODE_STORAGE_KEY = 'gartichands:drawMode';
+const VALID_MODES = new Set<DrawMode>(['split', 'overlay', 'both']);
 
 function loadModePreference(fallback: DrawMode): DrawMode {
   try {
-    const v = localStorage.getItem(MODE_STORAGE_KEY)
-    if (v && VALID_MODES.has(v as DrawMode)) return v as DrawMode
+    const v = localStorage.getItem(MODE_STORAGE_KEY);
+    if (v && VALID_MODES.has(v as DrawMode)) return v as DrawMode;
   } catch {
     /* localStorage may be unavailable — ignore. */
   }
-  return fallback
+  return fallback;
 }
 
 function saveModePreference(mode: DrawMode) {
   try {
-    localStorage.setItem(MODE_STORAGE_KEY, mode)
+    localStorage.setItem(MODE_STORAGE_KEY, mode);
   } catch {
     /* ignore */
   }
@@ -67,13 +67,13 @@ function saveModePreference(mode: DrawMode) {
 
 /** State + persisted preference for the active draw mode. */
 export function useDrawingMode(initial: DrawMode = 'split') {
-  const [mode, setMode] = useState<DrawMode>(() => loadModePreference(initial))
+  const [mode, setMode] = useState<DrawMode>(() => loadModePreference(initial));
 
   useEffect(() => {
-    saveModePreference(mode)
-  }, [mode])
+    saveModePreference(mode);
+  }, [mode]);
 
-  return [mode, setMode] as const
+  return [mode, setMode] as const;
 }
 
 // ---------------------------------------------------------------------------
@@ -81,10 +81,10 @@ export function useDrawingMode(initial: DrawMode = 'split') {
 // ---------------------------------------------------------------------------
 
 interface DrawingModePickerProps {
-  mode: DrawMode
-  onModeChange: (mode: DrawMode) => void
-  disabled?: boolean
-  className?: string
+  mode: DrawMode;
+  onModeChange: (mode: DrawMode) => void;
+  disabled?: boolean;
+  className?: string;
 }
 
 export function DrawingModePicker({
@@ -101,26 +101,24 @@ export function DrawingModePicker({
         }`}
       >
         {DRAW_MODES.map((m) => {
-          const selected = mode === m.id
+          const selected = mode === m.id;
           return (
             <button
               key={m.id}
               type="button"
               onClick={() => onModeChange(m.id)}
               className={`px-3 py-1.5 rounded-full text-xs font-bold uppercase tracking-[0.12em] transition-colors ${
-                selected
-                  ? 'bg-[#2E5534] text-white shadow-sm'
-                  : 'text-[#3D6B64] hover:bg-white'
+                selected ? 'bg-[#2E5534] text-white shadow-sm' : 'text-[#3D6B64] hover:bg-white'
               }`}
               title={m.description}
             >
               {m.label}
             </button>
-          )
+          );
         })}
       </div>
     </div>
-  )
+  );
 }
 
 // ---------------------------------------------------------------------------
@@ -128,20 +126,18 @@ export function DrawingModePicker({
 // ---------------------------------------------------------------------------
 
 interface PanelProps {
-  label: string
-  children: ReactNode
-  className?: string
+  label: string;
+  children: ReactNode;
+  className?: string;
 }
 
 export function Panel({ label, children, className = '' }: PanelProps) {
   return (
     <div className={`flex flex-col gap-2 ${className}`}>
-      <p className="text-xs font-extrabold uppercase tracking-[0.2em] text-white/80">
-        {label}
-      </p>
+      <p className="text-xs font-extrabold uppercase tracking-[0.2em] text-white/80">{label}</p>
       {children}
     </div>
-  )
+  );
 }
 
 // ---------------------------------------------------------------------------
@@ -149,7 +145,7 @@ export function Panel({ label, children, className = '' }: PanelProps) {
 // ---------------------------------------------------------------------------
 
 interface DrawingStageProps {
-  mode: DrawMode
+  mode: DrawMode;
 }
 
 /**
@@ -165,11 +161,11 @@ interface DrawingStageProps {
 export function DrawingStage({ mode }: DrawingStageProps) {
   switch (mode) {
     case 'split':
-      return <SplitLayout />
+      return <SplitLayout />;
     case 'overlay':
-      return <OverlayLayout />
+      return <OverlayLayout />;
     case 'both':
-      return <BothLayout />
+      return <BothLayout />;
   }
 }
 
@@ -183,7 +179,7 @@ function SplitLayout() {
         <DrawingCameraCanvas strokeColor="black" />
       </Panel>
     </div>
-  )
+  );
 }
 
 function OverlayLayout() {
@@ -202,13 +198,10 @@ function OverlayLayout() {
           className="absolute inset-0 w-full h-full opacity-0 pointer-events-none"
         />
         {/* Visible overlay — white strokes painted directly on the camera feed. */}
-        <DrawingCameraCanvas
-          strokeColor="white"
-          className="absolute inset-0 w-full h-full"
-        />
+        <DrawingCameraCanvas strokeColor="white" className="absolute inset-0 w-full h-full" />
       </div>
     </Panel>
-  )
+  );
 }
 
 function BothLayout() {
@@ -218,10 +211,7 @@ function BothLayout() {
         <div className="relative">
           <DrawingCameraInput />
           {/* Mounted second → shadow overlay, not submitted. */}
-          <DrawingCameraCanvas
-            strokeColor="white"
-            className="absolute inset-0 w-full h-full"
-          />
+          <DrawingCameraCanvas strokeColor="white" className="absolute inset-0 w-full h-full" />
         </div>
       </Panel>
       <Panel label="Canvas">
@@ -229,5 +219,5 @@ function BothLayout() {
         <DrawingCameraCanvas strokeColor="black" />
       </Panel>
     </div>
-  )
+  );
 }

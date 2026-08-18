@@ -6,9 +6,9 @@ interface ImportMetaEnv {
    * Empty string = same-origin (Docker: nginx proxies /rooms and /socket.io).
    * Unset = falls back to http://localhost:3000 (plain `npm run dev`).
    */
-  readonly VITE_API_URL?: string
+  readonly VITE_API_URL?: string;
 }
 
 interface ImportMeta {
-  readonly env: ImportMetaEnv
+  readonly env: ImportMetaEnv;
 }
