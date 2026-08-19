@@ -25,14 +25,8 @@ export default defineConfig({
     ),
 
     include: [
-      resolve(
-        __dirname,
-        '../component-tests/**/*.{test,spec}.{ts,tsx}'
-      ),
-      resolve(
-        __dirname,
-        './unit-tests/**/*.{test,spec}.{ts,tsx}'
-      ),
+      '../component-tests/**/*.{test,spec}.{ts,tsx}',
+      'unit-tests/**/*.{test,spec}.{ts,tsx}',
     ],
   },
 })
