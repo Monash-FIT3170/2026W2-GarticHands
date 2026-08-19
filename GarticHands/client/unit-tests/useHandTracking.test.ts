@@ -1,6 +1,6 @@
 // @vitest-environment jsdom
 import { describe, it, expect, vi, beforeEach } from 'vitest'
-import { renderHook, waitFor } from '@testing-library/react'
+import { act, renderHook, waitFor } from '@testing-library/react'
 import { useHandTracking } from '../src/drawing/hooks/useHandTracking'
 
 // Mock the MediaPipe package
@@ -28,9 +28,11 @@ function stubAnimationFrame() {
   vi.stubGlobal('cancelAnimationFrame', vi.fn())
 }
 function stepFrame() {
-  const cb = rafCallback
-  rafCallback = null
-  cb?.(0)
+  act(() => {
+    const cb = rafCallback
+    rafCallback = null
+    cb?.(0)
+  })
 }
 
 // Fake video/canvas elements
@@ -106,7 +108,10 @@ async function startAndConnectStream(refs: ReturnType<typeof createRefs>) {
   )
 
   await waitFor(() => expect(refs.video.onloadedmetadata).not.toBeNull())
-  await refs.video.onloadedmetadata?.(new Event('loadedmetadata'))
+
+  await act(async () => {
+    await refs.video.onloadedmetadata?.(new Event('loadedmetadata'))
+  })
 
   return rendered
 }
@@ -120,7 +125,8 @@ describe('useHandTracking', () => {
     const refs = createRefs()
     await startAndConnectStream(refs)
 
-    expect(createFromOptions).toHaveBeenCalledTimes(2)
+    await waitFor(() => expect(createFromOptions).toHaveBeenCalledTimes(2))
+
     expect(createFromOptions.mock.calls[0][1].baseOptions.delegate).toBe('GPU')
     expect(createFromOptions.mock.calls[1][1].baseOptions.delegate).toBe('CPU')
   })
@@ -160,7 +166,9 @@ describe('useHandTracking', () => {
     )
 
     await waitFor(() => expect(refs.video.onloadedmetadata).not.toBeNull())
+    await act(async () => {
     await refs.video.onloadedmetadata?.(new Event('loadedmetadata'))
+    })
     await waitFor(() => expect(rafCallback).not.toBeNull())
     stepFrame()
 
@@ -181,7 +189,9 @@ describe('useHandTracking', () => {
     )
 
     await waitFor(() => expect(refs.video.onloadedmetadata).not.toBeNull())
+    await act(async () => {
     await refs.video.onloadedmetadata?.(new Event('loadedmetadata'))
+    })
     await waitFor(() => expect(rafCallback).not.toBeNull())
     stepFrame()
 
