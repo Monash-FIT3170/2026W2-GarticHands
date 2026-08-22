@@ -29,6 +29,11 @@ pnpm-debug.log*
 coverage/
 .nyc_output/
 
+# Playwright e2e
+GarticHands/e2e-tests/test-results/
+GarticHands/e2e-tests/playwright-report/
+GarticHands/e2e-tests/blob-report/
+
 # Editor / IDE
 .vscode/
 .idea/
