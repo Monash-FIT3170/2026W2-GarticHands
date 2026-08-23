@@ -1,3 +1,4 @@
+/// <reference path="../../testHooks.d.ts" />
 import { useEffect, useRef, useState } from 'react'
 import {
   HandLandmarker,
@@ -43,6 +44,31 @@ export function useHandTracking({
     let frameId: number
     let handLandmarker: HandLandmarker | null = null
     const gestureBuffer = new GestureBuffer(5)
+
+    // Test-only seam: when `sessionStorage['gh:e2eHands']` is set (persists
+    // across client-side route changes within a Playwright test session),
+    // skip the real camera/MediaPipe pipeline (unavailable/unreliable in CI)
+    // and instead let Playwright drive frames directly via
+    // `window.__ghTestHooks.injectHandFrame`.
+    const isHandE2E =
+      typeof window !== 'undefined' &&
+      window.sessionStorage.getItem('gh:e2eHands') === '1'
+
+    if (isHandE2E) {
+      setIsLoading(false)
+      const hooks = (window.__ghTestHooks ??= {})
+      hooks.injectHandFrame = (landmarks, gesture) => {
+        if (cancelled) return
+        const detected = landmarks !== null
+        setHandDetected(prev => (prev !== detected ? detected : prev))
+        setGesture(prev => (prev !== gesture ? gesture : prev))
+        onFrameRef.current?.(landmarks, gesture)
+      }
+      return () => {
+        cancelled = true
+        delete hooks.injectHandFrame
+      }
+    }
 
     const processFrame = () => {
       if (cancelled) return
