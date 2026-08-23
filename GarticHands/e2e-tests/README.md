@@ -6,6 +6,7 @@ Author: Hoang Minh Do
 https://docs.google.com/spreadsheets/d/1CeiBnrzP5W0_T-N77HpOyhe37h4fWcH2o0HUklU9Ko8/edit?usp=sharing
 
 # Run the tests
+From the GarticHands folder (cd GarticHands):
 1. npm install
 2. npm run test:e2e
 
