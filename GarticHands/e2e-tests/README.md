@@ -3,7 +3,7 @@
 Author: Hoang Minh Do
 
 # User Stories tracking document
-https://docs.google.com/spreadsheets/d/1CeiBnrzP5W0_T-N77HpOyhe37h4fWcH2o0HUklU9Ko8/edit?gid=0#gid=0
+https://docs.google.com/spreadsheets/d/1CeiBnrzP5W0_T-N77HpOyhe37h4fWcH2o0HUklU9Ko8/edit?usp=sharing
 
 # Run the tests
 1. npm install
