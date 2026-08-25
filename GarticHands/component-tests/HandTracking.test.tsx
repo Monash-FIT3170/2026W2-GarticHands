@@ -23,8 +23,15 @@ import { render, screen } from '@testing-library/react'
 import '@testing-library/jest-dom'
 import HandTracking from '../client/src/drawing/components/HandTracking'
 
+type HandTrackingState = {
+  isLoading: boolean
+  error: string | null
+  handDetected: boolean
+  gesture: string
+}
+
 const registerCameraCanvas = vi.fn(() => vi.fn())
-const mockUseHandTracking = vi.fn()
+const mockUseHandTracking = vi.fn<(...args: unknown[]) => HandTrackingState>()
 
 vi.mock('../client/src/drawing/DrawingContext', () => ({
   useDrawingContext: () => ({
@@ -136,7 +143,9 @@ describe('HandTracking', () => {
 
     expect(mockUseHandTracking).toHaveBeenCalledWith(
       expect.objectContaining({
+        // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment -- expect.any/objectContaining are intentionally loosely typed by Vitest
         videoRef: expect.objectContaining({ current: expect.any(HTMLVideoElement) }),
+        // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment -- expect.any/objectContaining are intentionally loosely typed by Vitest
         canvasRef: expect.objectContaining({ current: expect.any(HTMLCanvasElement) }),
         onFrame,
       }),
