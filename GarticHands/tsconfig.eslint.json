@@ -6,7 +6,8 @@
     "module": "ESNext",
     "moduleResolution": "Bundler",
     "target": "ES2022",
-    "skipLibCheck": true
+    "skipLibCheck": true,
+    "types": ["vitest/globals", "@testing-library/jest-dom"]
   },
   "include": [
     "client/**/*.ts",
@@ -16,7 +17,6 @@
     "component-tests/**/*.ts",
     "component-tests/**/*.tsx",
     "e2e-tests/**/*.ts",
-    "e2e-tests/**/*.tsx",
-    
+    "e2e-tests/**/*.tsx"
   ]
 }
