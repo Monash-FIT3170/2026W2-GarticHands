@@ -20,5 +20,5 @@
     "noFallthroughCasesInSwitch": true,
     "noUncheckedSideEffectImports": true
   },
-  "include": ["src", "unit-tests"]
+  "include": ["src", "unit-tests", "testHooks.d.ts"]
 }
