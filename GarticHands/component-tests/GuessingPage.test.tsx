@@ -20,6 +20,10 @@ import { render, screen, waitFor, fireEvent } from '@testing-library/react'
 import '@testing-library/jest-dom'
 import GuessingPage from '../client/src/pages/GuessingPage'
 
+type LocationState = {
+  state?: { roomCode?: string; playerName?: string }
+}
+
 const {
   mockNavigate,
   mockUseLocation,
@@ -28,7 +32,7 @@ const {
   mockUsePhaseAdvance,
 } = vi.hoisted(() => ({
   mockNavigate: vi.fn(),
-  mockUseLocation: vi.fn(),
+  mockUseLocation: vi.fn<() => LocationState>(),
   mockGetRoom: vi.fn(),
   mockSubmitGuess: vi.fn(),
   mockUsePhaseAdvance: vi.fn(),
