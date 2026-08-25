@@ -24,6 +24,10 @@ import { render, screen, waitFor, fireEvent } from '@testing-library/react'
 import '@testing-library/jest-dom'
 import InputPage from '../client/src/pages/InputPage'
 
+type LocationState = {
+  state?: { roomCode?: string; playerName?: string }
+}
+
 const {
   mockNavigate,
   mockUseLocation,
@@ -31,7 +35,7 @@ const {
   mockUsePhaseAdvance,
 } = vi.hoisted(() => ({
   mockNavigate: vi.fn(),
-  mockUseLocation: vi.fn(),
+  mockUseLocation: vi.fn<() => LocationState>(),
   mockSubmitPrompt: vi.fn(),
   mockUsePhaseAdvance: vi.fn(),
 }))
@@ -261,7 +265,7 @@ describe('InputPage', () => {
     })
   })
 
-  test('the timer expiring with a blank input does not submit', async () => {
+  test('the timer expiring with a blank input does not submit', () => {
     render(<InputPage />)
 
     fireEvent.click(screen.getByTestId('expire-timer'))
