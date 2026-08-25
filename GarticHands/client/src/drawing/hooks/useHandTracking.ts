@@ -1,4 +1,4 @@
-/// <reference path="../../testHooks.d.ts" />
+
 import { useEffect, useRef, useState } from 'react'
 import {
   HandLandmarker,
@@ -57,7 +57,12 @@ export function useHandTracking({
       window.sessionStorage.getItem('gh:e2eHands') === '1'
 
     if (isHandE2E) {
-      setIsLoading(false)
+      queueMicrotask(() => {
+        if (!cancelled) {
+          setIsLoading(false)
+        }
+      })
+
       const hooks = (window.__ghTestHooks ??= {})
       hooks.injectHandFrame = (landmarks, gesture) => {
         if (cancelled) return
