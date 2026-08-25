@@ -21,6 +21,10 @@ import { render, screen, waitFor, fireEvent } from '@testing-library/react'
 import '@testing-library/jest-dom'
 import DrawPage from '../client/src/pages/DrawPage'
 
+type LocationState = {
+  state?: { roomCode?: string; playerName?: string }
+}
+
 const {
   mockNavigate,
   mockUseLocation,
@@ -34,7 +38,7 @@ const {
   mockUsePhaseAdvance,
 } = vi.hoisted(() => ({
   mockNavigate: vi.fn(),
-  mockUseLocation: vi.fn(),
+  mockUseLocation: vi.fn<() => LocationState>(),
   mockGetDrawingImage: vi.fn(),
   mockSetMode: vi.fn(),
   mockRecorderStart: vi.fn(),
