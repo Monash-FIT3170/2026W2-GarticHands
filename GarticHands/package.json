@@ -26,9 +26,10 @@
   },
   "devDependencies": {
     "@axe-core/playwright": "^4.13.0",
-    "@playwright/test": "^1.62.1",
     "@commitlint/cli": "^21.2.1",
     "@commitlint/config-conventional": "^21.2.0",
+    "@csstools/css-calc": "^3.3.0",
+    "@playwright/test": "^1.62.1",
     "concurrently": "^8.2.2",
     "eslint-config-prettier": "^10.1.8",
     "husky": "^9.1.7",
@@ -42,5 +43,9 @@
     "url": "https://github.com/Monash-FIT3170/2026W2-GarticHands/issues"
   },
   "homepage": "https://github.com/Monash-FIT3170/2026W2-GarticHands#readme",
-  "license": "ISC"
+  "license": "ISC",
+  "dependencies": {
+    "@csstools/color-helpers": "^6.1.1",
+    "bidi-js": "^1.0.3"
+  }
 }
