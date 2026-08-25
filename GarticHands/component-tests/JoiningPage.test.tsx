@@ -20,9 +20,13 @@ import { render, screen, waitFor, fireEvent } from '@testing-library/react'
 import '@testing-library/jest-dom'
 import JoiningPage from '../client/src/pages/JoiningPage'
 
+type LocationState = {
+  state?: { roomCode?: string; playerName?: string }
+}
+
 const { mockNavigate, mockUseLocation, mockJoinRoom } = vi.hoisted(() => ({
   mockNavigate: vi.fn(),
-  mockUseLocation: vi.fn(),
+  mockUseLocation: vi.fn<() => LocationState>(),
   mockJoinRoom: vi.fn(),
 }))
 
