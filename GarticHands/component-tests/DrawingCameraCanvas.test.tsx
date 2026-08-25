@@ -47,17 +47,23 @@ vi.mock('../client/src/drawing/DrawingContext', () => ({
 // Replace the real `<Canvas />` with a lightweight stand-in that forwards its
 // props to `mockCanvas` (so tests can assert on them) and renders a simple
 // `<canvas>` element with a test id.
-vi.mock('../client/src/drawing/components/Canvas', () => ({
-  default: (props: {
-    width?: number
-    height?: number
-    strokeColor?: string
-    className?: string
-  }) => {
-    mockCanvas(props)
-    return <canvas data-testid="drawing-canvas" />
-  },
-}))
+vi.mock('../client/src/drawing/components/Canvas', async () => {
+  const React = await import('react')
+
+  return {
+    default: React.forwardRef(function MockCanvas(_props, ref) {
+      const handle = {
+        getCanvas: vi.fn(),
+      }
+
+      React.useImperativeHandle(ref, () => handle)
+
+      mockCanvas(_props)
+
+      return <canvas data-testid="drawing-canvas" />
+    }),
+  }
+})
 
 describe('DrawingCameraCanvas', () => {
   // Reset mock call history before every test so assertions like
