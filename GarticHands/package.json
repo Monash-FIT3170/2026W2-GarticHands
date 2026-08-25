@@ -15,7 +15,7 @@
     "prebuild": "npm run lint",
     "build": "npm run build -w @gartichands/client",
     "start": "concurrently -n server,client -c blue,magenta \"npm run start -w @gartichands/server\" \"npm run preview -w @gartichands/client\"",
-    "lint": "npm run lint -w @gartichands/client",
+    "lint": "eslint . --format stylish && eslint --config ../load-testing/eslint.config.js ../load-testing/scenarios --format stylish",
     "test:e2e": "playwright test --config=e2e-tests/playwright.config.ts",
     "test:e2e:ui": "playwright test --config=e2e-tests/playwright.config.ts --ui",
     "lint:fix": "npm run lint:fix -w @gartichands/client",
