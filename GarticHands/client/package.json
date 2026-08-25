@@ -6,11 +6,16 @@
   "scripts": {
     "dev": "vite --port 5173",
     "build": "tsc -b && vite build",
-    "lint": "eslint .",
-    "preview": "vite preview",
-    "test:component": "vitest run ../component-tests",
-    "test": "vitest",
-    "coverage": "vitest run --coverage"
+
+  "lint": "eslint . --format stylish",
+  "lint:fix": "eslint . --fix --format stylish",
+  "format": "prettier . --write --ignore-path ../.prettierignore",
+  "format:check": "prettier . --check --ignore-path ../.prettierignore",
+  "preview": "vite preview",
+  "test:component": "vitest run ../component-tests",
+  "test": "vitest",
+  "coverage": "vitest run --coverage"
+
   },
   "dependencies": {
     "react": "^19.2.6",
@@ -30,6 +35,8 @@
     "@vitest/coverage-v8": "^4.1.10",
     "autoprefixer": "^10.5.0",
     "eslint": "^9.39.4",
+    "eslint-config-prettier": "^10.1.8",
+    "eslint-plugin-react": "^7.37.5",
     "eslint-plugin-react-hooks": "^7.0.1",
     "eslint-plugin-react-refresh": "^0.5.2",
     "globals": "^17.4.0",

@@ -1,0 +1,44 @@
+name: PR Lint
+
+# Runs this whenever there is activity on a pull request to main
+on:
+  pull_request:
+    branches:
+      - main
+
+jobs:
+  # Runs the Linting Job
+  lint:
+    runs-on: ubuntu-latest
+
+    # Ensures the right files are checked
+    defaults:
+      run:
+        working-directory: GarticHands
+
+    steps:
+      # Step 1) accesses workspace
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      # Step 2) Runs the Node structure setup
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 24
+          cache: npm
+          cache-dependency-path: GarticHands/package-lock.json
+
+      # Step 3) Installs all relevant dependencies
+      - name: Install dependencies
+        run: npm ci
+
+      # Step 4) Run the linting
+      - name: Run ESLint
+        run: npm run lint
+
+      # Step 5) checks code formatting
+      - name: Run Prettier check
+        run: npm run format
+
+  # Auto Testing can be done here

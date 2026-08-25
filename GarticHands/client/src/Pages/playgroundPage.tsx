@@ -1,13 +1,13 @@
-import { useState } from 'react'
-import { useNavigate } from 'react-router-dom'
+import { useState } from 'react';
+import { useNavigate } from 'react-router-dom';
 import {
   DrawingProvider,
   DrawingStage,
   DrawingModePicker,
   useDrawing,
   useDrawingMode,
-} from '../drawing'
-import { Card, Button } from '../components/ui'
+} from '../drawing';
+import { Card, Button } from '../components/ui';
 
 /**
  * Free-form sandbox — load MediaPipe, see your hand tracking, draw anything you
@@ -19,17 +19,17 @@ export default function PlaygroundPage() {
     <DrawingProvider>
       <PlaygroundInner />
     </DrawingProvider>
-  )
+  );
 }
 
 function PlaygroundInner() {
-  const navigate = useNavigate()
-  const { getDrawingImage } = useDrawing()
-  const [mode, setMode] = useDrawingMode()
-  const [snapshot, setSnapshot] = useState<string | null>(null)
+  const navigate = useNavigate();
+  const { getDrawingImage } = useDrawing();
+  const [mode, setMode] = useDrawingMode();
+  const [snapshot, setSnapshot] = useState<string | null>(null);
 
   function handleSnapshot() {
-    setSnapshot(getDrawingImage())
+    setSnapshot(getDrawingImage());
   }
 
   return (
@@ -43,7 +43,7 @@ function PlaygroundInner() {
               No timer, no network — try every layout and gesture.
             </p>
           </div>
-          <Button variant="secondary" size="sm" onClick={() => navigate('/')}>
+          <Button variant="secondary" size="sm" onClick={() => void navigate('/')}>
             Home
           </Button>
         </div>
@@ -75,5 +75,5 @@ function PlaygroundInner() {
         )}
       </Card>
     </div>
-  )
+  );
 }

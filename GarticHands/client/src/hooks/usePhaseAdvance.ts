@@ -1,26 +1,26 @@
-import { useEffect, useState } from 'react'
-import { useNavigate } from 'react-router-dom'
-import { getRoom } from '../api/room'
-import type { Room, RoomPhase } from '../types/room'
+import { useEffect, useState } from 'react';
+import { useNavigate } from 'react-router-dom';
+import { getRoom } from '../api/room';
+import type { Room, RoomPhase } from '../types/room';
 
 interface UsePhaseAdvanceOptions {
-  roomCode: string | undefined
-  playerName: string | undefined
+  roomCode: string | undefined;
+  playerName: string | undefined;
   /** Only navigate (and count submissions) once this is true. Polling runs regardless. */
-  enabled: boolean
+  enabled: boolean;
   /** Phase value that triggers navigation. */
-  whenPhase: RoomPhase
+  whenPhase: RoomPhase;
   /** Route to navigate to once the phase transitions. */
-  to: string
+  to: string;
   /** Bucket name to count how many players have submitted. */
-  countBucket?: 'prompts' | 'drawings' | 'guesses'
+  countBucket?: 'prompts' | 'drawings' | 'guesses';
   /** Polling cadence in ms. Default: 1000. */
-  intervalMs?: number
+  intervalMs?: number;
 }
 
 interface UsePhaseAdvanceResult {
-  waitingFor: number
-  room: Room | null
+  waitingFor: number;
+  room: Room | null;
 }
 
 /**
@@ -40,43 +40,45 @@ export function usePhaseAdvance({
   countBucket,
   intervalMs = 1000,
 }: UsePhaseAdvanceOptions): UsePhaseAdvanceResult {
-  const navigate = useNavigate()
-  const [waitingFor, setWaitingFor] = useState(0)
-  const [room, setRoom] = useState<Room | null>(null)
+  const navigate = useNavigate();
+  const [waitingFor, setWaitingFor] = useState(0);
+  const [room, setRoom] = useState<Room | null>(null);
 
   useEffect(() => {
-    if (!roomCode) return
+    if (!roomCode) return;
 
-    let cancelled = false
+    let cancelled = false;
 
     async function tick() {
-      if (!roomCode) return
-      const data = await getRoom(roomCode)
-      if (cancelled || !data.success) return
+      if (!roomCode) return;
+      const data = await getRoom(roomCode);
+      if (cancelled || !data.success) return;
 
-      const fresh = data.room as Room
-      setRoom(fresh)
+      const fresh = data.room as Room;
+      setRoom(fresh);
 
       if (enabled && countBucket) {
         const submitted = Object.values(fresh[countBucket] || {}).filter(
           (v) => v !== undefined && v !== null && v !== '',
-        ).length
-        setWaitingFor(Math.max(0, fresh.players.length - submitted))
+        ).length;
+        setWaitingFor(Math.max(0, fresh.players.length - submitted));
       }
 
       if (enabled && fresh.phase === whenPhase) {
-        cancelled = true
-        navigate(to, { state: { roomCode, playerName } })
+        cancelled = true;
+        void navigate(to, { state: { roomCode, playerName } });
       }
     }
 
-    tick()
-    const interval = setInterval(tick, intervalMs)
+    void tick();
+    const interval = setInterval(() => {
+      void tick();
+    }, intervalMs);
     return () => {
-      cancelled = true
-      clearInterval(interval)
-    }
-  }, [enabled, roomCode, playerName, whenPhase, to, countBucket, intervalMs, navigate])
+      cancelled = true;
+      clearInterval(interval);
+    };
+  }, [enabled, roomCode, playerName, whenPhase, to, countBucket, intervalMs, navigate]);
 
-  return { waitingFor, room }
+  return { waitingFor, room };
 }

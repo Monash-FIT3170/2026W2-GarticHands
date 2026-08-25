@@ -1,21 +1,21 @@
-import { useState } from 'react'
-import { useNavigate } from 'react-router-dom'
-import { Page, Card, Button, Avatar } from '../components/ui'
+import { useState } from 'react';
+import { useNavigate } from 'react-router-dom';
+import { Page, Card, Button, Avatar } from '../components/ui';
 
 export default function LandingPage() {
-  const navigate = useNavigate()
-  const [playerName, setPlayerName] = useState('')
+  const navigate = useNavigate();
+  const [playerName, setPlayerName] = useState('');
 
-  const canContinue = playerName.trim().length > 0
+  const canContinue = playerName.trim().length > 0;
 
   function joinRoom() {
-    if (!canContinue) return
-    navigate('/join', { state: { playerName } })
+    if (!canContinue) return;
+    void navigate('/join', { state: { playerName } });
   }
 
   function hostRoom() {
-    if (!canContinue) return
-    navigate('/host', { state: { playerName } })
+    if (!canContinue) return;
+    void navigate('/host', { state: { playerName } });
   }
 
   return (
@@ -44,7 +44,7 @@ export default function LandingPage() {
         <div className="flex gap-2 w-full justify-center pt-2 text-white/90">
           <button
             type="button"
-            onClick={() => navigate('/solo')}
+            onClick={() => void navigate('/solo')}
             className="text-xs font-bold uppercase tracking-[0.18em] underline-offset-2 hover:underline transition-colors"
           >
             Solo (Computer Mode)
@@ -52,7 +52,7 @@ export default function LandingPage() {
           <span className="text-white/40">·</span>
           <button
             type="button"
-            onClick={() => navigate('/playground')}
+            onClick={() => void navigate('/playground')}
             className="text-xs font-bold uppercase tracking-[0.18em] underline-offset-2 hover:underline transition-colors"
           >
             Playground
@@ -60,5 +60,5 @@ export default function LandingPage() {
         </div>
       </Card>
     </Page>
-  )
+  );
 }

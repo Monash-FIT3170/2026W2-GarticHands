@@ -12,16 +12,16 @@ import { drawLandmarks, drawConnections } from '../utils/drawHand'
 import type { HandLandmark } from '../Models/HandLandmark'
 
 interface UseHandTrackingOptions {
-  videoRef: React.RefObject<HTMLVideoElement | null>
-  canvasRef: React.RefObject<HTMLCanvasElement | null>
-  onFrame?: (landmarks: HandLandmark[] | null, gesture: GestureType) => void
+  videoRef: React.RefObject<HTMLVideoElement | null>;
+  canvasRef: React.RefObject<HTMLCanvasElement | null>;
+  onFrame?: (landmarks: HandLandmark[] | null, gesture: GestureType) => void;
 }
 
 interface UseHandTrackingResult {
-  isLoading: boolean
-  error: string | null
-  handDetected: boolean
-  gesture: GestureType
+  isLoading: boolean;
+  error: string | null;
+  handDetected: boolean;
+  gesture: GestureType;
 }
 
 export function useHandTracking({
@@ -29,21 +29,23 @@ export function useHandTracking({
   canvasRef,
   onFrame,
 }: UseHandTrackingOptions): UseHandTrackingResult {
-  const [isLoading, setIsLoading] = useState(true)
-  const [error, setError] = useState<string | null>(null)
-  const [handDetected, setHandDetected] = useState(false)
-  const [gesture, setGesture] = useState<GestureType>(GestureTypeEnum.NO_HAND)
+  const [isLoading, setIsLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
+  const [handDetected, setHandDetected] = useState(false);
+  const [gesture, setGesture] = useState<GestureType>(GestureTypeEnum.NO_HAND);
 
-  const onFrameRef = useRef(onFrame)
+  const onFrameRef = useRef(onFrame);
   useEffect(() => {
-    onFrameRef.current = onFrame
-  }, [onFrame])
+    onFrameRef.current = onFrame;
+  }, [onFrame]);
 
   useEffect(() => {
-    let cancelled = false
-    let frameId: number
-    let handLandmarker: HandLandmarker | null = null
-    const gestureBuffer = new GestureBuffer(5)
+    let cancelled = false;
+    let frameId: number;
+    let handLandmarker: HandLandmarker | null = null;
+    let mediaStream: MediaStream | null = null;
+
+    const gestureBuffer = new GestureBuffer(5);
 
     // Test-only seam: when `sessionStorage['gh:e2eHands']` is set (persists
     // across client-side route changes within a Playwright test session),
@@ -71,83 +73,74 @@ export function useHandTracking({
     }
 
     const processFrame = () => {
-      if (cancelled) return
+      if (cancelled) return;
 
-      const video = videoRef.current
-      const canvas = canvasRef.current
+      const video = videoRef.current;
+      const canvas = canvasRef.current;
 
       if (!video || !canvas || !handLandmarker || video.readyState < 2) {
-        frameId = requestAnimationFrame(processFrame)
-        return
+        frameId = requestAnimationFrame(processFrame);
+        return;
       }
 
-      const ctx = canvas.getContext('2d')
+      const ctx = canvas.getContext('2d');
 
       if (!ctx) {
-        frameId = requestAnimationFrame(processFrame)
-        return
+        frameId = requestAnimationFrame(processFrame);
+        return;
       }
 
       // Set canvas size once — not every frame.
       // Canvas clears when width/height is assigned so we only do it
       // when the video dimensions actually change.
-      if (
-        canvas.width !== video.videoWidth ||
-        canvas.height !== video.videoHeight
-      ) {
-        canvas.width = video.videoWidth || 640
-        canvas.height = video.videoHeight || 480
+      if (canvas.width !== video.videoWidth || canvas.height !== video.videoHeight) {
+        canvas.width = video.videoWidth || 640;
+        canvas.height = video.videoHeight || 480;
       }
 
-      ctx.clearRect(0, 0, canvas.width, canvas.height)
+      ctx.clearRect(0, 0, canvas.width, canvas.height);
 
       // Mirror the canvas once per frame via context transform.
       // CSS transform: scaleX(-1) is NOT applied to the canvas element
       // so there is only one mirror — no double-flip.
-      ctx.save()
-      ctx.scale(-1, 1)
-      ctx.translate(-canvas.width, 0)
-      ctx.drawImage(video, 0, 0, canvas.width, canvas.height)
+      ctx.save();
+      ctx.scale(-1, 1);
+      ctx.translate(-canvas.width, 0);
+      ctx.drawImage(video, 0, 0, canvas.width, canvas.height);
 
       // Detect hands — synchronous in tasks-vision
-      const results = handLandmarker.detectForVideo(video, performance.now())
-      const detected = (results.landmarks?.length ?? 0) > 0
+      const results = handLandmarker.detectForVideo(video, performance.now());
+      const detected = (results.landmarks?.length ?? 0) > 0;
 
-      setHandDetected(prev => prev !== detected ? detected : prev)
+      setHandDetected((prev) => (prev !== detected ? detected : prev));
 
       if (detected) {
-        const landmarks = results.landmarks[0] as HandLandmark[]
-        const rawGesture = detectGesture(landmarks)
-        const stableGesture = gestureBuffer.push(rawGesture)
+        const landmarks = results.landmarks[0] as HandLandmark[];
+        const rawGesture = detectGesture(landmarks);
+        const stableGesture = gestureBuffer.push(rawGesture);
 
-        setGesture(prev => prev !== stableGesture ? stableGesture : prev)
-        onFrameRef.current?.(landmarks, stableGesture)
+        setGesture((prev) => (prev !== stableGesture ? stableGesture : prev));
+        onFrameRef.current?.(landmarks, stableGesture);
 
-        drawConnections(ctx, landmarks)
-        drawLandmarks(ctx, landmarks)
+        drawConnections(ctx, landmarks);
+        drawLandmarks(ctx, landmarks);
       } else {
-        gestureBuffer.clear()
-        setGesture(prev =>
-          prev !== GestureTypeEnum.NO_HAND ? GestureTypeEnum.NO_HAND : prev
-        )
-        onFrameRef.current?.(null, GestureTypeEnum.NO_HAND)
+        gestureBuffer.clear();
+        setGesture((prev) => (prev !== GestureTypeEnum.NO_HAND ? GestureTypeEnum.NO_HAND : prev));
+        onFrameRef.current?.(null, GestureTypeEnum.NO_HAND);
       }
 
-      ctx.restore()
+      ctx.restore();
 
-      frameId = requestAnimationFrame(processFrame)
-    }
+      frameId = requestAnimationFrame(processFrame);
+    };
 
     const start = async () => {
       try {
         // Load MediaPipe tasks-vision WASM
-        const vision = await FilesetResolver.forVisionTasks(
-          '/mediapipe-wasm'
-        )
+        const vision = await FilesetResolver.forVisionTasks('/mediapipe-wasm');
 
-        const createHandLandmarker = async (
-          delegate: 'GPU' | 'CPU'
-        ) =>
+        const createHandLandmarker = async (delegate: 'GPU' | 'CPU') =>
           HandLandmarker.createFromOptions(vision, {
             baseOptions: {
               modelAssetPath:
@@ -159,65 +152,61 @@ export function useHandTracking({
             minHandDetectionConfidence: 0.5,
             minHandPresenceConfidence: 0.5,
             minTrackingConfidence: 0.5,
-          })
+          });
 
         try {
-          handLandmarker = await createHandLandmarker('GPU')
+          handLandmarker = await createHandLandmarker('GPU');
         } catch {
-          console.warn(
-            'GPU delegate failed, falling back to CPU'
-          )
+          console.warn('GPU delegate failed, falling back to CPU');
 
-          handLandmarker = await createHandLandmarker('CPU')
+          handLandmarker = await createHandLandmarker('CPU');
         }
 
-        if (cancelled) return
+        if (cancelled) return;
 
         // Start webcam
-        const stream = await navigator.mediaDevices.getUserMedia({
+        mediaStream = await navigator.mediaDevices.getUserMedia({
           video: { width: 640, height: 480 },
-        })
+        });
 
         if (cancelled) {
-          stream.getTracks().forEach(t => t.stop())
-          return
+          mediaStream.getTracks().forEach((t) => t.stop());
+          return;
         }
 
-        const video = videoRef.current
-        if (!video) return
+        const video = videoRef.current;
+        if (!video) return;
 
-        video.srcObject = stream
+        video.srcObject = mediaStream;
 
-        await new Promise<void>(resolve => {
+        await new Promise<void>((resolve) => {
           video.onloadedmetadata = async () => {
-            await video.play()
-            resolve()
-          }
-        })
+            await video.play();
+            resolve();
+          };
+        });
 
-        if (cancelled) return
+        if (cancelled) return;
 
-        setIsLoading(false)
-        frameId = requestAnimationFrame(processFrame)
+        setIsLoading(false);
+        frameId = requestAnimationFrame(processFrame);
       } catch (err) {
         if (!cancelled) {
-          setError('Failed to start hand tracking: ' + (err as Error).message)
-          setIsLoading(false)
+          setError('Failed to start hand tracking: ' + (err as Error).message);
+          setIsLoading(false);
         }
       }
-    }
+    };
 
-    start()
+    void start();
 
     return () => {
-      cancelled = true
-      cancelAnimationFrame(frameId)
-      handLandmarker?.close()
+      cancelled = true;
+      cancelAnimationFrame(frameId);
+      handLandmarker?.close();
+      mediaStream?.getTracks().forEach((track) => track.stop());
+    };
+  }, [videoRef, canvasRef]);
 
-      const stream = videoRef.current?.srcObject as MediaStream | null
-      stream?.getTracks().forEach(t => t.stop())
-    }
-  }, [])
-
-  return { isLoading, error, handDetected, gesture }
+  return { isLoading, error, handDetected, gesture };
 }

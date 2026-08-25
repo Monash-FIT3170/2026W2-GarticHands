@@ -35,7 +35,8 @@ GarticHands/e2e-tests/playwright-report/
 GarticHands/e2e-tests/blob-report/
 
 # Editor / IDE
-.vscode/
+.vscode/*
+!.vscode/settings.json
 .idea/
 *.swp
 *.swo

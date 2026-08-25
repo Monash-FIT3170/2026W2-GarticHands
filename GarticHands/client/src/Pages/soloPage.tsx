@@ -1,20 +1,20 @@
-import { useState } from 'react'
-import { useNavigate } from 'react-router-dom'
+import { useState } from 'react';
+import { useNavigate } from 'react-router-dom';
 import {
   DrawingProvider,
   DrawingStage,
   DrawingModePicker,
   useDrawing,
   useDrawingMode,
-} from '../drawing'
-import { Card, Button, CountdownTimer } from '../components/ui'
-import { randomPrompt } from '../data/prompts'
+} from '../drawing';
+import { Card, Button, CountdownTimer } from '../components/ui';
+import { randomPrompt } from '../data/prompts';
 
-const TotalTime = 60
+const TotalTime = 60;
 
 interface SavedDrawing {
-  prompt: string
-  image: string
+  prompt: string;
+  image: string;
 }
 
 /**
@@ -27,31 +27,31 @@ export default function SoloPage() {
     <DrawingProvider>
       <SoloInner />
     </DrawingProvider>
-  )
+  );
 }
 
 function SoloInner() {
-  const navigate = useNavigate()
-  const { getDrawingImage } = useDrawing()
-  const [mode, setMode] = useDrawingMode()
-  const [prompt, setPrompt] = useState<string>(() => randomPrompt())
-  const [results, setResults] = useState<SavedDrawing[]>([])
-  const [timerKey, setTimerKey] = useState(0)
+  const navigate = useNavigate();
+  const { getDrawingImage } = useDrawing();
+  const [mode, setMode] = useDrawingMode();
+  const [prompt, setPrompt] = useState<string>(() => randomPrompt());
+  const [results, setResults] = useState<SavedDrawing[]>([]);
+  const [timerKey, setTimerKey] = useState(0);
 
   function handleSave() {
-    const image = getDrawingImage()
-    if (!image) return
-    setResults((r) => [{ prompt, image }, ...r])
+    const image = getDrawingImage();
+    if (!image) return;
+    setResults((r) => [{ prompt, image }, ...r]);
   }
 
   function handleNext() {
-    setPrompt(randomPrompt())
-    setTimerKey((k) => k + 1)
+    setPrompt(randomPrompt());
+    setTimerKey((k) => k + 1);
   }
 
   function handleSaveAndNext() {
-    handleSave()
-    handleNext()
+    handleSave();
+    handleNext();
   }
 
   return (
@@ -69,7 +69,7 @@ function SoloInner() {
           </div>
           <div className="flex flex-col items-end gap-2">
             <CountdownTimer key={timerKey} seconds={TotalTime} />
-            <Button variant="secondary" size="sm" onClick={() => navigate('/')}>
+            <Button variant="secondary" size="sm" onClick={() => void navigate('/')}>
               Home
             </Button>
           </div>
@@ -98,18 +98,13 @@ function SoloInner() {
             </p>
             <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
               {results.map((r, i) => (
-                <div
-                  key={i}
-                  className="bg-white/[0.10] border border-white/20 rounded-lg p-2"
-                >
+                <div key={i} className="bg-white/[0.10] border border-white/20 rounded-lg p-2">
                   <img
                     src={r.image}
                     alt={r.prompt}
                     className="w-full aspect-[4/3] object-contain bg-white rounded"
                   />
-                  <p className="text-xs text-white/80 mt-1 text-center italic">
-                    {r.prompt}
-                  </p>
+                  <p className="text-xs text-white/80 mt-1 text-center italic">{r.prompt}</p>
                 </div>
               ))}
             </div>
@@ -117,5 +112,5 @@ function SoloInner() {
         )}
       </Card>
     </div>
-  )
+  );
 }

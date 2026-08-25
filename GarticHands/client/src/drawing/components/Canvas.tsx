@@ -1,9 +1,4 @@
-import {
-  useEffect,
-  useImperativeHandle,
-  useRef,
-  type Ref,
-} from 'react';
+import { useEffect, useImperativeHandle, useRef, type Ref } from 'react';
 
 import type { HandLandmark } from '../Models/HandLandmark';
 import { GestureType } from '../gestures/GestureTypes';
@@ -16,10 +11,7 @@ import { CanvasErase } from './CanvasOperations/CanvasErase';
 import { CanvasLocation } from './CanvasOperations/CanvasLocation';
 
 export interface CanvasHandle {
-  onFrame: (
-    landmarks: HandLandmark[] | null,
-    gesture: GestureType,
-  ) => void;
+  onFrame: (landmarks: HandLandmark[] | null, gesture: GestureType) => void;
   /** Returns the draw canvas as a PNG data URL, or null if the canvas is not yet mounted. */
   getImage: () => string | null;
 }
@@ -90,8 +82,7 @@ const Canvas = ({
         const drawCanvas = drawCanvasRef.current;
         if (!state || !drawCanvas) return;
 
-        const next =
-          state.ops.find(op => op.activatedBy === gesture) ?? null;
+        const next = state.ops.find((op) => op.activatedBy === gesture) ?? null;
 
         // Gesture transition — clear any in-progress state on the outgoing op
         // so e.g. a half-finished stroke doesn't reconnect to the next stroke.
@@ -101,10 +92,7 @@ const Canvas = ({
         }
 
         if (landmarks) {
-          const point = landmarkToCanvas(
-            landmarks[INDEX_FINGERTIP],
-            drawCanvas,
-          );
+          const point = landmarkToCanvas(landmarks[INDEX_FINGERTIP], drawCanvas);
           state.cursor.render(point, gesture);
           next?.tick(point);
         } else {
