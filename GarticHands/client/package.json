@@ -6,16 +6,14 @@
   "scripts": {
     "dev": "vite --port 5173",
     "build": "tsc -b && vite build",
-
-  "lint": "eslint . --format stylish",
-  "lint:fix": "eslint . --fix --format stylish",
-  "format": "prettier . --write --ignore-path ../.prettierignore",
-  "format:check": "prettier . --check --ignore-path ../.prettierignore",
-  "preview": "vite preview",
-  "test:component": "vitest run ../component-tests",
-  "test": "vitest",
-  "coverage": "vitest run --coverage"
-
+    "lint": "eslint . --format stylish",
+    "lint:fix": "eslint . --fix --format stylish",
+    "format": "prettier . --write --ignore-path ../.prettierignore",
+    "format:check": "prettier . --check --ignore-path ../.prettierignore",
+    "preview": "vite preview",
+    "test:component": "vitest run ../component-tests",
+    "test": "vitest",
+    "coverage": "vitest run --coverage"
   },
   "dependencies": {
     "react": "^19.2.6",
@@ -33,6 +31,7 @@
     "@types/react-dom": "^19.2.3",
     "@vitejs/plugin-react": "^6.0.1",
     "@vitest/coverage-v8": "^4.1.10",
+    "@vitest/eslint-plugin": "^1.6.27",
     "autoprefixer": "^10.5.0",
     "eslint": "^9.39.4",
     "eslint-config-prettier": "^10.1.8",
@@ -40,6 +39,8 @@
     "eslint-plugin-react-hooks": "^7.0.1",
     "eslint-plugin-react-refresh": "^0.5.2",
     "globals": "^17.4.0",
+    "html-encoding-sniffer": "^6.0.0",
+    "is-potential-custom-element-name": "^1.0.1",
     "jsdom": "^29.1.1",
     "postcss": "^8.5.14",
     "tailwindcss": "^3.4.19",

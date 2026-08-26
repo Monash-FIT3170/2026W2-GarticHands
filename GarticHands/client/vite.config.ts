@@ -1,6 +1,6 @@
-import { defineConfig } from 'vite'
-import { configDefaults } from 'vitest/config'
-import react from '@vitejs/plugin-react'
+import { defineConfig } from 'vite';
+import { configDefaults } from 'vitest/config';
+import react from '@vitejs/plugin-react';
 
 // https://vite.dev/config/
 export default defineConfig({
@@ -18,11 +18,9 @@ export default defineConfig({
         'src/drawing/gestures/**/*',
         'src/drawing/hooks/useHandTracking.ts',
         'src/drawing/Models/*',
-        'src/drawing/utils/*'
+        'src/drawing/utils/*',
       ],
-      exclude: [
-        'src/**/*.md'
-      ]
+      exclude: ['src/**/*.md'],
     },
   },
-})
+});
