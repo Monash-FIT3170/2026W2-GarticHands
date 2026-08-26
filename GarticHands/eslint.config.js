@@ -103,4 +103,20 @@ export default tseslint.config(
   
   // prevents conflicts between prettier and ESLINT
   eslintConfigPrettier,
+
+  {
+  files: [
+    "component-tests/**/*.{ts,tsx}",
+    "e2e-tests/**/*.{ts,tsx}",
+    "client/unit-tests/**/*.{ts,tsx}",
+  ],
+  rules: {
+    "@typescript-eslint/no-unsafe-call": "off",
+    "@typescript-eslint/no-unsafe-member-access": "off",
+    "@typescript-eslint/no-unsafe-assignment": "off",
+    "@typescript-eslint/no-unsafe-return": "off",
+    "@typescript-eslint/unbound-method": "off",
+    "@typescript-eslint/no-unnecessary-type-assertion": "off",
+  },
+},
 );

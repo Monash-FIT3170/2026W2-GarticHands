@@ -7,16 +7,28 @@
     "moduleResolution": "Bundler",
     "target": "ES2022",
     "skipLibCheck": true,
-    "types": ["vitest/globals", "@testing-library/jest-dom"]
+    "types": [
+      "vitest/globals",
+      "@testing-library/jest-dom"
+    ]
   },
   "include": [
     "client/**/*.ts",
     "client/**/*.tsx",
     "server/**/*.ts",
     "server/**/*.tsx",
+
     "component-tests/**/*.ts",
     "component-tests/**/*.tsx",
+
+    "client/unit-tests/**/*.ts",
+    "client/unit-tests/**/*.tsx",
+
     "e2e-tests/**/*.ts",
-    "e2e-tests/**/*.tsx"
+    "e2e-tests/**/*.tsx",
+
+    "load-testing/**/*.ts",
+    "load-testing/**/*.tsx",
+    "load-testing/**/*.js"
   ]
 }
