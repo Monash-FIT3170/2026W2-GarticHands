@@ -32,7 +32,7 @@ jobs:
       # NOTE: only strictly needed if the k6 scripts import local npm packages.
       # Safe to keep even if unused, but remove if it's just for linting.
       - name: Install load-testing dependencies
-        working-directory: load-testing
+        working-directory: GarticHands/load-testing
         run: npm ci
 
       # Step 5) Install k6 binary on the runner
@@ -54,6 +54,7 @@ jobs:
             if echo "$status" | grep -qE "^[0-9]{3}$"; then
               echo "Server is up"
               exit 0
+            fi
             echo "Waiting for server... ($i)"
             sleep 2
           done
@@ -78,4 +79,3 @@ jobs:
         working-directory: GarticHands
         run: k6 run load-testing/scenarios/six-player-two-groups.js
 
- 
