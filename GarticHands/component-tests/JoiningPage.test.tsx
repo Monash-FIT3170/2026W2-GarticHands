@@ -18,7 +18,7 @@
 
 import { render, screen, waitFor, fireEvent } from '@testing-library/react'
 import '@testing-library/jest-dom'
-import JoiningPage from '../client/src/pages/JoiningPage'
+import JoiningPage from '../client/src/Pages/joiningPage'
 
 type LocationState = {
   state?: { roomCode?: string; playerName?: string }

@@ -22,7 +22,7 @@
 
 import { render, screen, waitFor, fireEvent } from '@testing-library/react'
 import '@testing-library/jest-dom'
-import InputPage from '../client/src/pages/InputPage'
+import InputPage from '../client/src/Pages/inputPage'
 
 type LocationState = {
   state?: { roomCode?: string; playerName?: string }
