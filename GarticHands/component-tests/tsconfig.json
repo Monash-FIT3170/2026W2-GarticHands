@@ -1,0 +1,39 @@
+// component-tests/tsconfig.json
+//
+// TypeScript project config for the shared `component-tests/` directory.
+//
+// This is a SEPARATE tsconfig from the app's own (client/tsconfig.app.json,
+// client/tsconfig.node.json) because component-tests/ lives outside
+// client/src and is referenced by client/tsconfig.json as a project
+// reference, this lets the editor/TS actually type-check the test files
+// (instead of treating them as orphan files with no known types) and gives
+// Vitest globals like `vi`, `describe`, `test`, `expect` proper types
+// without requiring an explicit import in every test file.
+{
+  "compilerOptions": {
+    "target": "es2023",
+    "lib": ["ES2023", "DOM", "DOM.Iterable"],
+    "module": "esnext",
+
+    // "vitest/globals" provides types for vi/describe/test/expect etc,
+    // since our vitest.config.ts has `globals: true` (no explicit imports
+    // needed in test files). "vite/client" provides Vite's own ambient types
+    // (e.g. import.meta.env) in case any test/component code relies on them.
+    "types": ["vitest/globals", "vite/client"],
+
+    "moduleResolution": "bundler",
+    "allowImportingTsExtensions": true,
+    "verbatimModuleSyntax": true,
+    "moduleDetection": "force",
+
+    // JSX support, required since several test files (e.g. DrawingStage,
+    // usePhaseAdvance) render JSX directly (mocks, wrapper components, etc).
+    "jsx": "react-jsx",
+
+    "noEmit": true,       // this project is type-checked only, never compiled to JS
+    "skipLibCheck": true, // skip type-checking .d.ts files in node_modules for speed
+    "strict": true
+  },
+  // Type-check every .ts/.tsx file in this folder (all component test files).
+  "include": ["**/*.ts", "**/*.tsx"]
+}

@@ -1,3 +1,4 @@
+import '../../testHooks.d.ts';
 import { useEffect, useRef, useState } from 'react';
 import { HandLandmarker, FilesetResolver } from '@mediapipe/tasks-vision';
 import type { GestureType } from '../gestures/GestureTypes';
@@ -20,12 +21,24 @@ interface UseHandTrackingResult {
   gesture: GestureType;
 }
 
+// Test-only seam: when `sessionStorage['gh:e2eHands']` is set (persists
+// across client-side route changes within a Playwright test session),
+// skip the real camera/MediaPipe pipeline (unavailable/unreliable in CI)
+// and instead let Playwright drive frames directly via
+// `window.__ghTestHooks.injectHandFrame`.
+function isHandE2EMode(): boolean {
+  return typeof window !== 'undefined' && window.sessionStorage.getItem('gh:e2eHands') === '1';
+}
+
 export function useHandTracking({
   videoRef,
   canvasRef,
   onFrame,
 }: UseHandTrackingOptions): UseHandTrackingResult {
-  const [isLoading, setIsLoading] = useState(true);
+  // Lazy initializer avoids a cascading render: in E2E mode we already
+  // know on mount that loading should start as false, so there's no
+  // need to flip it inside the effect.
+  const [isLoading, setIsLoading] = useState(() => !isHandE2EMode());
   const [error, setError] = useState<string | null>(null);
   const [handDetected, setHandDetected] = useState(false);
   const [gesture, setGesture] = useState<GestureType>(GestureTypeEnum.NO_HAND);
@@ -42,6 +55,21 @@ export function useHandTracking({
     let mediaStream: MediaStream | null = null;
 
     const gestureBuffer = new GestureBuffer(5);
+
+    if (isHandE2EMode()) {
+      const hooks = (window.__ghTestHooks ??= {});
+      hooks.injectHandFrame = (landmarks, gesture) => {
+        if (cancelled) return;
+        const detected = landmarks !== null;
+        setHandDetected((prev) => (prev !== detected ? detected : prev));
+        setGesture((prev) => (prev !== gesture ? gesture : prev));
+        onFrameRef.current?.(landmarks, gesture);
+      };
+      return () => {
+        cancelled = true;
+        delete hooks.injectHandFrame;
+      };
+    }
 
     const processFrame = () => {
       if (cancelled) return;

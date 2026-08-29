@@ -3,7 +3,7 @@
   "version": "1.0.0",
   "private": true,
   "type": "module",
-  "description": "Gartic Hands — multiplayer drawing game with hand-tracking input",
+  "description": "Gartic Hands multiplayer drawing game with hand-tracking input",
   "workspaces": [
     "client",
     "server"
@@ -15,7 +15,9 @@
     "prebuild": "npm run lint",
     "build": "npm run build -w @gartichands/client",
     "start": "concurrently -n server,client -c blue,magenta \"npm run start -w @gartichands/server\" \"npm run preview -w @gartichands/client\"",
-    "lint": "npm run lint -w @gartichands/client",
+    "lint": "eslint . --format stylish && cd ../load-testing && eslint scenarios --format stylish",
+    "test:e2e": "playwright test --config=e2e-tests/playwright.config.ts",
+    "test:e2e:ui": "playwright test --config=e2e-tests/playwright.config.ts --ui",
     "lint:fix": "npm run lint:fix -w @gartichands/client",
     "format": "npm run format -w @gartichands/client",
     "format:check": "npm run format:check -w @gartichands/client",
@@ -23,10 +25,17 @@
     "check:branch": "node scripts/validate-branch.js"
   },
   "devDependencies": {
+    "@axe-core/playwright": "^4.13.0",
     "@commitlint/cli": "^21.2.1",
     "@commitlint/config-conventional": "^21.2.0",
+    "@csstools/css-calc": "^3.3.0",
+    "@eslint/js": "^9.39.5",
+    "@playwright/test": "^1.62.1",
+    "@vitest/eslint-plugin": "^1.6.27",
     "concurrently": "^8.2.2",
     "eslint-config-prettier": "^10.1.8",
+    "eslint-plugin-react": "^7.37.5",
+    "globals": "^15.15.0",
     "husky": "^9.1.7",
     "prettier": "^3.9.6"
   },
@@ -38,5 +47,9 @@
     "url": "https://github.com/Monash-FIT3170/2026W2-GarticHands/issues"
   },
   "homepage": "https://github.com/Monash-FIT3170/2026W2-GarticHands#readme",
-  "license": "ISC"
+  "license": "ISC",
+  "dependencies": {
+    "@csstools/color-helpers": "^6.1.1",
+    "bidi-js": "^1.0.3"
+  }
 }

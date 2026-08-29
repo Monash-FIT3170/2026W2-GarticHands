@@ -5,6 +5,7 @@ import reactHooks from 'eslint-plugin-react-hooks';
 import reactRefresh from 'eslint-plugin-react-refresh';
 import tseslint from 'typescript-eslint';
 import eslintConfigPrettier from 'eslint-config-prettier';
+import vitest from '@vitest/eslint-plugin';
 
 export default tseslint.config(
   {
@@ -93,6 +94,20 @@ export default tseslint.config(
           varsIgnorePattern: '^_',
         },
       ],
+    },
+  },
+  // Vitest-aware overrides for test files
+  {
+    files: ['**/unit-tests/**/*.{ts,tsx}', '**/*.test.{ts,tsx}'],
+    plugins: {
+      vitest,
+    },
+    rules: {
+      // Type-checked rule can't tell that expect() doesn't invoke the method,
+      // so it misfires on mocked object methods like ctx.fillRect
+      '@typescript-eslint/unbound-method': 'off',
+      // Vitest-aware version understands expect()/vi.mocked() and replaces it
+      'vitest/unbound-method': 'error',
     },
   },
 
