@@ -1,5 +1,8 @@
-import path from 'node:path'
+import path from 'path'
+import { fileURLToPath } from 'url'
 import { defineConfig, devices } from '@playwright/test'
+
+const __dirname = path.dirname(fileURLToPath(import.meta.url))
 
 /**
  * Playwright config for the Gartic Hands end-to-end suite.
