@@ -1,0 +1,8 @@
+cd GarticHands
+
+if ! npm run check:branch; then
+  echo ""
+  echo "❌ PUSH BLOCKED: Fix your branch name before pushing."
+  echo ""
+  exit 1
+fi
