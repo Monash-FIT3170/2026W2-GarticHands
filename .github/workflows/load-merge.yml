@@ -32,7 +32,7 @@ jobs:
       # NOTE: only strictly needed if the k6 scripts import local npm packages.
       # Safe to keep even if unused, but remove if it's just for linting.
       - name: Install load-testing dependencies
-        working-directory: GarticHands/load-testing
+        working-directory: load-testing
         run: npm ci
 
       # Step 5) Install k6 binary on the runner
