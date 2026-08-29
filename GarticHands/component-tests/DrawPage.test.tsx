@@ -19,7 +19,7 @@
 
 import { render, screen, waitFor, fireEvent } from '@testing-library/react'
 import '@testing-library/jest-dom'
-import DrawPage from '../client/src/pages/DrawPage'
+import DrawPage from '../client/src/pages/drawPage'
 
 type LocationState = {
   state?: { roomCode?: string; playerName?: string }
