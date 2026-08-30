@@ -30,7 +30,7 @@ export default function JoiningPage() {
     const data = await joinRoom(roomCode, playerName);
     setSubmitting(false);
 
-    if (!data.success) {
+    if (!data.success || !data.room) {
       setError(data.message || 'Room not found.');
       return;
     }
