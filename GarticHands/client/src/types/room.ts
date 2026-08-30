@@ -14,6 +14,11 @@ export interface Player {
   isHost: boolean;
   ready: boolean;
   joinedAt: number;
+  /**
+   * Epoch ms of this player's last poll. The server drops players it hasn't
+   * heard from in a while, so the roster reflects who is actually still here.
+   */
+  lastSeen: number;
 }
 
 export type RoomStatus = 'waiting' | 'started';

@@ -29,8 +29,30 @@ export async function joinRoom(roomCode: string, playerName: string) {
   return (await res.json()) as RoomResponse;
 }
 
-export async function getRoom(roomCode: string) {
-  const res = await fetch(`${API_URL}/rooms/${roomCode}`);
+/**
+ * Fetch room state. Passing `playerName` also refreshes that player's presence —
+ * the server treats a client that stops polling as one that has left, so every
+ * repeating poll should identify its caller. See `server/README.md` § Presence.
+ */
+export async function getRoom(roomCode: string, playerName?: string) {
+  const query = playerName ? `?playerName=${encodeURIComponent(playerName)}` : '';
+  const res = await fetch(`${API_URL}/rooms/${roomCode}${query}`);
+  return (await res.json()) as RoomResponse;
+}
+
+/**
+ * Remove a player from a room. `keepalive` lets the request outlive the page, so
+ * a closing tab still reports the departure instead of waiting for the server's
+ * presence timeout.
+ */
+export async function leaveRoom(roomCode: string, playerName: string, keepalive = false) {
+  const res = await fetch(
+    `${API_URL}/rooms/${roomCode}/players/${encodeURIComponent(playerName)}`,
+    {
+      method: 'DELETE',
+      keepalive,
+    },
+  );
   return (await res.json()) as RoomResponse;
 }
 

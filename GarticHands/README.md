@@ -82,6 +82,12 @@ Landing → Host/Join → Lobby → Prompt → Draw → Guess → Reveal ↺
 
 The server holds the round state machine. Each submit endpoint (`/prompts`, `/drawings`, `/guesses`) records that player's contribution; when **every player** in the room has submitted, the server flips `room.phase` to the next phase and broadcasts `room-update`. Clients on the current page poll `GET /rooms/:code` once per second and navigate forward as soon as they see the new phase. The pattern is encapsulated in [`hooks/usePhaseAdvance.ts`](client/src/hooks/usePhaseAdvance.ts).
 
+### When someone leaves
+
+A player leaving never blocks the others. Leaving is reported explicitly — the "Leave Room" button, or the tab closing — and a presence sweep catches crashes and dead networks by dropping anyone who hasn't polled in 30 seconds.
+
+Either way the server removes them, deletes their submissions, hands the host role to the longest-standing remaining player if the host was the one who left, and re-checks whether the phase is now complete. So the lobby's ready gate unblocks, and a round in progress advances as soon as everyone *still playing* has submitted.
+
 ### Cyclic assignment
 
 In `/guess`, player at index *i* sees the drawing of player at index *(i + 1) mod N*. The cycle is deterministic from the shared player-list order, so both clients agree on who guesses whose drawing without extra server coordination.
@@ -91,7 +97,8 @@ In `/guess`, player at index *i* sees the drawing of player at index *(i + 1) mo
 1. **REST polling, not sockets.** Server already emits `room-update` over Socket.IO but the client doesn't subscribe yet. The 1s polling is the current substitute.
 2. **In-memory rooms.** Server restart wipes the room — every poll will then 404.
 3. **One round at a time.** "Play Again" increments `room.round` and restarts the loop, but no scoring or finals page exists.
-4. **No reconnect.** Refreshing during a game loses `location.state` and bounces the player to `/`.
+4. **No reconnect.** Refreshing during a game loses `location.state` and bounces the player to `/`. Because the refresh also reports a departure, the player is removed rather than restored.
+5. **A room can shrink to one player.** Departures are handled cleanly, but nothing stops a two-player game becoming a solo one — the last player ends up guessing their own drawing.
 
 ---
 

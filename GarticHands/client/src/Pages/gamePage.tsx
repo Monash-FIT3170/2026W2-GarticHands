@@ -37,8 +37,17 @@ export default function GamePage() {
 
     async function load() {
       if (!roomCode) return;
-      const data = await getRoom(roomCode);
+      // Passing the name doubles as this player's presence heartbeat.
+      const data = await getRoom(roomCode, playerName);
       if (cancelled || !data.success || !data.room) return;
+
+      // Dropped by the server while we were away — the room carries on without us.
+      if (playerName && !data.room.players.some((p: Player) => p.name === playerName)) {
+        cancelled = true;
+        void navigate('/');
+        return;
+      }
+
       setRoom(data.room);
 
       if (data.room.phase === 'prompt') {

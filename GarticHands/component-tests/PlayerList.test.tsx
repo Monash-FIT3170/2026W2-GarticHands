@@ -28,6 +28,7 @@ const players: Player[] = [
     isHost: true,
     ready: true,
     joinedAt: 1,
+    lastSeen: 1,
   },
   {
     name: 'Sam',
@@ -35,6 +36,7 @@ const players: Player[] = [
     isHost: false,
     ready: true,
     joinedAt: 2,
+    lastSeen: 2,
   },
   {
     name: 'Alex',
@@ -42,6 +44,7 @@ const players: Player[] = [
     isHost: false,
     ready: false,
     joinedAt: 3,
+    lastSeen: 3,
   },
 ]
 

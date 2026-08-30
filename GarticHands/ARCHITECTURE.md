@@ -103,6 +103,7 @@ type Player = {
   isHost: boolean
   ready: boolean
   joinedAt: number        // Date.now()
+  lastSeen: number        // Date.now() of their most recent poll — see Presence below
 }
 
 type Room = {
@@ -114,6 +115,30 @@ type Room = {
 ```
 
 Drawings and prompts are **not yet modeled** server-side. Adding `prompts: string[]`, `drawings: DrawingFrame[]`, `currentRound: number`, `phase: 'prompt' | 'draw' | 'guess'` is the natural next extension.
+
+## Presence — leaving a room
+
+The roster has to reflect who is *actually* still there, or one departure freezes everyone else: the lobby waits on a ready flag that will never arrive, and a round waits on a submission from an empty chair.
+
+Departures are detected two ways, and both funnel into the same server-side path:
+
+```
+"Leave Room" button ─┐
+tab close (keepalive)─┼─▶ DELETE /rooms/:code/players/:name ─┐
+                      │                                       ├─▶ removePlayer()
+presence sweep (3s) ──┴─▶ lastSeen older than 30s ────────────┘        │
+                                                                       ▼
+                                      delete their prompt/drawing/guess
+                                      promote a new host if they held it
+                                      advanceIfPhaseComplete(room)
+                                      emit players-left + room-update
+```
+
+- **Heartbeat.** `GET /rooms/:code?playerName=…` stamps `lastSeen`. Every repeating poll on the client passes its player name, so presence rides on requests that were already happening — no extra traffic. A poll that omits the name looks like an absent player.
+- **Host promotion.** The longest-standing remaining player takes over. `joinedPage` already renders host controls off `player.isHost`, so a promoted player sees the Start button on their next poll with no extra routing.
+- **Phase re-check.** `advanceIfPhaseComplete()` runs after a departure as well as after a submission — that's what lets a round continue instead of stalling.
+- **Being dropped.** A client that no longer finds itself in `room.players` returns to the landing page rather than sitting on a page it isn't part of.
+- **Empty rooms** are forgotten a minute after their last player leaves.
 
 ## Sequence: lobby + start (current)
 
