@@ -4,7 +4,7 @@ Multiplayer drawing-and-guessing game built for FIT3170. Players draw prompts us
 
 > **All code, docs, and assets live under [`GarticHands/`](GarticHands/).** Start there.
 
-## Quickstart
+## Quickstart - Run the game locally
 
 ```bash
 cd GarticHands
@@ -23,6 +23,20 @@ docker compose up -d --build
 
 Open http://localhost:8080. See [`GarticHands/DOCKER.md`](GarticHands/DOCKER.md) for the full guide.
 
+## Normal start - Run the game online
+
+### Host
+
+1. Host user opens the Client URL for the environment - [`gartic-hands-client.onrender.com`]
+2. They create a room - the back end will generate room code
+3. Host shares room code
+
+### Player
+
+1. Open same link as host
+2. Put the shared code in to join room - server will add them to the room
+3. real time events broadcasted to room
+
 ## Documentation
 
 - **[`GarticHands/README.md`](GarticHands/README.md)** — project overview, packages, MVP status, full merge log.
@@ -38,13 +52,52 @@ Open http://localhost:8080. See [`GarticHands/DOCKER.md`](GarticHands/DOCKER.md)
 
 ## Team
 
-| Name                  | Email                                | GitHub             |
-| --------------------- | ------------------------------------ | ------------------ |
-| Forrest Huang         | fhua0018@student.monash.edu          | forrestdesu12      |
-| Jayavi Meemaduma      | jmee0005@student.monash.edu          | jayavi999          |
-| Bexley D'Rozario      | bdro0002@student.monash.edu          | bexley07           |
-| Ashutosh Shrivastav   | ashr0018@student.monash.edu          | hshdhshshjjjjj     |
-| Chinmay Purohit       | cpur0011@student.monash.edu          | ChinmayGit8765     |
-| Hoang Minh Do         | hdoo0027@student.monash.edu          | Shuriky            |
-| Nikunj Gupta          | ngup0018@student.monash.edu          | nik6052            |
-| Skand Advaith Maddula | smad0038@student.monash.edu          | skandadvaith09     |
+| Name                  | Email                       | GitHub         |
+| --------------------- | --------------------------- | -------------- |
+| Forrest Huang         | fhua0018@student.monash.edu | forrestdesu12  |
+| Jayavi Meemaduma      | jmee0005@student.monash.edu | jayavi999      |
+| Bexley D'Rozario      | bdro0002@student.monash.edu | bexley07       |
+| Ashutosh Shrivastav   | ashr0018@student.monash.edu | hshdhshshjjjjj |
+| Chinmay Purohit       | cpur0011@student.monash.edu | ChinmayGit8765 |
+| Hoang Minh Do         | hdoo0027@student.monash.edu | Shuriky        |
+| Nikunj Gupta          | ngup0018@student.monash.edu | nik6052        |
+| Skand Advaith Maddula | smad0038@student.monash.edu | skandadvaith09 |
+
+## Requirments
+
+### Software
+
+- You will need some form of IDE to be able to spin start up the program
+
+### Hardware
+
+As most of this application is hosted via the web, a simple laptop is all that is required to run this software
+
+The laptop in question must have:
+
+- A working camera
+- A working browser
+
+## Hosting
+
+To host the game uses the platform Render
+
+This allows the frontend and backend to communicate directly during hosted instances
+
+Changes pushed to main will be auto deployed **Warning: When installing new packages, the deployment may need to be modified**
+
+_**When first opening the link if no other instances are present, Render will need time to boot up**_
+
+### Frontend
+
+Hosts the React/Vite app
+
+Build command: npm pkg delete scripts.prepare && npm install --ignore-scripts && npm run build
+
+### Backend
+
+Manages Express + Socket.io
+
+Start command: node index.js
+
+Build command: npm install --ignore-scripts
