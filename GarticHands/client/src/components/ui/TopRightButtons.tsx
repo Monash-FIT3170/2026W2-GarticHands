@@ -9,8 +9,8 @@ interface TopRightButtonsProps {
 }
 
 /**
- * Top-right utility row (volume / settings / rules). Wire the handlers when those
- * features land; the buttons are visually present already.
+ * Top-right utility row (volume / settings / rules). `Page` wires `onSettings` to
+ * the shared `SettingsPanel`; wire the remaining handlers when those features land.
  */
 export default function TopRightButtons({ onVolume, onSettings, onRules }: TopRightButtonsProps) {
   const base = 'hover:text-[#2A5E58] transition-colors';

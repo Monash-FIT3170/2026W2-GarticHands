@@ -9,11 +9,12 @@ import {
   useRecorder,
 } from '../drawing';
 import { Card, Button, RoundHeader, CountdownTimer } from '../components/ui';
-import { getRoom, submitDrawing } from '../api/room';
+import { getRoom, submitDrawing, PhaseConflictStatus } from '../api/room';
 import { usePhaseAdvance } from '../hooks/usePhaseAdvance';
 import { useRecordings } from '../state/RecordingsContext';
 import type { DrawLocationState } from '../types/room';
 
+/** Shown until the room's server-owned deadline arrives. Real limit: `PHASE_DURATIONS` in `server/index.js`. */
 const TotalTime = 60;
 
 export default function DrawPage() {
@@ -73,7 +74,7 @@ function DrawPageInner() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [roundNum]);
 
-  const { waitingFor, room } = usePhaseAdvance({
+  const { waitingFor, room, secondsLeft } = usePhaseAdvance({
     roomCode,
     playerName,
     enabled: submitted,
@@ -112,6 +113,9 @@ function DrawPageInner() {
     }
 
     if (!data.success) {
+      // Raced the phase deadline: the server already moved everyone on and
+      // recorded a blank drawing. Stay submitted and let the phase poll navigate.
+      if (data.status === PhaseConflictStatus) return;
       setError(data.message || 'Failed to submit drawing.');
       setSubmitted(false);
       return;
@@ -122,6 +126,7 @@ function DrawPageInner() {
     }
   }
 
+  /** Time is up — submit the canvas as it stands rather than losing the drawing. */
   function handleExpire() {
     if (!submitted) void handleSubmit();
   }
@@ -139,7 +144,12 @@ function DrawPageInner() {
               </p>
             )}
           </div>
-          <CountdownTimer seconds={TotalTime} paused={submitted} onExpire={handleExpire} />
+          <CountdownTimer
+            seconds={TotalTime}
+            secondsLeft={secondsLeft}
+            paused={submitted}
+            onExpire={handleExpire}
+          />
         </div>
 
         <DrawingModePicker mode={mode} onModeChange={setMode} disabled={submitted} />

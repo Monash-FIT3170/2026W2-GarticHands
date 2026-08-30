@@ -9,7 +9,8 @@
  * does, the Join Game button is disabled while the code is blank or a
  * request is in flight, and a successful join navigates to
  * /joined/:roomCode with the returned room and player name in the
- * navigation state.
+ * navigation state. Joining a room whose game has already started
+ * instead navigates straight to /game with a joinedLate flag.
  *
  * react router, the room API, and the shared UI kit are all mocked so
  * tests can control what data JoiningPage receives and assert on its
@@ -174,6 +175,24 @@ describe('JoiningPage', () => {
     await waitFor(() => {
       expect(mockNavigate).toHaveBeenCalledWith('/joined/ABC123', {
         state: { room, playerName: 'Ash' },
+      })
+    })
+  })
+
+  test('routes a late joiner straight into the game when the room has already started', async () => {
+    const room = { code: 'ABC123', status: 'started', players: [{ name: 'Ash' }] }
+    mockJoinRoom.mockResolvedValue({ success: true, room })
+
+    render(<JoiningPage />)
+
+    fireEvent.change(screen.getByPlaceholderText('ABC123'), {
+      target: { value: 'ABC123' },
+    })
+    fireEvent.click(screen.getByText('Join Game'))
+
+    await waitFor(() => {
+      expect(mockNavigate).toHaveBeenCalledWith('/game', {
+        state: { roomCode: 'ABC123', playerName: 'Ash', joinedLate: true },
       })
     })
   })
