@@ -50,10 +50,10 @@ jobs:
       - name: Wait for server to be ready
         run: |
           for i in {1..30}; do
-            status="$(curl -s -o /dev/null -w "%{http_code}" http://localhost:3000 || true)"
-            if echo "$status" | grep -qE "^[0-9]{3}$"; then
+            if curl -s -o /dev/null http://localhost:3000; then
               echo "Server is up"
               exit 0
+            fi
             echo "Waiting for server... ($i)"
             sleep 2
           done
@@ -61,21 +61,18 @@ jobs:
           cat GarticHands/server/server.log
           exit 1
 
-      # Step 8) Run each load test scenario
+      # Step 8) Run each load test scenario (k6 runs from the repo root,
+      # since load-testing/ is NOT inside GarticHands/)
+
       - name: Run load test - five-player-game
-        working-directory: GarticHands
         run: k6 run load-testing/scenarios/five-player-game.js
 
       - name: Run load test - late-player-join
-        working-directory: GarticHands
         run: k6 run load-testing/scenarios/late-player-join.js
 
       - name: Run load test - multiple-simultaneous-games
-        working-directory: GarticHands
         run: k6 run load-testing/scenarios/multiple-simultaneous-games.js
 
       - name: Run load test - six-player-two-groups
-        working-directory: GarticHands
         run: k6 run load-testing/scenarios/six-player-two-groups.js
 
- 
