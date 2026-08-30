@@ -1,86 +1,84 @@
-import { useState, useEffect, useCallback } from 'react';
-import { useParams, useLocation, useNavigate } from 'react-router-dom';
-import { getRoom, updateReady, startRoom } from '../api/room';
-import { Page, Card, Button, useToast } from '../components/ui';
-import PlayerList from '../components/PlayerList';
-import type { Player, DrawLocationState } from '../types/room';
+import { useState, useEffect, useCallback } from 'react'
+import { useParams, useLocation, useNavigate } from 'react-router-dom'
+import { getRoom, updateReady, startRoom } from '../api/room'
+import { Page, Card, Button, useToast } from '../components/ui'
+import PlayerList from '../components/PlayerList'
+import type { Player } from '../types/room'
 
-const MAX_PLAYERS_DISPLAY = 4;
-const MAX_PLAYERS = 4;
+const MAX_PLAYERS_DISPLAY = 4
+const MAX_PLAYERS = 4
 
 export default function JoinedPage() {
-  const { roomCode } = useParams();
-  const location = useLocation();
-  const state = location.state as DrawLocationState | null;
-  const playerName = state?.playerName;
-  const navigate = useNavigate();
+  const { roomCode } = useParams()
+  const location = useLocation()
+  const locationState = location.state as { playerName?: string; room?: { players: Player[] } } | null
+  const playerName = locationState?.playerName
+  const navigate = useNavigate()
 
-  const [players, setPlayers] = useState<Player[]>(state?.room?.players ?? []);
-  const [ready, setReady] = useState(false);
-  const [starting, setStarting] = useState(false);
-  const { toast, show } = useToast('pill');
+  const [players, setPlayers] = useState<Player[]>(locationState?.room?.players ?? [])
+  const [ready, setReady] = useState(false)
+  const [starting, setStarting] = useState(false)
+  const { toast, show } = useToast('pill')
 
-  const me = players.find((p) => p.name === playerName);
-  const isHost = me?.isHost ?? false;
-  const readyCount = players.filter((p) => p.ready || p.isHost).length;
-  const allReady = players.length > 0 && players.every((p) => p.ready || p.isHost);
+  const me = players.find((p) => p.name === playerName)
+  const isHost = me?.isHost ?? false
+  const readyCount = players.filter((p) => p.ready || p.isHost).length
+  const allReady = players.length > 0 && players.every((p) => p.ready || p.isHost)
 
   const copyCode = useCallback(() => {
-    if (!roomCode) return;
-    navigator.clipboard.writeText(roomCode).catch(() => {});
-    show('Room code copied!');
-  }, [roomCode, show]);
+    if (!roomCode) return
+    navigator.clipboard.writeText(roomCode).catch(() => { })
+    show('Room code copied!')
+  }, [roomCode, show])
 
   useEffect(() => {
-    if (!roomCode) return;
+    if (!roomCode) return
 
-    let alreadyStarted = false;
+    let alreadyStarted = false
 
     async function loadRoom() {
-      const data = await getRoom(roomCode as string);
-      if (!data.success || !data.room) return;
+      const data = await getRoom(roomCode as string)
+      if (!data.success || !data.room) return
 
-      setPlayers(data.room.players);
+      setPlayers(data.room.players)
 
       if (data.room.status === 'started' && !alreadyStarted) {
-        alreadyStarted = true;
-        setStarting(true);
-        show('Starting game...');
-        setTimeout(() => {
-          void navigate('/input', { state: { roomCode, playerName } });
-        }, 2000);
-        return;
+        alreadyStarted = true
+        setStarting(true)
+        show('Starting game...')
+        setTimeout(
+          () => navigate('/input', { state: { roomCode, playerName } }),
+          2000,
+        )
+        return
       }
 
-      if (alreadyStarted) return;
+      if (alreadyStarted) return
 
-      const meFresh = data.room.players.find((p: Player) => p.name === playerName);
-      if (meFresh) setReady(meFresh.ready);
+      const meFresh = data.room.players.find((p: Player) => p.name === playerName)
+      if (meFresh) setReady(meFresh.ready)
     }
 
-    void loadRoom();
-    const interval = setInterval(() => {
-      void loadRoom();
-    }, 1000);
-    return () => clearInterval(interval);
-  }, [roomCode, playerName, navigate, show]);
+    void loadRoom()
+    const interval = setInterval(() => { void loadRoom() }, 1000)
+    return () => clearInterval(interval)
+  }, [roomCode, playerName, navigate, show])
 
   async function handleReady() {
-    if (!roomCode || !playerName) return;
-    const next = !ready;
-    const data = await updateReady(roomCode, playerName, next);
-    if (data.success) {
-      setReady(next);
-      setPlayers(data.room.players);
+    if (!roomCode || !playerName || starting) return
+    const next = !ready
+    const data = await updateReady(roomCode, playerName, next)
+    if (data.success && data.room) {
+      setReady(next)
+      setPlayers(data.room.players)
     }
   }
 
   async function handleStart() {
-    if (!roomCode || !allReady || starting) return;
-    setStarting(true);
-    await startRoom(roomCode);
-    show('Starting game...');
-    // Polling loop will navigate to /input.
+    if (!roomCode || !allReady || starting) return
+    setStarting(true)
+    await startRoom(roomCode)
+    show('Starting game...')
   }
 
   return (
@@ -106,17 +104,10 @@ export default function JoinedPage() {
           </section>
 
           <section className="flex flex-col items-center">
-            <div
-              className="rounded-xl p-6 w-full flex flex-col items-center"
-              style={{ backgroundColor: 'rgba(22, 89, 74, 0.2)' }}
-            >
+            <div className="rounded-xl p-6 w-full flex flex-col items-center" style={{ backgroundColor: 'rgba(22, 89, 74, 0.2)' }}>
               <h2 className="text-white text-2xl font-extrabold tracking-wide mb-5">GAMEMODE</h2>
               <div className="bg-white rounded-lg border-4 border-[#78EF57] flex flex-col items-center justify-center shadow-sm w-full max-w-[200px]">
-                <img
-                  src="/gamemode_classic.png"
-                  alt="Classic"
-                  className="w-16 h-16 mb-2 object-contain"
-                />
+                <img src="/gamemode_classic.png" alt="Classic" className="w-16 h-16 mb-2 object-contain" />
                 <p className="text-[#2E5534] font-extrabold">Classic</p>
               </div>
             </div>
@@ -154,7 +145,7 @@ export default function JoinedPage() {
                 disabled={starting}
                 className="mt-4"
               >
-                {ready ? 'Ready' : 'Ready Up'}
+                {ready ? 'Unready' : 'Ready Up'}
               </Button>
             )}
           </section>
@@ -163,5 +154,5 @@ export default function JoinedPage() {
 
       {toast}
     </Page>
-  );
+  )
 }
