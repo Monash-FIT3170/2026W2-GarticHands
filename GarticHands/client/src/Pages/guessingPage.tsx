@@ -19,7 +19,11 @@ export default function GuessingPage() {
   const [submitted, setSubmitted] = useState(false);
   const [error, setError] = useState('');
   const [drawing, setDrawing] = useState<string>('');
-  const [drawnBy, setDrawnBy] = useState<string>('...');
+  // Name of the player whose drawing we're guessing. Submitted alongside the
+  // guess so the reveal can pair it with the right drawing even if the roster
+  // changes before then.
+  const [targetName, setTargetName] = useState<string | undefined>(undefined);
+  const drawnBy = targetName ?? '...';
 
   useEffect(() => {
     if (!roomCode || !playerName) {
@@ -35,7 +39,7 @@ export default function GuessingPage() {
       const myIndex = players.findIndex((p) => p.name === playerName);
       if (myIndex === -1) return;
       const target = players[(myIndex + 1) % players.length];
-      setDrawnBy(target.name);
+      setTargetName(target.name);
       setDrawing((data.room.drawings && data.room.drawings[target.name]) || '');
     });
   }, [roomCode, playerName, navigate]);
@@ -55,7 +59,7 @@ export default function GuessingPage() {
     setSubmitted(true);
     setError('');
 
-    const data = await submitGuess(roomCode, playerName, guess.trim());
+    const data = await submitGuess(roomCode, playerName, guess.trim(), targetName);
     if (!data.success) {
       setError(data.message || 'Failed to submit guess.');
       setSubmitted(false);
@@ -73,7 +77,7 @@ export default function GuessingPage() {
       // Auto-submit an empty string so the round still advances.
       setSubmitted(true);
       if (roomCode && playerName) {
-        void submitGuess(roomCode, playerName, '');
+        void submitGuess(roomCode, playerName, '', targetName);
       }
     }
   }

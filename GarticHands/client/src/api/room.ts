@@ -93,11 +93,21 @@ export async function submitDrawing(roomCode: string, playerName: string, dataUr
   return (await res.json()) as RoomResponse;
 }
 
-export async function submitGuess(roomCode: string, playerName: string, guess: string) {
+/**
+ * Submit a guess. `of` names the drawer whose drawing is being guessed; the
+ * server records it so the reveal can pair each guess with the right drawing
+ * even when the roster changes mid-round.
+ */
+export async function submitGuess(
+  roomCode: string,
+  playerName: string,
+  guess: string,
+  of?: string,
+) {
   const res = await fetch(`${API_URL}/rooms/${roomCode}/guesses`, {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({ playerName, guess }),
+    body: JSON.stringify({ playerName, guess, of }),
   });
   return (await res.json()) as RoomResponse;
 }

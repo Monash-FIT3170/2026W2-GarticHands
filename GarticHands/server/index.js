@@ -85,6 +85,7 @@ function removePlayer(room, playerName) {
   delete room.prompts[playerName]
   delete room.drawings[playerName]
   delete room.guesses[playerName]
+  if (room.guessTargets) delete room.guessTargets[playerName]
 
   if (gone.isHost) promoteHost(room)
   return true
@@ -170,6 +171,7 @@ app.post('/rooms/create', (req, res) => {
     prompts: {},
     drawings: {},
     guesses: {},
+    guessTargets: {},
     createdAt: Date.now(),
   }
 
@@ -193,6 +195,12 @@ app.post('/rooms/join', (req, res) => {
 
   room.players.push(makePlayer(playerName, false))
   delete emptySince[room.code]
+
+  // A room can be rejoined after it emptied (within the grace window), at which
+  // point nobody holds the host role — and a hostless lobby is deadlocked,
+  // because only the host sees the Start button. Nothing else re-establishes a
+  // host on join, so do it here whenever the role is vacant.
+  if (!room.players.some((p) => p.isHost)) promoteHost(room)
 
   io.to(room.code).emit('room-update', room)
   res.json({ success: true, room })
@@ -276,6 +284,7 @@ app.patch('/rooms/:roomCode/start', (req, res) => {
   room.prompts = {}
   room.drawings = {}
   room.guesses = {}
+  room.guessTargets = {}
   io.to(room.code).emit('game-start', room)
   io.to(room.code).emit('room-update', room)
   res.json({ success: true, room })
@@ -301,6 +310,7 @@ app.patch('/rooms/:roomCode/restart', (req, res) => {
   room.prompts = {}
   room.drawings = {}
   room.guesses = {}
+  room.guessTargets = {}
   room.round = (room.round || 1) + 1
   io.to(room.code).emit('room-update', room)
   res.json({ success: true, room, maxRounds: MAX_ROUNDS })
@@ -319,6 +329,7 @@ app.patch('/rooms/:roomCode/end', (req, res) => {
   room.prompts = {}
   room.drawings = {}
   room.guesses = {}
+  room.guessTargets = {}
   for (const p of room.players) {
     if (!p.isHost) {
       p.ready = false
@@ -329,7 +340,12 @@ app.patch('/rooms/:roomCode/end', (req, res) => {
   res.json({ success: true, room })
 })
 
-function submitForPhase(roomCode, playerName, value, expectedPhase, validate) {
+/**
+ * Shared body of the three submit endpoints. `onAccepted`, when given, runs
+ * after the submission is stored but before the phase-completion check and the
+ * broadcast, so anything it records travels with the same `room-update`.
+ */
+function submitForPhase(roomCode, playerName, value, expectedPhase, validate, onAccepted) {
   const room = rooms[roomCode]
   if (!room) return { error: { status: 404, body: { success: false, message: 'Room not found' } } }
 
@@ -353,6 +369,8 @@ function submitForPhase(roomCode, playerName, value, expectedPhase, validate) {
   room[bucket] = room[bucket] || {}
   room[bucket][playerName] = value
   player.lastSeen = Date.now()
+
+  if (onAccepted) onAccepted(room, player)
 
   advanceIfPhaseComplete(room)
 
@@ -395,7 +413,7 @@ app.post('/rooms/:roomCode/drawings', (req, res) => {
 
 app.post('/rooms/:roomCode/guesses', (req, res) => {
   const roomCode = req.params.roomCode.toUpperCase()
-  const { playerName, guess } = req.body
+  const { playerName, guess, of } = req.body
   const trimmed = (guess || '').trim()
 
   const result = submitForPhase(
@@ -404,6 +422,15 @@ app.post('/rooms/:roomCode/guesses', (req, res) => {
     trimmed,
     'guess',
     (v) => typeof v === 'string',
+    (room) => {
+      // Record whose drawing this guess was about. The reveal pairs guesses
+      // with drawings through this map rather than roster index math, which
+      // would shift every pairing whenever someone left mid-round.
+      if (typeof of === 'string' && of.length > 0) {
+        room.guessTargets = room.guessTargets || {}
+        room.guessTargets[playerName] = of
+      }
+    },
   )
 
   if (result.error) return res.status(result.error.status).json(result.error.body)

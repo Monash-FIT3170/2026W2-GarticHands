@@ -47,6 +47,7 @@ type Room = {
   prompts: Record<string, string>   // playerName → prompt text
   drawings: Record<string, string>  // playerName → PNG data URL
   guesses: Record<string, string>   // playerName → guess text
+  guessTargets: Record<string, string> // guesser name → drawer whose drawing they guessed
   createdAt: number
 }
 ```
@@ -78,7 +79,7 @@ The timeout is deliberately much longer than the 1 s poll: browsers throttle tim
 
 When a player is removed the server:
 
-- deletes their `prompts` / `drawings` / `guesses` entries,
+- deletes their `prompts` / `drawings` / `guesses` / `guessTargets` entries,
 - promotes the longest-standing remaining player to host if the leaver held that role (otherwise nobody could press Start),
 - re-checks whether the phase is now complete and advances if so,
 - emits `players-left` followed by `room-update`.
@@ -126,6 +127,10 @@ Add a player to an existing room.
 **Response 200** `{ "success": true, "room": { ... } }`
 **Response 400** missing fields.
 **Response 404** room not found.
+
+If the room has no host — everyone left and someone rejoined within the
+empty-room grace window — the longest-standing player is promoted, so the lobby
+always has someone who can press Start.
 
 Also broadcasts `room-update` to room subscribers.
 
@@ -219,8 +224,12 @@ Record one player's guess. Auto-advances `phase` to `'reveal'` when every player
 **Body**
 
 ```json
-{ "playerName": "Alice", "guess": "spud with a top hat" }
+{ "playerName": "Alice", "guess": "spud with a top hat", "of": "Bob" }
 ```
+
+`of` (optional) names the drawer whose drawing the guess is about. It is stored
+in `guessTargets` so the reveal can pair each guess with the right drawing even
+if the roster changes mid-round.
 
 **Response 200** `{ "success": true, "room": { ... } }`
 **Response 409** room is not in the `guess` phase.

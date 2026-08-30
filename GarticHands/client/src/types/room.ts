@@ -35,6 +35,13 @@ export interface Room {
   prompts: Record<string, string>;
   drawings: Record<string, string>;
   guesses: Record<string, string>;
+  /**
+   * Guesser name → name of the drawer whose drawing they guessed, recorded when
+   * the guess is submitted. The reveal pairs guesses with drawings through this
+   * map so a mid-round departure cannot shift a guess onto the wrong drawing.
+   * Optional because a guess submitted without a resolved target has no entry.
+   */
+  guessTargets?: Record<string, string>;
   createdAt: number;
 }
 

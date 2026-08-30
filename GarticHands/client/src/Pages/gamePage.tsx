@@ -3,15 +3,8 @@ import { useLocation, useNavigate } from 'react-router-dom';
 import { Card, Button, RoundHeader } from '../components/ui';
 import { getRoom, restartRoom, endRoom } from '../api/room';
 import { useRecordings, type Recording } from '../state/RecordingsContext';
+import { buildRevealChains, type RevealChain } from '../utils/revealChains';
 import type { Player, Room, DrawLocationState } from '../types/room';
-
-interface RevealChain {
-  drawer: Player;
-  prompt: string;
-  drawing: string;
-  guesserName: string;
-  guess: string;
-}
 
 type EndView = 'cards' | 'slideshow' | 'recordings';
 
@@ -355,24 +348,4 @@ function RecordingsView({ recordings }: { recordings: Recording[] }) {
       </div>
     </div>
   );
-}
-
-/**
- * One reveal row per drawer. Cycle is "player M guessed player M+1's drawing",
- * so the guesser for drawer at index `i` is the player at index (i − 1 + N) % N.
- */
-function buildRevealChains(room: Room): RevealChain[] {
-  const players = room.players;
-  if (players.length === 0) return [];
-  return players.map((drawer, i) => {
-    const guesserIndex = (i - 1 + players.length) % players.length;
-    const guesser = players[guesserIndex];
-    return {
-      drawer,
-      prompt: room.prompts?.[drawer.name] ?? '',
-      drawing: room.drawings?.[drawer.name] ?? '',
-      guesserName: guesser.name,
-      guess: room.guesses?.[guesser.name] ?? '',
-    };
-  });
 }

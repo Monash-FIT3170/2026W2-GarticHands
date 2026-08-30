@@ -155,6 +155,19 @@ describe('api/room', () => {
     });
   });
 
+  it('submitGuess also POSTs the guessed drawer as `of` when given', async () => {
+    const fetchMock = mockFetchOnce({ ok: true });
+
+    await submitGuess('ABCD', 'Bob', 'a toaster with wings', 'Alice');
+
+    const [, options] = fetchMock.mock.calls[0] as FetchCall;
+    expect(JSON.parse(options?.body ?? '{}')).toEqual({
+      playerName: 'Bob',
+      guess: 'a toaster with wings',
+      of: 'Alice',
+    });
+  });
+
   it('restartRoom PATCHes /restart with no body', async () => {
     const fetchMock = mockFetchOnce({ ok: true });
 
