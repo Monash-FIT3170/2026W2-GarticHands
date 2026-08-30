@@ -1,11 +1,12 @@
 import { useEffect, useState } from 'react';
 import { useLocation, useNavigate } from 'react-router-dom';
 import { Card, Button, RoundHeader, CountdownTimer } from '../components/ui';
-import { submitPrompt } from '../api/room';
+import { submitPrompt, PhaseConflictStatus } from '../api/room';
 import { usePhaseAdvance } from '../hooks/usePhaseAdvance';
 import type { DrawLocationState } from '../types/room';
 
 const MaxChars = 120;
+/** Shown until the room's server-owned deadline arrives. Real limit: `PHASE_DURATIONS` in `server/index.js`. */
 const TotalTime = 60;
 
 export default function InputPage() {
@@ -23,7 +24,7 @@ export default function InputPage() {
     if (!roomCode || !playerName) void navigate('/');
   }, [roomCode, playerName, navigate]);
 
-  const { waitingFor, room } = usePhaseAdvance({
+  const { waitingFor, room, secondsLeft } = usePhaseAdvance({
     roomCode,
     playerName,
     enabled: submitted,
@@ -40,6 +41,9 @@ export default function InputPage() {
 
     const data = await submitPrompt(roomCode, playerName, input.trim());
     if (!data.success) {
+      // Raced the phase deadline: the server already moved everyone on and gave
+      // us a fallback prompt. Stay submitted and let the phase poll navigate.
+      if (data.status === PhaseConflictStatus) return;
       setError(data.message || 'Failed to submit prompt.');
       setSubmitted(false);
       return;
@@ -50,6 +54,10 @@ export default function InputPage() {
     }
   }
 
+  /**
+   * Time is up. Send whatever has been typed; an empty box is left to the
+   * server, which assigns a fallback prompt when it force-advances.
+   */
   function handleExpire() {
     if (!submitted) void handleSubmit();
   }
@@ -69,7 +77,12 @@ export default function InputPage() {
           placeholder="Start typing your prompt here..."
         />
         <div className="flex items-center justify-between mt-3">
-          <CountdownTimer seconds={TotalTime} paused={submitted} onExpire={handleExpire} />
+          <CountdownTimer
+            seconds={TotalTime}
+            secondsLeft={secondsLeft}
+            paused={submitted}
+            onExpire={handleExpire}
+          />
           <Button
             variant="submit"
             size="sm"

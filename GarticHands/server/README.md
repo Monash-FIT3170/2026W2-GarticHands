@@ -13,6 +13,16 @@ npm run start            # plain node
 
 Defaults to port `3000`. Override with `PORT=4000 npm run dev:server`.
 
+| Env var          | Default | What it does                                 |
+| ---------------- | ------- | -------------------------------------------- |
+| `PORT`           | `3000`  | HTTP + Socket.IO port.                       |
+| `PROMPT_SECONDS` | `60`    | Time limit for the `prompt` phase.           |
+| `DRAW_SECONDS`   | `60`    | Time limit for the `draw` phase.             |
+| `GUESS_SECONDS`  | `60`    | Time limit for the `guess` phase.            |
+
+Shortening the phase limits is the fastest way to exercise the timeout path:
+`PROMPT_SECONDS=5 DRAW_SECONDS=5 GUESS_SECONDS=5 npm run dev:server`.
+
 ## State
 
 In-memory only. The `rooms` object maps `roomCode → Room`. Restart = data loss. There is no database yet by design.
@@ -35,6 +45,7 @@ type Room = {
   players: Player[]
   status: 'waiting' | 'started'
   phase: RoomPhase
+  phaseEndsAt: number | null        // epoch ms; null on untimed phases
   round: number             // increments on each "Play Again"
   prompts: Record<string, string>   // playerName → prompt text
   drawings: Record<string, string>  // playerName → PNG data URL
@@ -47,13 +58,32 @@ type Room = {
 
 ```
 lobby ──start──▶ prompt ──all-prompts-in──▶ draw ──all-drawings-in──▶ guess ──all-guesses-in──▶ reveal
-                                                                                                  │
-                                                                                          restart │
-                                                                                                  ▼
+                    │                        │                         │                          │
+                    └──── deadline ──────────┴──── deadline ───────────┘                  restart │
+                          (missing submissions filled in)                                         ▼
                                                                                               prompt (round + 1)
 ```
 
-Each submit endpoint advances the phase exactly once — when every player has submitted for the current phase. Submitting during the wrong phase returns `409`.
+A phase advances on whichever comes first:
+
+- **Every player has submitted.** Each submit endpoint checks this and advances immediately.
+- **The phase deadline passes.** The server arms a timer per phase and force-advances when it fires, so one idle or disconnected player can never stall the room.
+
+Submitting during the wrong phase returns `409` — which is also what a client gets when its submit loses the race against the deadline. Clients treat that as "too late, follow the room" rather than as an error.
+
+### Phase deadlines
+
+`prompt`, `draw`, and `guess` are timed; `lobby` and `reveal` are not (the host paces the reveal screen, so `phaseEndsAt` is `null` there).
+
+Every phase transition goes through `setPhase(room, phase)` in `index.js`, which stamps `room.phaseEndsAt = Date.now() + duration` and arms the forced advance. Timers are held in a module-level `phaseTimers` map keyed by room code — deliberately *not* on the room object, which has to stay JSON-serialisable.
+
+The forced advance fires `PHASE_GRACE_MS` (1.5 s) after `phaseEndsAt`, so a client that auto-submits exactly on the deadline still wins the race. When it fires, every player missing a submission gets a default recorded for them:
+
+| Phase    | Default for a player who ran out of time |
+| -------- | ----------------------------------------- |
+| `prompt` | A random entry from `FALLBACK_PROMPTS` — the draw phase always has something to draw. |
+| `draw`   | `''` — the reveal screen renders "No drawing submitted".                              |
+| `guess`  | `''` — the reveal screen renders "(no guess)".                                        |
 
 ## REST endpoints
 
@@ -101,10 +131,14 @@ Also broadcasts `room-update` to room subscribers.
 
 ### `GET /rooms/:roomCode`
 
-Fetch room state. The lobby polls this once per second.
+Fetch room state. The lobby and every timed phase poll this once per second.
 
-**Response 200** `{ "success": true, "room": { ... } }`
+**Response 200** `{ "success": true, "room": { ... }, "serverTime": 1771286400000 }`
 **Response 404** room not found.
+
+`serverTime` is this response's `Date.now()`. Clients derive the countdown from
+`room.phaseEndsAt - serverTime` — subtracting two server-side timestamps — so a
+browser clock that is minutes off still counts down the right number of seconds.
 
 ### `PATCH /rooms/:roomCode/ready`
 
@@ -123,7 +157,7 @@ Also broadcasts `room-update`.
 
 ### `PATCH /rooms/:roomCode/start`
 
-Mark the room as `started`, set `phase = 'prompt'`, reset `prompts`/`drawings`/`guesses`. The lobby polls this transition and navigates players to `/input`.
+Mark the room as `started`, set `phase = 'prompt'` and arm its deadline, reset `prompts`/`drawings`/`guesses`. The lobby polls this transition and navigates players to `/input`.
 
 **Response 200** `{ "success": true, "room": { ... } }`
 **Response 404** room not found.
@@ -132,7 +166,7 @@ Broadcasts both `game-start` and `room-update`.
 
 ### `POST /rooms/:roomCode/prompts`
 
-Record one player's prompt. Auto-advances `phase` to `'draw'` when every player has submitted.
+Record one player's prompt. Auto-advances `phase` to `'draw'` when every player has submitted — or when the `prompt` deadline passes, whichever comes first.
 
 **Body**
 
@@ -149,7 +183,7 @@ Broadcasts `room-update`.
 
 ### `POST /rooms/:roomCode/drawings`
 
-Record one player's drawing as a PNG data URL. Auto-advances `phase` to `'guess'` when every player has submitted. The body limit is `10mb`.
+Record one player's drawing as a PNG data URL. Auto-advances `phase` to `'guess'` when every player has submitted — or when the `draw` deadline passes, whichever comes first. The body limit is `10mb`.
 
 **Body**
 
@@ -166,7 +200,7 @@ Broadcasts `room-update`.
 
 ### `POST /rooms/:roomCode/guesses`
 
-Record one player's guess. Auto-advances `phase` to `'reveal'` when every player has submitted.
+Record one player's guess. Auto-advances `phase` to `'reveal'` when every player has submitted — or when the `guess` deadline passes, whichever comes first.
 
 **Body**
 
@@ -182,7 +216,7 @@ Broadcasts `room-update`.
 
 ### `PATCH /rooms/:roomCode/restart`
 
-Start a new round. Resets prompts/drawings/guesses, increments `round`, sets `phase = 'prompt'` and `status = 'started'`. Clients on `/game` (reveal) poll for this and navigate back to `/input`.
+Start a new round. Resets prompts/drawings/guesses, increments `round`, sets `phase = 'prompt'` (arming a fresh deadline) and `status = 'started'`. Clients on `/game` (reveal) poll for this and navigate back to `/input`.
 
 **Response 200** `{ "success": true, "room": { ... } }`
 **Response 404** room not found.
@@ -205,8 +239,9 @@ Connect over `http://localhost:3000`.
 
 | Event                  | Payload          | Emitted when                                                                  |
 | ---------------------- | ---------------- | ----------------------------------------------------------------------------- |
-| `room-update`          | `Room`           | Any REST mutation that affects a room, plus on `room-subscribe`.              |
+| `room-update`          | `Room`           | Any REST mutation that affects a room, plus on `room-subscribe` and on every forced phase advance. |
 | `game-start`           | `Room`           | After `PATCH /rooms/:code/start`.                                             |
+| `phase-timeout`        | `{ code: string, phase: RoomPhase }` | A phase deadline passed and the server force-advanced. `phase` is the phase that *ended*. Emitted just before the `room-update`. |
 | `hand-tracking-update` | echo of input    | Forwarded from another player's `hand-tracking-data`.                         |
 | `drawing-update`       | echo of input    | Forwarded from another player's `drawing-event`.                              |
 

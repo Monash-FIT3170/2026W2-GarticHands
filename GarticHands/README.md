@@ -82,6 +82,18 @@ Landing → Host/Join → Lobby → Prompt → Draw → Guess → Reveal ↺
 
 The server holds the round state machine. Each submit endpoint (`/prompts`, `/drawings`, `/guesses`) records that player's contribution; when **every player** in the room has submitted, the server flips `room.phase` to the next phase and broadcasts `room-update`. Clients on the current page poll `GET /rooms/:code` once per second and navigate forward as soon as they see the new phase. The pattern is encapsulated in [`hooks/usePhaseAdvance.ts`](client/src/hooks/usePhaseAdvance.ts).
 
+### Phase time limits
+
+`prompt`, `draw`, and `guess` each run on a 60-second deadline owned by the server, so a slow or disconnected player can't stall the round:
+
+- The room carries `phaseEndsAt`, and `GET /rooms/:code` returns `serverTime` alongside it — the countdown is derived from the difference, so every player sees the same number and a skewed browser clock changes nothing.
+- At zero the client auto-submits whatever it has (typed prompt, drawn canvas, typed guess) so work isn't thrown away.
+- 1.5 seconds later the server force-advances regardless, filling in anything still missing: a random fallback prompt for the prompt phase, an empty drawing or guess for the others.
+- `reveal` is deliberately untimed — the host decides when to move on.
+
+Override the limits per phase for a demo or a quick test:
+`PROMPT_SECONDS=10 DRAW_SECONDS=20 GUESS_SECONDS=10 npm run dev`.
+
 ### Cyclic assignment
 
 In `/guess`, player at index *i* sees the drawing of player at index *(i + 1) mod N*. The cycle is deterministic from the shared player-list order, so both clients agree on who guesses whose drawing without extra server coordination.

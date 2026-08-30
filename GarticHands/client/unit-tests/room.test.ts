@@ -20,7 +20,9 @@ type FetchCall = [url: string, options?: FetchCallOptions];
 
 function mockFetchOnce(responseBody: unknown) {
   const json = vi.fn().mockResolvedValue(responseBody);
-  const fetchMock = vi.fn().mockResolvedValue({ json });
+  // `status` matters to the submit helpers, which surface it so callers can
+  // tell a phase-deadline 409 apart from a real failure.
+  const fetchMock = vi.fn().mockResolvedValue({ json, status: 200 });
   vi.stubGlobal('fetch', fetchMock);
   return fetchMock;
 }

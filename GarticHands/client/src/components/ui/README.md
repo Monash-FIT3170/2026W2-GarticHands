@@ -13,7 +13,7 @@ Composable building blocks. Every visible element should be assembled from these
 | `Badge.tsx`         | Status pill (host / ready / waiting) in two tones: `lobby`, `simple`.          |
 | `Logo.tsx`          | Wordmark + subtitle pair. `compact` prop for lobby placement.                  |
 | `TopRightButtons.tsx` | Top-right volume / settings / rules cluster. Click handlers are props.        |
-| `CountdownTimer.tsx` | Self-managed seconds-left display with `paused` + `onExpire`.                 |
+| `CountdownTimer.tsx` | Seconds-left display with `paused` + `onExpire`. Runs its own clock, or pass `secondsLeft` to drive it from the room's server-owned phase deadline. |
 | `RoundHeader.tsx`   | "Round X of Y" label.                                                          |
 | `Toast.tsx`         | Ephemeral bottom toast + `useToast()` hook returning `{ toast, show }`.        |
 | `icons/`            | SVG glyphs — `PersonIcon`, `VolumeIcon`, `GearIcon`, `BookIcon`.               |

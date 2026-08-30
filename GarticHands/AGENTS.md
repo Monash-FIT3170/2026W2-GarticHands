@@ -93,7 +93,7 @@ There's no test suite yet. If you add one, put it in `client/src/__tests__/` (fo
 - **Gesture** — one of `NO_HAND` / `HAND_PRESENT` / `PINCH` / `OPEN_PALM` derived from landmarks.
 - **CanvasOp** — a strategy that consumes `(landmarks, gesture)` and mutates the canvas. One op per gesture.
 - **Room** — server-side game session. In-memory. Identified by a 6-char code.
-- **Phase** *(planned)* — a stage within a round: `prompt`, `draw`, `guess`, `reveal`. Not implemented yet.
+- **Phase** — a stage within a round: `lobby`, `prompt`, `draw`, `guess`, `reveal`. `prompt`/`draw`/`guess` run on a server-owned deadline (`room.phaseEndsAt`); the server force-advances when it passes. See [`ARCHITECTURE.md` § Phase deadlines](ARCHITECTURE.md#phase-deadlines).
 
 ## When in doubt
 

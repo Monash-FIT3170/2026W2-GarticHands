@@ -1,11 +1,12 @@
 import { useEffect, useState } from 'react';
 import { useLocation, useNavigate } from 'react-router-dom';
 import { Card, Button, RoundHeader, CountdownTimer } from '../components/ui';
-import { getRoom, submitGuess } from '../api/room';
+import { getRoom, submitGuess, PhaseConflictStatus } from '../api/room';
 import { usePhaseAdvance } from '../hooks/usePhaseAdvance';
 import type { Player, DrawLocationState } from '../types/room';
 
 const MaxChars = 120;
+/** Shown until the room's server-owned deadline arrives. Real limit: `PHASE_DURATIONS` in `server/index.js`. */
 const TotalTime = 60;
 
 export default function GuessingPage() {
@@ -20,6 +21,9 @@ export default function GuessingPage() {
   const [error, setError] = useState('');
   const [drawing, setDrawing] = useState<string>('');
   const [drawnBy, setDrawnBy] = useState<string>('...');
+  // The draw phase can time out with nothing submitted, so "no drawing" is a
+  // real outcome — distinguish it from "still fetching".
+  const [drawingLoaded, setDrawingLoaded] = useState(false);
 
   useEffect(() => {
     if (!roomCode || !playerName) {
@@ -37,10 +41,11 @@ export default function GuessingPage() {
       const target = players[(myIndex + 1) % players.length];
       setDrawnBy(target.name);
       setDrawing((data.room.drawings && data.room.drawings[target.name]) || '');
+      setDrawingLoaded(true);
     });
   }, [roomCode, playerName, navigate]);
 
-  const { waitingFor, room } = usePhaseAdvance({
+  const { waitingFor, room, secondsLeft } = usePhaseAdvance({
     roomCode,
     playerName,
     enabled: submitted,
@@ -49,14 +54,19 @@ export default function GuessingPage() {
     countBucket: 'guesses',
   });
 
-  async function handleSubmit() {
-    if (!guess.trim() || submitted || !roomCode || !playerName) return;
+  /** `allowEmpty` is only set by the deadline handler — the button requires text. */
+  async function handleSubmit(allowEmpty = false) {
+    const trimmed = guess.trim();
+    if ((!trimmed && !allowEmpty) || submitted || !roomCode || !playerName) return;
 
     setSubmitted(true);
     setError('');
 
-    const data = await submitGuess(roomCode, playerName, guess.trim());
+    const data = await submitGuess(roomCode, playerName, trimmed);
     if (!data.success) {
+      // Raced the phase deadline: the server already moved everyone on and
+      // recorded a blank guess. Stay submitted and let the phase poll navigate.
+      if (data.status === PhaseConflictStatus) return;
       setError(data.message || 'Failed to submit guess.');
       setSubmitted(false);
       return;
@@ -67,15 +77,9 @@ export default function GuessingPage() {
     }
   }
 
+  /** Time is up — submit whatever is typed, blank included, so the round advances. */
   function handleExpire() {
-    if (!submitted && guess.trim()) void handleSubmit();
-    else if (!submitted) {
-      // Auto-submit an empty string so the round still advances.
-      setSubmitted(true);
-      if (roomCode && playerName) {
-        void submitGuess(roomCode, playerName, '');
-      }
-    }
+    if (!submitted) void handleSubmit(true);
   }
 
   return (
@@ -92,12 +96,13 @@ export default function GuessingPage() {
           />
         ) : (
           <div className="w-full h-48 bg-white/[0.14] rounded-lg mb-5 flex items-center justify-center text-sm text-black/50">
-            Loading drawing...
+            {drawingLoaded ? `${drawnBy} ran out of time — no drawing` : 'Loading drawing...'}
           </div>
         )}
         <div className="flex items-center justify-between mb-3">
           <CountdownTimer
             seconds={TotalTime}
+            secondsLeft={secondsLeft}
             paused={submitted}
             onExpire={handleExpire}
             suffix=" seconds left"

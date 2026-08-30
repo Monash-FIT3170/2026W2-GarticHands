@@ -25,6 +25,13 @@ export interface Room {
   players: Player[];
   status: RoomStatus;
   phase: RoomPhase;
+  /**
+   * Epoch ms (server clock) at which the current phase auto-advances. `null` for
+   * the untimed phases — `lobby` and `reveal`. Pair it with the `serverTime`
+   * field on `GET /rooms/:code` rather than the browser clock; see
+   * [`../hooks/usePhaseAdvance.ts`](../hooks/usePhaseAdvance.ts).
+   */
+  phaseEndsAt: number | null;
   round: number;
   maxRounds: number;
   prompts: Record<string, string>;

@@ -41,9 +41,9 @@ How the pieces fit together. Written for humans **and** coding agents — every 
 | `/join`           | `Pages/joiningPage.tsx`            | Enter name + room code                             |
 | `/joined/:code`   | `Pages/joinedPage.tsx`             | Player lobby, ready toggle, auto-nav on start     |
 | `/game`           | `Pages/gamePage.tsx`               | **Placeholder** — renders text only                |
-| `/input`          | `Pages/inputPage.tsx`              | Write a prompt (60s timer)                         |
-| `/draw`           | `Pages/drawPage.tsx`               | Hand-tracking canvas (60s timer)                   |
-| `/guess`          | `Pages/guessingPage.tsx`           | Guess what was drawn (60s timer)                   |
+| `/input`          | `Pages/inputPage.tsx`              | Write a prompt (server-timed phase)                |
+| `/draw`           | `Pages/drawPage.tsx`               | Hand-tracking canvas (server-timed phase)          |
+| `/guess`          | `Pages/guessingPage.tsx`           | Guess what was drawn (server-timed phase)          |
 
 ## Drawing subsystem (`client/src/drawing/`)
 
@@ -105,15 +105,35 @@ type Player = {
   joinedAt: number        // Date.now()
 }
 
+type RoomPhase = 'lobby' | 'prompt' | 'draw' | 'guess' | 'reveal'
+
 type Room = {
   code: string            // 6 chars, [A-Z0-9]
   players: Player[]
   status: 'waiting' | 'started'
+  phase: RoomPhase
+  phaseEndsAt: number | null   // epoch ms; null on the untimed phases
+  round: number
+  maxRounds: number
+  prompts: Record<string, string>    // playerName → prompt text
+  drawings: Record<string, string>   // playerName → PNG data URL
+  guesses: Record<string, string>    // playerName → guess text
   createdAt: number
 }
 ```
 
-Drawings and prompts are **not yet modeled** server-side. Adding `prompts: string[]`, `drawings: DrawingFrame[]`, `currentRound: number`, `phase: 'prompt' | 'draw' | 'guess'` is the natural next extension.
+`client/src/types/room.ts` is the typed mirror of these shapes — change both together.
+
+## Phase deadlines
+
+Every timed phase has a server-owned deadline. `prompt`, `draw`, and `guess` run for `PHASE_DURATIONS[phase]` seconds (60 by default, overridable per phase with the `PROMPT_SECONDS` / `DRAW_SECONDS` / `GUESS_SECONDS` env vars); `lobby` and `reveal` are untimed because the host paces them.
+
+The server is the only clock that matters:
+
+- `setPhase(room, phase)` in `server/index.js` stamps `room.phaseEndsAt` and arms a `setTimeout`. Every transition goes through it, so a deadline can never be stale and a timer can never outlive its phase.
+- When the timer fires, missing submissions are filled in — a random `FALLBACK_PROMPTS` entry for the prompt phase, `''` for a drawing or a guess — and the room advances. One idle player can no longer stall everyone.
+- Clients don't run their own clock. `GET /rooms/:code` returns `serverTime` alongside the room, and [`usePhaseAdvance`](client/src/hooks/usePhaseAdvance.ts) counts down `phaseEndsAt - serverTime`, so every player sees the same number regardless of browser clock skew.
+- Clients still auto-submit at zero so in-progress work isn't discarded. The server waits an extra 1.5 s grace before forcing the advance, so that submit wins the race; if it doesn't, the `409` is treated as "too late, follow the room".
 
 ## Sequence: lobby + start (current)
 
