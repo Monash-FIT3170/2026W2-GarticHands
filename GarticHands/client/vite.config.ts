@@ -1,5 +1,6 @@
 import { defineConfig } from 'vite';
-import { configDefaults } from 'vitest/config';
+// Side-effect import: augments Vite's config type with the `test` key below.
+import 'vitest/config';
 import react from '@vitejs/plugin-react';
 
 // https://vite.dev/config/

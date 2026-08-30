@@ -25,7 +25,7 @@ export default function HostingPage() {
         return;
       }
       const data = await createRoom(hostName);
-      if (data.success) {
+      if (data.success && data.roomCode && data.room) {
         setRoomCode(data.roomCode);
         setPlayers(data.room.players);
       }
@@ -37,7 +37,7 @@ export default function HostingPage() {
     if (!roomCode) return;
     async function loadRoom() {
       const data = await getRoom(roomCode);
-      if (data.success) setPlayers(data.room.players);
+      if (data.success && data.room) setPlayers(data.room.players);
     }
     void loadRoom();
     const interval = setInterval(() => {

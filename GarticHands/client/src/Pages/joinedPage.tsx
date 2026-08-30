@@ -69,7 +69,7 @@ export default function JoinedPage() {
     if (!roomCode || !playerName) return;
     const next = !ready;
     const data = await updateReady(roomCode, playerName, next);
-    if (data.success) {
+    if (data.success && data.room) {
       setReady(next);
       setPlayers(data.room.players);
     }
