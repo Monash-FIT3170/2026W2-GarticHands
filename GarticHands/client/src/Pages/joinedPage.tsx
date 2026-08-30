@@ -3,6 +3,8 @@ import { useParams, useLocation, useNavigate } from 'react-router-dom';
 import { getRoom, updateReady, startRoom } from '../api/room';
 import { Page, Card, Button, useToast } from '../components/ui';
 import PlayerList from '../components/PlayerList';
+import { useLeaveRoom } from '../hooks/useLeaveRoom';
+import { usePlayerDepartures } from '../hooks/usePlayerDepartures';
 import type { Player, DrawLocationState } from '../types/room';
 
 const MAX_PLAYERS_DISPLAY = 4;
@@ -37,8 +39,17 @@ export default function JoinedPage() {
     let alreadyStarted = false;
 
     async function loadRoom() {
-      const data = await getRoom(roomCode as string);
+      // Passing the name doubles as this player's presence heartbeat.
+      const data = await getRoom(roomCode as string, playerName);
       if (!data.success || !data.room) return;
+
+      // Dropped by the server (network died long enough to look like leaving) —
+      // the room carries on without us, so stop pretending we're still in it.
+      const stillIn = data.room.players.some((p: Player) => p.name === playerName);
+      if (!stillIn && !alreadyStarted) {
+        void navigate('/');
+        return;
+      }
 
       setPlayers(data.room.players);
 
@@ -64,6 +75,15 @@ export default function JoinedPage() {
     }, 1000);
     return () => clearInterval(interval);
   }, [roomCode, playerName, navigate, show]);
+
+  usePlayerDepartures(players, (names) => show(`${names.join(', ')} left the room`));
+
+  const leaveRoom = useLeaveRoom(roomCode, playerName);
+
+  async function handleLeave() {
+    await leaveRoom();
+    void navigate('/');
+  }
 
   async function handleReady() {
     if (!roomCode || !playerName) return;
@@ -170,6 +190,16 @@ export default function JoinedPage() {
                 {ready ? 'Ready' : 'Ready Up'}
               </Button>
             )}
+
+            <Button
+              variant="leave"
+              size="full"
+              onClick={() => void handleLeave()}
+              disabled={starting}
+              className="mt-3"
+            >
+              Leave Room
+            </Button>
           </section>
         </div>
       </Card>

@@ -13,12 +13,13 @@ npm run start            # plain node
 
 Defaults to port `3000`. Override with `PORT=4000 npm run dev:server`.
 
-| Env var          | Default | What it does                                 |
-| ---------------- | ------- | -------------------------------------------- |
-| `PORT`           | `3000`  | HTTP + Socket.IO port.                       |
-| `PROMPT_SECONDS` | `60`    | Time limit for the `prompt` phase.           |
-| `DRAW_SECONDS`   | `60`    | Time limit for the `draw` phase.             |
-| `GUESS_SECONDS`  | `60`    | Time limit for the `guess` phase.            |
+| Env var                  | Default | What it does                                                     |
+| ------------------------ | ------- | ---------------------------------------------------------------- |
+| `PORT`                   | `3000`  | HTTP + Socket.IO port.                                           |
+| `PROMPT_SECONDS`         | `60`    | Time limit for the `prompt` phase.                               |
+| `DRAW_SECONDS`           | `60`    | Time limit for the `draw` phase.                                 |
+| `GUESS_SECONDS`          | `60`    | Time limit for the `guess` phase.                                |
+| `PLAYER_TIMEOUT_SECONDS` | `30`    | How long a player can go without polling before they're dropped. |
 
 Shortening the phase limits is the fastest way to exercise the timeout path:
 `PROMPT_SECONDS=5 DRAW_SECONDS=5 GUESS_SECONDS=5 npm run dev:server`.
@@ -26,6 +27,8 @@ Shortening the phase limits is the fastest way to exercise the timeout path:
 ## State
 
 In-memory only. The `rooms` object maps `roomCode → Room`. Restart = data loss. There is no database yet by design.
+
+Rooms are dropped a minute after their last player leaves, so an abandoned lobby doesn't leak. The delay is deliberate — it leaves room to rejoin after a misclick.
 
 ## Data shapes
 
@@ -36,6 +39,7 @@ type Player = {
   isHost: boolean
   ready: boolean
   joinedAt: number          // Date.now()
+  lastSeen: number          // Date.now() of their most recent poll
 }
 
 type RoomPhase = 'lobby' | 'prompt' | 'draw' | 'guess' | 'reveal'
@@ -50,6 +54,7 @@ type Room = {
   prompts: Record<string, string>   // playerName → prompt text
   drawings: Record<string, string>  // playerName → PNG data URL
   guesses: Record<string, string>   // playerName → guess text
+  guessTargets: Record<string, string> // guesser name → drawer whose drawing they guessed
   createdAt: number
 }
 ```
@@ -84,6 +89,28 @@ The forced advance fires `PHASE_GRACE_MS` (1.5 s) after `phaseEndsAt`, so a clie
 | `prompt` | A random entry from `FALLBACK_PROMPTS` — the draw phase always has something to draw. |
 | `draw`   | `''` — the reveal screen renders "No drawing submitted".                              |
 | `guess`  | `''` — the reveal screen renders "(no guess)".                                        |
+
+"Every player" means every player *still in the room*, so the same check runs again whenever someone leaves. Without that re-check a room would sit forever waiting on a contribution from a player who has gone.
+
+## Presence
+
+A room only works if its roster reflects who is actually still there, so departures are tracked two ways:
+
+1. **Explicit** — the client calls `DELETE /rooms/:code/players/:name` from the "Leave Room" button, and again (with `keepalive`) when the tab is closing. This is the normal path and takes effect immediately.
+2. **Timeout** — every player's `lastSeen` is stamped whenever they poll `GET /rooms/:code?playerName=…`. A sweep every 3 s drops anyone unheard-from for `PLAYER_TIMEOUT_SECONDS` (default 30). This is the safety net for crashes, closed laptops, and dead networks.
+
+The timeout is deliberately much longer than the 1 s poll: browsers throttle timers in hidden tabs, and a backgrounded player is not a departed one.
+
+**Any repeating poll must pass `?playerName=`** — a client that polls anonymously looks idle and gets dropped out of its own room.
+
+When a player is removed the server:
+
+- deletes their `prompts` / `drawings` / `guesses` / `guessTargets` entries,
+- promotes the longest-standing remaining player to host if the leaver held that role (otherwise nobody could press Start),
+- re-checks whether the phase is now complete and advances if so,
+- emits `players-left` followed by `room-update`.
+
+A client that finds itself missing from `room.players` has been dropped and sends the player back to the landing page.
 
 ## REST endpoints
 
@@ -127,11 +154,21 @@ Add a player to an existing room.
 **Response 400** missing fields.
 **Response 404** room not found.
 
+If the room has no host — everyone left and someone rejoined within the
+empty-room grace window — the longest-standing player is promoted, so the lobby
+always has someone who can press Start.
+
 Also broadcasts `room-update` to room subscribers.
 
 ### `GET /rooms/:roomCode`
 
 Fetch room state. The lobby and every timed phase poll this once per second.
+
+**Query**
+
+| Param        | Required | Purpose                                                                 |
+| ------------ | -------- | ----------------------------------------------------------------------- |
+| `playerName` | no       | Stamps that player's `lastSeen`. Pass it from every repeating poll — see [Presence](#presence). |
 
 **Response 200** `{ "success": true, "room": { ... }, "serverTime": 1771286400000 }`
 **Response 404** room not found.
@@ -139,6 +176,18 @@ Fetch room state. The lobby and every timed phase poll this once per second.
 `serverTime` is this response's `Date.now()`. Clients derive the countdown from
 `room.phaseEndsAt - serverTime` — subtracting two server-side timestamps — so a
 browser clock that is minutes off still counts down the right number of seconds.
+
+### `DELETE /rooms/:roomCode/players/:playerName`
+
+Remove a player from a room. Deletes their submissions, promotes a new host if
+they were the host, and advances the phase if the remaining players have all
+submitted.
+
+**Response 200** `{ "success": true, "room": { ... } }`
+**Response 404** room or player not found — including a second call for a player
+who has already left.
+
+Broadcasts `players-left` then `room-update`.
 
 ### `PATCH /rooms/:roomCode/ready`
 
@@ -205,8 +254,12 @@ Record one player's guess. Auto-advances `phase` to `'reveal'` when every player
 **Body**
 
 ```json
-{ "playerName": "Alice", "guess": "spud with a top hat" }
+{ "playerName": "Alice", "guess": "spud with a top hat", "of": "Bob" }
 ```
+
+`of` (optional) names the drawer whose drawing the guess is about. It is stored
+in `guessTargets` so the reveal can pair each guess with the right drawing even
+if the roster changes mid-round.
 
 **Response 200** `{ "success": true, "room": { ... } }`
 **Response 409** room is not in the `guess` phase.
@@ -242,6 +295,7 @@ Connect over `http://localhost:3000`.
 | `room-update`          | `Room`           | Any REST mutation that affects a room, plus on `room-subscribe` and on every forced phase advance. |
 | `game-start`           | `Room`           | After `PATCH /rooms/:code/start`.                                             |
 | `phase-timeout`        | `{ code: string, phase: RoomPhase }` | A phase deadline passed and the server force-advanced. `phase` is the phase that *ended*. Emitted just before the `room-update`. |
+| `players-left`         | `{ code: string, names: string[] }` | One or more players left — explicitly or by presence timeout. Emitted just before the `room-update`. |
 | `hand-tracking-update` | echo of input    | Forwarded from another player's `hand-tracking-data`.                         |
 | `drawing-update`       | echo of input    | Forwarded from another player's `drawing-event`.                              |
 

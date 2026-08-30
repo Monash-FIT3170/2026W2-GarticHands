@@ -103,6 +103,7 @@ type Player = {
   isHost: boolean
   ready: boolean
   joinedAt: number        // Date.now()
+  lastSeen: number        // Date.now() of their most recent poll — see Presence below
 }
 
 type RoomPhase = 'lobby' | 'prompt' | 'draw' | 'guess' | 'reveal'
@@ -134,6 +135,30 @@ The server is the only clock that matters:
 - When the timer fires, missing submissions are filled in — a random `FALLBACK_PROMPTS` entry for the prompt phase, `''` for a drawing or a guess — and the room advances. One idle player can no longer stall everyone.
 - Clients don't run their own clock. `GET /rooms/:code` returns `serverTime` alongside the room, and [`usePhaseAdvance`](client/src/hooks/usePhaseAdvance.ts) counts down `phaseEndsAt - serverTime`, so every player sees the same number regardless of browser clock skew.
 - Clients still auto-submit at zero so in-progress work isn't discarded. The server waits an extra 1.5 s grace before forcing the advance, so that submit wins the race; if it doesn't, the `409` is treated as "too late, follow the room".
+
+## Presence — leaving a room
+
+The roster has to reflect who is *actually* still there, or one departure freezes everyone else: the lobby waits on a ready flag that will never arrive, and a round waits on a submission from an empty chair.
+
+Departures are detected two ways, and both funnel into the same server-side path:
+
+```
+"Leave Room" button ─┐
+tab close (keepalive)─┼─▶ DELETE /rooms/:code/players/:name ─┐
+                      │                                       ├─▶ removePlayer()
+presence sweep (3s) ──┴─▶ lastSeen older than 30s ────────────┘        │
+                                                                       ▼
+                                      delete their prompt/drawing/guess
+                                      promote a new host if they held it
+                                      advanceIfPhaseComplete(room)
+                                      emit players-left + room-update
+```
+
+- **Heartbeat.** `GET /rooms/:code?playerName=…` stamps `lastSeen`. Every repeating poll on the client passes its player name, so presence rides on requests that were already happening — no extra traffic. A poll that omits the name looks like an absent player.
+- **Host promotion.** The longest-standing remaining player takes over. `joinedPage` already renders host controls off `player.isHost`, so a promoted player sees the Start button on their next poll with no extra routing.
+- **Phase re-check.** `advanceIfPhaseComplete()` runs after a departure as well as after a submission — that's what lets a round continue instead of stalling.
+- **Being dropped.** A client that no longer finds itself in `room.players` returns to the landing page rather than sitting on a page it isn't part of.
+- **Empty rooms** are forgotten a minute after their last player leaves.
 
 ## Sequence: lobby + start (current)
 

@@ -20,7 +20,11 @@ export default function GuessingPage() {
   const [submitted, setSubmitted] = useState(false);
   const [error, setError] = useState('');
   const [drawing, setDrawing] = useState<string>('');
-  const [drawnBy, setDrawnBy] = useState<string>('...');
+  // Name of the player whose drawing we're guessing. Submitted alongside the
+  // guess so the reveal can pair it with the right drawing even if the roster
+  // changes before then.
+  const [targetName, setTargetName] = useState<string | undefined>(undefined);
+  const drawnBy = targetName ?? '...';
   // The draw phase can time out with nothing submitted, so "no drawing" is a
   // real outcome — distinguish it from "still fetching".
   const [drawingLoaded, setDrawingLoaded] = useState(false);
@@ -39,7 +43,7 @@ export default function GuessingPage() {
       const myIndex = players.findIndex((p) => p.name === playerName);
       if (myIndex === -1) return;
       const target = players[(myIndex + 1) % players.length];
-      setDrawnBy(target.name);
+      setTargetName(target.name);
       setDrawing((data.room.drawings && data.room.drawings[target.name]) || '');
       setDrawingLoaded(true);
     });
@@ -62,7 +66,7 @@ export default function GuessingPage() {
     setSubmitted(true);
     setError('');
 
-    const data = await submitGuess(roomCode, playerName, trimmed);
+    const data = await submitGuess(roomCode, playerName, trimmed, targetName);
     if (!data.success) {
       // Raced the phase deadline: the server already moved everyone on and
       // recorded a blank guess. Stay submitted and let the phase poll navigate.

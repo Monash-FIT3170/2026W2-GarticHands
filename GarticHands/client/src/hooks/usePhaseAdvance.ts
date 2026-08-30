@@ -70,10 +70,20 @@ export function usePhaseAdvance({
 
     async function tick() {
       if (!roomCode) return;
-      const data = await getRoom(roomCode);
+      // Passing the name doubles as this player's presence heartbeat.
+      const data = await getRoom(roomCode, playerName);
       if (cancelled || !data.success) return;
 
       const fresh = data.room as Room;
+
+      // Dropped by the server while we were away. The round carries on without
+      // us, so leave rather than sit on a page we're no longer part of.
+      if (playerName && !fresh.players.some((p) => p.name === playerName)) {
+        cancelled = true;
+        void navigate('/');
+        return;
+      }
+
       setRoom(fresh);
       syncDeadline(deadlineRef, fresh.phaseEndsAt, data.serverTime);
 

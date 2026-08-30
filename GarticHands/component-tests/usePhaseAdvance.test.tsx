@@ -70,6 +70,7 @@ describe('usePhaseAdvance', () => {
             isHost: true,
             ready: true,
             joinedAt: 1,
+            lastSeen: 1,
           },
         ],
         status: 'started',
@@ -103,8 +104,9 @@ describe('usePhaseAdvance', () => {
       await Promise.resolve()
     })
 
-    // The hook should have called the API with the room code it was given.
-    expect(mockedGetRoom).toHaveBeenCalledWith('ABC123')
+    // The hook should have called the API with the room code it was given,
+    // plus the player name (which doubles as the presence heartbeat).
+    expect(mockedGetRoom).toHaveBeenCalledWith('ABC123', 'Ash')
   })
 
   test('updates waiting count based on submitted players', async () => {
@@ -121,6 +123,7 @@ describe('usePhaseAdvance', () => {
             isHost: true,
             ready: true,
             joinedAt: 1,
+            lastSeen: 1,
           },
           {
             name: 'Sam',
@@ -128,6 +131,7 @@ describe('usePhaseAdvance', () => {
             isHost: false,
             ready: true,
             joinedAt: 2,
+            lastSeen: 2,
           },
           {
             name: 'Alex',
@@ -135,6 +139,7 @@ describe('usePhaseAdvance', () => {
             isHost: false,
             ready: true,
             joinedAt: 3,
+            lastSeen: 3,
           },
         ],
         status: 'started',

@@ -14,6 +14,11 @@ export interface Player {
   isHost: boolean;
   ready: boolean;
   joinedAt: number;
+  /**
+   * Epoch ms of this player's last poll. The server drops players it hasn't
+   * heard from in a while, so the roster reflects who is actually still here.
+   */
+  lastSeen: number;
 }
 
 export type RoomStatus = 'waiting' | 'started';
@@ -37,6 +42,13 @@ export interface Room {
   prompts: Record<string, string>;
   drawings: Record<string, string>;
   guesses: Record<string, string>;
+  /**
+   * Guesser name → name of the drawer whose drawing they guessed, recorded when
+   * the guess is submitted. The reveal pairs guesses with drawings through this
+   * map so a mid-round departure cannot shift a guess onto the wrong drawing.
+   * Optional because a guess submitted without a resolved target has no entry.
+   */
+  guessTargets?: Record<string, string>;
   createdAt: number;
 }
 

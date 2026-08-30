@@ -1,4 +1,6 @@
 import { defineConfig } from 'vite';
+// Side-effect import: keeps vitest's `test` config augmentation of vite's UserConfig.
+import 'vitest/config';
 import react from '@vitejs/plugin-react';
 
 // https://vite.dev/config/

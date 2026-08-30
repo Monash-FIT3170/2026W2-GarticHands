@@ -204,7 +204,7 @@ describe('GuessingPage', () => {
     fireEvent.click(screen.getByText('Submit Guess'))
 
     await waitFor(() => {
-      expect(mockSubmitGuess).toHaveBeenCalledWith('ABC123', 'Ash', 'a robot')
+      expect(mockSubmitGuess).toHaveBeenCalledWith('ABC123', 'Ash', 'a robot', 'Sam')
     })
     expect(screen.getByPlaceholderText('What is this drawing?')).toBeDisabled()
   })
@@ -299,7 +299,7 @@ describe('GuessingPage', () => {
     fireEvent.click(screen.getByTestId('expire-timer'))
 
     await waitFor(() => {
-      expect(mockSubmitGuess).toHaveBeenCalledWith('ABC123', 'Ash', 'a robot')
+      expect(mockSubmitGuess).toHaveBeenCalledWith('ABC123', 'Ash', 'a robot', 'Sam')
     })
   })
 
@@ -310,7 +310,7 @@ describe('GuessingPage', () => {
     fireEvent.click(screen.getByTestId('expire-timer'))
 
     await waitFor(() => {
-      expect(mockSubmitGuess).toHaveBeenCalledWith('ABC123', 'Ash', '')
+      expect(mockSubmitGuess).toHaveBeenCalledWith('ABC123', 'Ash', '', 'Sam')
     })
   })
 

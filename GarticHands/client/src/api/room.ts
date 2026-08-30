@@ -52,8 +52,30 @@ export async function joinRoom(roomCode: string, playerName: string) {
   return (await res.json()) as RoomResponse;
 }
 
-export async function getRoom(roomCode: string) {
-  const res = await fetch(`${API_URL}/rooms/${roomCode}`);
+/**
+ * Fetch room state. Passing `playerName` also refreshes that player's presence —
+ * the server treats a client that stops polling as one that has left, so every
+ * repeating poll should identify its caller. See `server/README.md` § Presence.
+ */
+export async function getRoom(roomCode: string, playerName?: string) {
+  const query = playerName ? `?playerName=${encodeURIComponent(playerName)}` : '';
+  const res = await fetch(`${API_URL}/rooms/${roomCode}${query}`);
+  return (await res.json()) as RoomResponse;
+}
+
+/**
+ * Remove a player from a room. `keepalive` lets the request outlive the page, so
+ * a closing tab still reports the departure instead of waiting for the server's
+ * presence timeout.
+ */
+export async function leaveRoom(roomCode: string, playerName: string, keepalive = false) {
+  const res = await fetch(
+    `${API_URL}/rooms/${roomCode}/players/${encodeURIComponent(playerName)}`,
+    {
+      method: 'DELETE',
+      keepalive,
+    },
+  );
   return (await res.json()) as RoomResponse;
 }
 
@@ -94,11 +116,21 @@ export async function submitDrawing(roomCode: string, playerName: string, dataUr
   return withStatus(res);
 }
 
-export async function submitGuess(roomCode: string, playerName: string, guess: string) {
+/**
+ * Submit a guess. `of` names the drawer whose drawing is being guessed; the
+ * server records it so the reveal can pair each guess with the right drawing
+ * even when the roster changes mid-round.
+ */
+export async function submitGuess(
+  roomCode: string,
+  playerName: string,
+  guess: string,
+  of?: string,
+) {
   const res = await fetch(`${API_URL}/rooms/${roomCode}/guesses`, {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({ playerName, guess }),
+    body: JSON.stringify({ playerName, guess, of }),
   });
   return withStatus(res);
 }

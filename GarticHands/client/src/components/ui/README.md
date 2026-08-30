@@ -8,7 +8,7 @@ Composable building blocks. Every visible element should be assembled from these
 | ------------------- | ------------------------------------------------------------------------------ |
 | `Page.tsx`          | Page shell — provides background, top-right buttons, optional logo.            |
 | `Card.tsx`          | Surface container in three variants: `lobby`, `hero`, `glass`.                 |
-| `Button.tsx`        | All buttons — variants: `primary`, `secondary`, `submit`, `start`, `outline`, `ghost`. |
+| `Button.tsx`        | All buttons — variants: `primary`, `secondary`, `submit`, `start`, `outline`, `ghost`, `ready`, `leave`. |
 | `Avatar.tsx`        | Player avatars in four variants: `guest`, `host-large`, `host-row`, `player-row`. |
 | `Badge.tsx`         | Status pill (host / ready / waiting) in two tones: `lobby`, `simple`.          |
 | `Logo.tsx`          | Wordmark + subtitle pair. `compact` prop for lobby placement.                  |

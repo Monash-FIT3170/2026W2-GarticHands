@@ -3,6 +3,8 @@ import { useNavigate, useLocation } from 'react-router-dom';
 import { createRoom, getRoom, startRoom } from '../api/room';
 import { Page, Card, Button, useToast } from '../components/ui';
 import PlayerList from '../components/PlayerList';
+import { useLeaveRoom } from '../hooks/useLeaveRoom';
+import { usePlayerDepartures } from '../hooks/usePlayerDepartures';
 import type { Player, DrawLocationState } from '../types/room';
 
 const MAX_PLAYERS_DISPLAY = 4;
@@ -34,20 +36,40 @@ export default function HostingPage() {
   }, [hostName, navigate]);
 
   useEffect(() => {
-    if (!roomCode) return;
+    if (!roomCode || !hostName) return;
     async function loadRoom() {
-      const data = await getRoom(roomCode);
-      if (data.success && data.room) setPlayers(data.room.players);
+      // Passing the name doubles as this player's presence heartbeat.
+      const data = await getRoom(roomCode, hostName);
+      if (!data.success || !data.room) return;
+
+      // Dropped by the server (network died long enough to look like leaving) —
+      // the room carries on without us, so stop pretending we're still in it.
+      const stillIn = data.room.players.some((p: Player) => p.name === hostName);
+      if (!stillIn) {
+        void navigate('/');
+        return;
+      }
+
+      setPlayers(data.room.players);
     }
     void loadRoom();
     const interval = setInterval(() => {
       void loadRoom();
     }, 1000);
     return () => clearInterval(interval);
-  }, [roomCode]);
+  }, [roomCode, hostName, navigate]);
+
+  usePlayerDepartures(players, (names) => show(`${names.join(', ')} left the room`));
+
+  const leaveRoom = useLeaveRoom(roomCode || undefined, hostName);
 
   const readyCount = players.filter((p) => p.ready || p.isHost).length;
   const allReady = players.length > 0 && players.every((p) => p.ready || p.isHost);
+
+  async function handleLeave() {
+    await leaveRoom();
+    void navigate('/');
+  }
 
   function copyCode() {
     if (!roomCode) return;
@@ -130,6 +152,10 @@ export default function HostingPage() {
               className="mt-4"
             >
               {allReady ? 'Start Game' : 'Waiting for Players'}
+            </Button>
+
+            <Button variant="leave" size="full" onClick={() => void handleLeave()} className="mt-3">
+              Leave Room
             </Button>
           </section>
         </div>
