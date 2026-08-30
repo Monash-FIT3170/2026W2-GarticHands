@@ -12,7 +12,7 @@
     "format:check": "prettier . --check --ignore-path ../.prettierignore",
     "preview": "vite preview",
     "test:component": "vitest run ../component-tests",
-    "test": "vitest",
+    "test:unit": "vitest run unit-tests",
     "coverage": "vitest run --coverage"
   },
   "dependencies": {
