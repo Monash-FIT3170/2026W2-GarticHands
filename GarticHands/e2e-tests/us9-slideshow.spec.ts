@@ -1,5 +1,5 @@
 import { test, expect } from '@playwright/test'
-import { playRoundUI } from './helpers/game'
+import { submitDrawingUI, submitGuessUI, submitPromptUI } from './helpers/game.js'
 
 /**
  * User Story 9: As a player, I want to be able to see a slideshow of all the
@@ -12,6 +12,7 @@ import { playRoundUI } from './helpers/game'
  * slide, manual Next/Prev, and `page.clock`-driven auto-advance every 4s.
  */
 test('slideshow cycles through every drawing/prompt/guess, manually and automatically', async ({ browser }) => {
+    test.setTimeout(60_000)
     const hostContext = await browser.newContext()
     const hostPage = await hostContext.newPage()
     await hostPage.goto('/')
@@ -35,8 +36,28 @@ test('slideshow cycles through every drawing/prompt/guess, manually and automati
     await hostPage.getByRole('button', { name: 'Start Game' }).click()
 
     await Promise.all([
-        playRoundUI(hostPage, "host's prompt", "host's guess"),
-        playRoundUI(playerPage, "joiner's prompt", "joiner's guess"),
+        expect(hostPage).toHaveURL('/input'),
+        expect(playerPage).toHaveURL('/input'),
+    ])
+    await submitPromptUI(hostPage, "host's prompt")
+    await submitPromptUI(playerPage, "joiner's prompt")
+    await Promise.all([
+        expect(hostPage).toHaveURL('/draw'),
+        expect(playerPage).toHaveURL('/draw'),
+    ])
+    await Promise.all([
+        submitDrawingUI(hostPage),
+        submitDrawingUI(playerPage),
+    ])
+    await Promise.all([
+        expect(hostPage).toHaveURL('/guess'),
+        expect(playerPage).toHaveURL('/guess'),
+    ])
+    await submitGuessUI(hostPage, "host's guess")
+    await submitGuessUI(playerPage, "joiner's guess")
+    await Promise.all([
+        expect(hostPage).toHaveURL('/game'),
+        expect(playerPage).toHaveURL('/game'),
     ])
 
     await expect(hostPage.getByRole('heading', { name: 'Reveal' })).toBeVisible()

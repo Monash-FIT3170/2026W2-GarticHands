@@ -38,12 +38,11 @@ test.describe('consistent branding across pages', () => {
         await page.getByRole('button', { name: 'Host Game' }).click()
         await expect(page).toHaveURL('/host')
 
-        const lobbyBg = await page
-            .locator('div.min-h-screen')
-            .first()
-            .evaluate((el) => getComputedStyle(el).backgroundColor)
-
-        expect(lobbyBg).toBe(landingBg)
+        const lobbyRoot = page.locator('div.min-h-screen').first()
+        await expect(lobbyRoot).toBeVisible()
+        await expect.poll(
+            () => lobbyRoot.evaluate((el) => getComputedStyle(el).backgroundColor),
+        ).toBe(landingBg)
     })
 
     test('every top-level page exposes exactly one primary heading region', async ({ page }) => {

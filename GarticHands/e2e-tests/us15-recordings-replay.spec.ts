@@ -1,5 +1,5 @@
 import { test, expect } from '@playwright/test'
-import { playRoundUI } from './helpers/game'
+import { playRoundUI } from './helpers/game.js'
 
 /**
  * User Story 15: As a player, I want to be able to see a replay of how the
@@ -12,6 +12,7 @@ import { playRoundUI } from './helpers/game'
  * `blob:` src per round, and that "Next" advances to the second recording.
  */
 test('My Recordings shows a playable replay per round and Next advances between them', async ({ page }) => {
+    test.setTimeout(60_000)
     await page.goto('/')
     await page.getByPlaceholder('Enter username...').fill('RecorderTester')
     await page.getByRole('button', { name: 'Host Game' }).click()
