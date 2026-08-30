@@ -55,6 +55,17 @@ export default function JoinedPage() {
 
       if (data.room.status === 'started' && !alreadyStarted) {
         alreadyStarted = true;
+
+        // A mid-round joiner shouldn't be swept into the prompt page — the
+        // game page keeps them posted until the next round starts.
+        const midRoundJoiner = data.room.players.find(
+          (p: Player) => p.name === playerName,
+        )?.joinedMidRound;
+        if (midRoundJoiner) {
+          void navigate('/game', { state: { roomCode, playerName, joinedLate: true } });
+          return;
+        }
+
         setStarting(true);
         show('Starting game...');
         setTimeout(() => {

@@ -9,7 +9,10 @@ export interface RevealChain {
 }
 
 /**
- * One reveal row per remaining drawer.
+ * One reveal row per remaining drawer. Mid-round joiners didn't take part in
+ * the round — they drew nothing and guessed nothing — so they're excluded,
+ * which also keeps the fallback pairing identical to the roster the round
+ * started with.
  *
  * Guesses are paired with drawings through `room.guessTargets` — who each guess
  * was actually about, recorded at submission time — so a mid-round departure
@@ -19,7 +22,7 @@ export interface RevealChain {
  * carry no recorded target.
  */
 export function buildRevealChains(room: Room): RevealChain[] {
-  const players = room.players;
+  const players = room.players.filter((p) => !p.joinedMidRound);
   if (players.length === 0) return [];
   const targets = room.guessTargets ?? {};
 

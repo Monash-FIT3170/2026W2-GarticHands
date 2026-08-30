@@ -93,12 +93,13 @@ function generateRoomCode() {
   return Math.random().toString(36).substring(2, 8).toUpperCase()
 }
 
-function makePlayer(name, isHost) {
+function makePlayer(name, isHost, joinedMidRound = false) {
   return {
     name,
     status: isHost ? 'host' : 'waiting',
     isHost,
     ready: isHost,
+    joinedMidRound,
     joinedAt: Date.now(),
     lastSeen: Date.now(),
   }
@@ -322,7 +323,10 @@ app.post('/rooms/join', (req, res) => {
     return res.status(404).json({ success: false, message: 'Room not found' })
   }
 
-  room.players.push(makePlayer(playerName, false))
+  // Joining a game that already started is allowed: the player is flagged as a
+  // mid-round joiner so the current round can finish without waiting on them.
+  // The flag is cleared when the next round starts (/start, /restart, /end).
+  room.players.push(makePlayer(playerName, false, room.status === 'started'))
   delete emptySince[room.code]
 
   // A room can be rejoined after it emptied (within the grace window), at which
@@ -416,6 +420,10 @@ app.patch('/rooms/:roomCode/start', (req, res) => {
   room.drawings = {}
   room.guesses = {}
   room.guessTargets = {}
+  // Everyone present when the game starts is a full participant.
+  for (const p of room.players) {
+    p.joinedMidRound = false
+  }
   setPhase(room, 'prompt')
   io.to(room.code).emit('game-start', room)
   io.to(room.code).emit('room-update', room)
@@ -443,6 +451,10 @@ app.patch('/rooms/:roomCode/restart', (req, res) => {
   room.guesses = {}
   room.guessTargets = {}
   room.round = (room.round || 1) + 1
+  // A new round starts — mid-round joiners become full participants.
+  for (const p of room.players) {
+    p.joinedMidRound = false
+  }
   setPhase(room, 'prompt')
   io.to(room.code).emit('room-update', room)
   res.json({ success: true, room, maxRounds: MAX_ROUNDS })
@@ -463,6 +475,7 @@ app.patch('/rooms/:roomCode/end', (req, res) => {
   room.guessTargets = {}
   setPhase(room, 'lobby')
   for (const p of room.players) {
+    p.joinedMidRound = false
     if (!p.isHost) {
       p.ready = false
       p.status = 'waiting'
@@ -493,6 +506,18 @@ function submitForPhase(roomCode, playerName, value, expectedPhase, validate, on
     }
   }
 
+  if (player.joinedMidRound) {
+    return {
+      error: {
+        status: 409,
+        body: {
+          success: false,
+          message: 'You joined mid-round — you can play from the next round',
+        },
+      },
+    }
+  }
+
   if (validate && !validate(value)) {
     return { error: { status: 400, body: { success: false, message: 'Invalid submission' } } }
   }
@@ -504,8 +529,10 @@ function submitForPhase(roomCode, playerName, value, expectedPhase, validate, on
 
   if (onAccepted) onAccepted(room, player)
 
-  // Everyone beat the clock — advance early; `setPhase` inside re-arms the
-  // next deadline (or clears it when the next phase is untimed).
+  // Everyone active beat the clock — advance early; `advanceIfPhaseComplete`
+  // counts only active players (mid-round joiners don't owe content this
+  // round) and `setPhase` inside re-arms the next deadline (or clears it when
+  // the next phase is untimed).
   advanceIfPhaseComplete(room)
 
   io.to(room.code).emit('room-update', room)

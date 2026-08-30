@@ -38,6 +38,7 @@ type Player = {
   status: 'host' | 'waiting' | 'ready'
   isHost: boolean
   ready: boolean
+  joinedMidRound: boolean   // true = joined while a round was in progress; sits out until the next round
   joinedAt: number          // Date.now()
   lastSeen: number          // Date.now() of their most recent poll
 }
@@ -71,7 +72,7 @@ lobby ──start──▶ prompt ──all-prompts-in──▶ draw ──all-d
 
 A phase advances on whichever comes first:
 
-- **Every player has submitted.** Each submit endpoint checks this and advances immediately.
+- **Every active player has submitted.** Each submit endpoint checks this and advances immediately. "Active" means present in the room and not flagged `joinedMidRound: true` — a late joiner sits the current round out, so they can never stall the advance. Their own submissions are rejected with `409` until the flag is cleared, which happens whenever a fresh round begins (`/start`, `/restart`) or the room returns to the lobby (`/end`).
 - **The phase deadline passes.** The server arms a timer per phase and force-advances when it fires, so one idle or disconnected player can never stall the room.
 
 Submitting during the wrong phase returns `409` — which is also what a client gets when its submit loses the race against the deadline. Clients treat that as "too late, follow the room" rather than as an error.
@@ -82,7 +83,7 @@ Submitting during the wrong phase returns `409` — which is also what a client 
 
 Every phase transition goes through `setPhase(room, phase)` in `index.js`, which stamps `room.phaseEndsAt = Date.now() + duration` and arms the forced advance. Timers are held in a module-level `phaseTimers` map keyed by room code — deliberately *not* on the room object, which has to stay JSON-serialisable.
 
-The forced advance fires `PHASE_GRACE_MS` (1.5 s) after `phaseEndsAt`, so a client that auto-submits exactly on the deadline still wins the race. When it fires, every player missing a submission gets a default recorded for them:
+The forced advance fires `PHASE_GRACE_MS` (1.5 s) after `phaseEndsAt`, so a client that auto-submits exactly on the deadline still wins the race. When it fires, every *active* player missing a submission gets a default recorded for them (mid-round joiners owe no content and are skipped):
 
 | Phase    | Default for a player who ran out of time |
 | -------- | ----------------------------------------- |
@@ -142,7 +143,7 @@ Create a room. The creator becomes the host.
 
 ### `POST /rooms/join`
 
-Add a player to an existing room.
+Add a player to an existing room. Joining is allowed **even after the game has started**: the player is added with `joinedMidRound: true`, sits out the round currently in progress (they don't gate phase advancement and can't submit), and becomes a full participant when the next round starts. The client detects `room.status === 'started'` in the response and routes the late joiner to the in-game waiting view instead of the lobby.
 
 **Body**
 
@@ -206,7 +207,7 @@ Also broadcasts `room-update`.
 
 ### `PATCH /rooms/:roomCode/start`
 
-Mark the room as `started`, set `phase = 'prompt'` and arm its deadline, reset `prompts`/`drawings`/`guesses`. The lobby polls this transition and navigates players to `/input`.
+Mark the room as `started`, set `phase = 'prompt'` and arm its deadline, reset `prompts`/`drawings`/`guesses`, and clear every player's `joinedMidRound` flag. The lobby polls this transition and navigates players to `/input`.
 
 **Response 200** `{ "success": true, "room": { ... } }`
 **Response 404** room not found.
@@ -215,7 +216,7 @@ Broadcasts both `game-start` and `room-update`.
 
 ### `POST /rooms/:roomCode/prompts`
 
-Record one player's prompt. Auto-advances `phase` to `'draw'` when every player has submitted — or when the `prompt` deadline passes, whichever comes first.
+Record one player's prompt. Auto-advances `phase` to `'draw'` when every active (non-mid-round-joiner) player has submitted — or when the `prompt` deadline passes, whichever comes first.
 
 **Body**
 
@@ -225,14 +226,14 @@ Record one player's prompt. Auto-advances `phase` to `'draw'` when every player 
 
 **Response 200** `{ "success": true, "room": { ... } }`
 **Response 400** invalid (empty prompt).
-**Response 409** room is not in the `prompt` phase.
+**Response 409** room is not in the `prompt` phase, or the player joined mid-round.
 **Response 404** room or player not found.
 
 Broadcasts `room-update`.
 
 ### `POST /rooms/:roomCode/drawings`
 
-Record one player's drawing as a PNG data URL. Auto-advances `phase` to `'guess'` when every player has submitted — or when the `draw` deadline passes, whichever comes first. The body limit is `10mb`.
+Record one player's drawing as a PNG data URL. Auto-advances `phase` to `'guess'` when every active (non-mid-round-joiner) player has submitted — or when the `draw` deadline passes, whichever comes first. The body limit is `10mb`.
 
 **Body**
 
@@ -242,14 +243,14 @@ Record one player's drawing as a PNG data URL. Auto-advances `phase` to `'guess'
 
 **Response 200** `{ "success": true, "room": { ... } }`
 **Response 400** payload is not a `data:image/...` URL.
-**Response 409** room is not in the `draw` phase.
+**Response 409** room is not in the `draw` phase, or the player joined mid-round.
 **Response 404** room or player not found.
 
 Broadcasts `room-update`.
 
 ### `POST /rooms/:roomCode/guesses`
 
-Record one player's guess. Auto-advances `phase` to `'reveal'` when every player has submitted — or when the `guess` deadline passes, whichever comes first.
+Record one player's guess. Auto-advances `phase` to `'reveal'` when every active (non-mid-round-joiner) player has submitted — or when the `guess` deadline passes, whichever comes first.
 
 **Body**
 
@@ -262,14 +263,14 @@ in `guessTargets` so the reveal can pair each guess with the right drawing even
 if the roster changes mid-round.
 
 **Response 200** `{ "success": true, "room": { ... } }`
-**Response 409** room is not in the `guess` phase.
+**Response 409** room is not in the `guess` phase, or the player joined mid-round.
 **Response 404** room or player not found.
 
 Broadcasts `room-update`.
 
 ### `PATCH /rooms/:roomCode/restart`
 
-Start a new round. Resets prompts/drawings/guesses, increments `round`, sets `phase = 'prompt'` (arming a fresh deadline) and `status = 'started'`. Clients on `/game` (reveal) poll for this and navigate back to `/input`.
+Start a new round. Resets prompts/drawings/guesses, increments `round`, sets `phase = 'prompt'` (arming a fresh deadline) and `status = 'started'`, and clears every player's `joinedMidRound` flag — late joiners become full participants from this round. Clients on `/game` (reveal) poll for this and navigate back to `/input`.
 
 **Response 200** `{ "success": true, "room": { ... } }`
 **Response 404** room not found.

@@ -91,7 +91,10 @@ export function usePhaseAdvance({
         const submitted = Object.values(fresh[countBucket] || {}).filter(
           (v) => v !== undefined && v !== null && v !== '',
         ).length;
-        setWaitingFor(Math.max(0, fresh.players.length - submitted));
+        // Mid-round joiners sit out the current round, so they're never
+        // counted among the players we're waiting on.
+        const activePlayers = fresh.players.filter((p) => !p.joinedMidRound).length;
+        setWaitingFor(Math.max(0, activePlayers - submitted));
       }
 
       if (fresh.phase === whenPhase) {

@@ -35,6 +35,15 @@ export default function JoiningPage() {
       return;
     }
 
+    // Joining a game that's already running skips the lobby — GamePage keeps
+    // the late joiner up to date and moves them into the next round.
+    if (data.room.status === 'started') {
+      void navigate('/game', {
+        state: { roomCode: data.room.code, playerName, joinedLate: true },
+      });
+      return;
+    }
+
     void navigate(`/joined/${data.room.code}`, {
       state: { room: data.room, playerName },
     });

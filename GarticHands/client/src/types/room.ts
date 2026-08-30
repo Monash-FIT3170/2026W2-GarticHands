@@ -13,6 +13,13 @@ export interface Player {
   status: PlayerStatus;
   isHost: boolean;
   ready: boolean;
+  /**
+   * True when the player joined while a round was in progress. Mid-round
+   * joiners sit out the rest of the current round (they don't gate phase
+   * advancement) and become full participants when the next round starts.
+   * Optional because rooms created before this field existed omit it.
+   */
+  joinedMidRound?: boolean;
   joinedAt: number;
   /**
    * Epoch ms of this player's last poll. The server drops players it hasn't
@@ -56,4 +63,6 @@ export interface DrawLocationState {
   roomCode?: string;
   playerName?: string;
   room?: Room;
+  /** Set when the player joined a game that had already started. */
+  joinedLate?: boolean;
 }

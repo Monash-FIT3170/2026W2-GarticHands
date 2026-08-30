@@ -102,6 +102,7 @@ type Player = {
   status: 'host' | 'waiting' | 'ready'
   isHost: boolean
   ready: boolean
+  joinedMidRound: boolean // true = joined while a round was in progress
   joinedAt: number        // Date.now()
   lastSeen: number        // Date.now() of their most recent poll — see Presence below
 }
@@ -119,6 +120,7 @@ type Room = {
   prompts: Record<string, string>    // playerName → prompt text
   drawings: Record<string, string>   // playerName → PNG data URL
   guesses: Record<string, string>    // playerName → guess text
+  guessTargets: Record<string, string> // guesserName → drawer whose drawing they guessed
   createdAt: number
 }
 ```
@@ -159,6 +161,10 @@ presence sweep (3s) ──┴─▶ lastSeen older than 30s ──────�
 - **Phase re-check.** `advanceIfPhaseComplete()` runs after a departure as well as after a submission — that's what lets a round continue instead of stalling.
 - **Being dropped.** A client that no longer finds itself in `room.players` returns to the landing page rather than sitting on a page it isn't part of.
 - **Empty rooms** are forgotten a minute after their last player leaves.
+
+## Late joins
+
+`POST /rooms/join` succeeds even while `status === 'started'`. The new player gets `joinedMidRound: true`, which excludes them from the "everyone submitted" check that advances phases (a late joiner can never stall the round), from the deadline backfill when a phase times out (they owe no content), and blocks their own submissions with `409`. The flag is cleared when the next round starts (`/start`, `/restart`) or the room returns to the lobby (`/end`). The client routes a late joiner to `/game`, which shows a "round in progress" wait state and moves them into the game at the next round boundary. A late joiner who leaves again goes through the same `removePlayer` path as everyone else.
 
 ## Sequence: lobby + start (current)
 

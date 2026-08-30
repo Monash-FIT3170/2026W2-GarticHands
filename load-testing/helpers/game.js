@@ -114,6 +114,30 @@ export function waitForPhase(roomCode, expectedPhase) {
 }
 
 /*
+ * Wait until the room's game has started.
+ *
+ * Late joiners use this to make sure the game is genuinely in
+ * progress before they attempt to join.
+ */
+export function waitForGameStart(roomCode) {
+    for (let attempt = 0; attempt < PHASE_TIMEOUT_SECONDS; attempt += 1) {
+        const room = getRoom(roomCode);
+
+        if (room && room.status === 'started') {
+            return room;
+        }
+
+        sleep(1);
+    }
+
+    check(false, {
+        'Room reached started status': () => false,
+    });
+
+    return null;
+}
+
+/*
  * Wait until the expected number of players are present.
  */
 export function waitForPlayers(roomCode, expectedPlayers) {
