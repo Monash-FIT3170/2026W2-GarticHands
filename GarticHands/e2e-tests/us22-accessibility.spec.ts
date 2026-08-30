@@ -1,5 +1,5 @@
 import { test, expect } from '@playwright/test'
-import AxeBuilder from '@axe-core/playwright'
+import { AxeBuilder } from '@axe-core/playwright'
 
 /**
  * User Story 22: As a player, I want all necessary text to be able to be
@@ -20,11 +20,9 @@ async function expectNoSeriousViolations(page: import('@playwright/test').Page) 
     expect(serious, JSON.stringify(serious, null, 2)).toEqual([])
 }
 
-// The brand palette currently has real WCAG AA color-contrast gaps (e.g. the
-// "Host" badge and the teal "Empty" lobby-slot text) — a known, pre-existing
-// design issue, not a test bug. Marked `test.fail()` so it documents the gap
-// without breaking the suite; once the palette is fixed this will start
-// failing (in a good way), which is the cue to remove `test.fail()`.
+// The current product palette has known serious WCAG AA contrast violations.
+// Keep them visible in test output without making the E2E job fail until the
+// visual styles are corrected in the application.
 test.fail('landing page has no serious accessibility violations', async ({ page }) => {
     await page.goto('/')
     await expect(page.getByPlaceholder('Enter username...')).toBeVisible()

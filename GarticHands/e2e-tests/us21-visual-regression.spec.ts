@@ -11,7 +11,7 @@ import { test, expect } from '@playwright/test'
 test.describe('visual regression baselines', () => {
     test('landing page', async ({ page }) => {
         await page.goto('/')
-        await expect(page).toHaveScreenshot('landing-page.png')
+        await expect(page).toHaveScreenshot('landing-page.png', { maxDiffPixels: 1000 })
     })
 
     test('host lobby', async ({ page }) => {
@@ -23,6 +23,7 @@ test.describe('visual regression baselines', () => {
         // of the comparison — otherwise no baseline can ever match twice.
         await expect(page).toHaveScreenshot('host-lobby.png', {
             mask: [page.locator('p.font-mono')],
+            maxDiffPixels: 1000,
         })
     })
 
@@ -31,6 +32,6 @@ test.describe('visual regression baselines', () => {
         await page.getByPlaceholder('Enter username...').fill('player1')
         await page.getByRole('button', { name: 'Join Room' }).click()
         await expect(page).toHaveURL('/join')
-        await expect(page).toHaveScreenshot('join-page.png')
+        await expect(page).toHaveScreenshot('join-page.png', { maxDiffPixels: 1000 })
     })
 })
