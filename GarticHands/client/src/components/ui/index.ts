@@ -5,6 +5,7 @@ export { default as Avatar } from './Avatar';
 export { default as Badge } from './Badge';
 export { default as Logo } from './Logo';
 export { default as TopRightButtons } from './TopRightButtons';
+export { default as SettingsPanel } from './SettingsPanel';
 export { default as CountdownTimer } from './CountdownTimer';
 export { default as RoundHeader } from './RoundHeader';
 export { default as Toast, useToast } from './Toast';

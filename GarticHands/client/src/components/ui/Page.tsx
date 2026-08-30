@@ -1,5 +1,6 @@
-import type { ReactNode } from 'react';
+import { useState, type ReactNode } from 'react';
 import TopRightButtons from './TopRightButtons';
+import SettingsPanel from './SettingsPanel';
 import Logo from './Logo';
 
 interface PageProps {
@@ -26,6 +27,9 @@ interface PageProps {
 /**
  * Page layout shell — provides the brand background, optional logo, and the top-right
  * utility buttons. Pages stay declarative: `<Page logo><Card>…</Card></Page>`.
+ *
+ * The gear button toggles the shared `SettingsPanel` (colour-vision modes), so the
+ * setting is reachable from every route without individual pages wiring anything.
  */
 export default function Page({
   variant = 'centered',
@@ -37,6 +41,8 @@ export default function Page({
   className = '',
   children,
 }: PageProps) {
+  const [settingsOpen, setSettingsOpen] = useState(false);
+
   const layout =
     variant === 'centered'
       ? 'flex flex-col items-center justify-center'
@@ -44,7 +50,8 @@ export default function Page({
 
   return (
     <div className={`min-h-screen ${background} ${layout} relative ${padding} ${className}`}>
-      {topRight && <TopRightButtons />}
+      {topRight && <TopRightButtons onSettings={() => setSettingsOpen((open) => !open)} />}
+      {topRight && <SettingsPanel open={settingsOpen} onClose={() => setSettingsOpen(false)} />}
       {logo && <Logo compact={compactLogo} />}
       {children}
     </div>
