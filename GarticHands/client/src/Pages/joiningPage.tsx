@@ -30,8 +30,17 @@ export default function JoiningPage() {
     const data = await joinRoom(roomCode, playerName);
     setSubmitting(false);
 
-    if (!data.success) {
+    if (!data.success || !data.room) {
       setError(data.message || 'Room not found.');
+      return;
+    }
+
+    // Joining a game that's already running skips the lobby — GamePage keeps
+    // the late joiner up to date and moves them into the next round.
+    if (data.room.status === 'started') {
+      void navigate('/game', {
+        state: { roomCode: data.room.code, playerName, joinedLate: true },
+      });
       return;
     }
 

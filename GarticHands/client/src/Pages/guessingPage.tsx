@@ -29,9 +29,10 @@ export default function GuessingPage() {
 
     // Pick the player whose drawing we'll guess: the next player in the player list,
     // wrapping around. Deterministic across clients because the list order is shared.
+    // Mid-round joiners have no drawing, so they're excluded from the rotation.
     void getRoom(roomCode).then((data) => {
       if (!data.success || !data.room) return;
-      const players: Player[] = data.room.players;
+      const players: Player[] = data.room.players.filter((p) => !p.joinedMidRound);
       const myIndex = players.findIndex((p) => p.name === playerName);
       if (myIndex === -1) return;
       const target = players[(myIndex + 1) % players.length];

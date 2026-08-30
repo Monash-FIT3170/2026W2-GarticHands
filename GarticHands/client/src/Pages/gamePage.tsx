@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
 import { useLocation, useNavigate } from 'react-router-dom';
-import { Card, Button, RoundHeader } from '../components/ui';
+import { Card, Button, RoundHeader, useToast } from '../components/ui';
 import { getRoom, restartRoom, endRoom } from '../api/room';
 import { useRecordings, type Recording } from '../state/RecordingsContext';
 import type { Player, Room, DrawLocationState } from '../types/room';
@@ -21,11 +21,17 @@ export default function GamePage() {
   const navigate = useNavigate();
   const roomCode = state?.roomCode;
   const playerName = state?.playerName;
+  const joinedLate = state?.joinedLate ?? false;
 
   const [room, setRoom] = useState<Room | null>(null);
   const [working, setWorking] = useState(false);
   const [view, setView] = useState<EndView>('cards');
   const { recordings, clearRecordings } = useRecordings();
+  const { toast, show } = useToast('pill');
+
+  useEffect(() => {
+    if (joinedLate) show('You joined mid-round — you’ll play from the next round!');
+  }, [joinedLate, show]);
 
   useEffect(() => {
     if (!roomCode || !playerName) {
@@ -41,7 +47,12 @@ export default function GamePage() {
       if (cancelled || !data.success || !data.room) return;
       setRoom(data.room);
 
-      if (data.room.phase === 'prompt') {
+      // Mid-round joiners stay here until the round they joined during is
+      // over; the server clears the flag once a fresh round begins.
+      const me = data.room.players.find((p) => p.name === playerName);
+      const sittingOut = me?.joinedMidRound === true;
+
+      if (data.room.phase === 'prompt' && !sittingOut) {
         cancelled = true;
         void navigate('/input', { state: { roomCode, playerName } });
         return;
@@ -67,6 +78,8 @@ export default function GamePage() {
   const maxRounds = room?.maxRounds ?? 4;
   const isFinalRound = round >= maxRounds;
   const chains = room ? buildRevealChains(room) : [];
+  // True while a mid-round joiner is waiting for the current round to finish.
+  const roundInProgress = room !== null && room.phase !== 'reveal' && room.phase !== 'lobby';
 
   async function handlePlayAgain() {
     if (!roomCode || working) return;
@@ -86,20 +99,37 @@ export default function GamePage() {
     <div className="background !justify-start">
       <Card variant="glass" className="w-full !max-w-3xl">
         <RoundHeader round={round} totalRounds={maxRounds} />
-        <h1 className="text-3xl mb-4">Reveal</h1>
+        <h1 className="text-3xl mb-4">{roundInProgress ? 'Round in Progress' : 'Reveal'}</h1>
 
         {!room && <p className="text-sm text-white/70">Loading results...</p>}
 
-        {room && <ViewTabs view={view} onChange={setView} recordingsCount={recordings.length} />}
+        {roundInProgress && (
+          <div className="bg-white/[0.10] border border-white/[0.20] rounded-xl p-6 text-center">
+            <p className="text-sm text-white/80 font-semibold">
+              Round {round} is still being played...
+            </p>
+            <p className="text-xs text-white/60 mt-2">
+              You joined mid-round — hang tight, you&apos;ll jump in when the next round starts.
+            </p>
+          </div>
+        )}
 
-        {view === 'cards' && <CardsView chains={chains} />}
+        {room && !roundInProgress && (
+          <ViewTabs view={view} onChange={setView} recordingsCount={recordings.length} />
+        )}
 
-        {view === 'slideshow' && <SlideshowView chains={chains.filter((c) => c.drawing)} />}
+        {!roundInProgress && view === 'cards' && <CardsView chains={chains} />}
 
-        {view === 'recordings' && <RecordingsView recordings={recordings} />}
+        {!roundInProgress && view === 'slideshow' && (
+          <SlideshowView chains={chains.filter((c) => c.drawing)} />
+        )}
+
+        {!roundInProgress && view === 'recordings' && <RecordingsView recordings={recordings} />}
 
         <div className="flex flex-col items-end mt-6 gap-2">
-          {isHost ? (
+          {roundInProgress ? (
+            <p className="text-sm text-white/70">Waiting for the round to finish...</p>
+          ) : isHost ? (
             isFinalRound ? (
               <Button
                 variant="outline"
@@ -128,6 +158,8 @@ export default function GamePage() {
           )}
         </div>
       </Card>
+
+      {toast}
     </div>
   );
 }
@@ -351,9 +383,11 @@ function RecordingsView({ recordings }: { recordings: Recording[] }) {
 /**
  * One reveal row per drawer. Cycle is "player M guessed player M+1's drawing",
  * so the guesser for drawer at index `i` is the player at index (i − 1 + N) % N.
+ * Mid-round joiners didn't take part in the round, so they're excluded to keep
+ * the drawer/guesser pairing identical to what it was when the round started.
  */
 function buildRevealChains(room: Room): RevealChain[] {
-  const players = room.players;
+  const players = room.players.filter((p) => !p.joinedMidRound);
   if (players.length === 0) return [];
   return players.map((drawer, i) => {
     const guesserIndex = (i - 1 + players.length) % players.length;

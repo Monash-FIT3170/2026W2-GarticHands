@@ -102,18 +102,29 @@ type Player = {
   status: 'host' | 'waiting' | 'ready'
   isHost: boolean
   ready: boolean
+  joinedMidRound: boolean // true = joined while a round was in progress
   joinedAt: number        // Date.now()
 }
+
+type RoomPhase = 'lobby' | 'prompt' | 'draw' | 'guess' | 'reveal'
 
 type Room = {
   code: string            // 6 chars, [A-Z0-9]
   players: Player[]
   status: 'waiting' | 'started'
+  phase: RoomPhase
+  round: number
+  maxRounds: number
+  prompts: Record<string, string>   // playerName → prompt text
+  drawings: Record<string, string>  // playerName → PNG data URL
+  guesses: Record<string, string>   // playerName → guess text
   createdAt: number
 }
 ```
 
-Drawings and prompts are **not yet modeled** server-side. Adding `prompts: string[]`, `drawings: DrawingFrame[]`, `currentRound: number`, `phase: 'prompt' | 'draw' | 'guess'` is the natural next extension.
+The typed mirror lives in `client/src/types/room.ts` — keep both in sync.
+
+**Late joins**: `POST /rooms/join` succeeds even while `status === 'started'`. The new player gets `joinedMidRound: true`, which excludes them from the "everyone submitted" check that advances phases (a late joiner can never stall the round) and blocks their own submissions with `409`. The flag is cleared when the next round starts (`/start`, `/restart`) or the room returns to the lobby (`/end`). The client routes a late joiner to `/game`, which shows a "round in progress" wait state and moves them into the game at the next round boundary.
 
 ## Sequence: lobby + start (current)
 

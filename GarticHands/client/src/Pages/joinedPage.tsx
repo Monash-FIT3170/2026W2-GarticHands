@@ -44,6 +44,17 @@ export default function JoinedPage() {
 
       if (data.room.status === 'started' && !alreadyStarted) {
         alreadyStarted = true;
+
+        // A mid-round joiner shouldn't be swept into the prompt page — the
+        // game page keeps them posted until the next round starts.
+        const midRoundJoiner = data.room.players.find(
+          (p: Player) => p.name === playerName,
+        )?.joinedMidRound;
+        if (midRoundJoiner) {
+          void navigate('/game', { state: { roomCode, playerName, joinedLate: true } });
+          return;
+        }
+
         setStarting(true);
         show('Starting game...');
         setTimeout(() => {
@@ -69,7 +80,7 @@ export default function JoinedPage() {
     if (!roomCode || !playerName) return;
     const next = !ready;
     const data = await updateReady(roomCode, playerName, next);
-    if (data.success) {
+    if (data.success && data.room) {
       setReady(next);
       setPlayers(data.room.players);
     }
@@ -122,11 +133,24 @@ export default function JoinedPage() {
             </div>
 
             <div className="mt-6 w-full flex flex-col items-center gap-2">
-              <p className="text-white/60 text-xs font-semibold uppercase tracking-widest">Room Code</p>
-              <p className="text-white font-mono font-extrabold text-4xl tracking-[0.3em]">{roomCode}</p>
+              <p className="text-white/60 text-xs font-semibold uppercase tracking-widest">
+                Room Code
+              </p>
+              <p className="text-white font-mono font-extrabold text-4xl tracking-[0.3em]">
+                {roomCode}
+              </p>
               <Button variant="outline" size="full" onClick={copyCode}>
                 <span className="flex items-center justify-center gap-2">
-                  <svg xmlns="http://www.w3.org/2000/svg" className="w-5 h-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                  <svg
+                    xmlns="http://www.w3.org/2000/svg"
+                    className="w-5 h-5"
+                    viewBox="0 0 24 24"
+                    fill="none"
+                    stroke="currentColor"
+                    strokeWidth="2"
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                  >
                     <rect x="9" y="9" width="13" height="13" rx="2" ry="2" />
                     <path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1" />
                   </svg>

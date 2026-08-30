@@ -41,6 +41,7 @@ app.post('/rooms/create', (req, res) => {
         status: 'host',
         isHost: true,
         ready: true,
+        joinedMidRound: false,
         joinedAt: Date.now(),
       },
     ],
@@ -72,11 +73,15 @@ app.post('/rooms/join', (req, res) => {
     return res.status(404).json({ success: false, message: 'Room not found' })
   }
 
+  // Joining a game that already started is allowed: the player is flagged as a
+  // mid-round joiner so the current round can finish without waiting on them.
+  // The flag is cleared when the next round starts (/start, /restart, /end).
   room.players.push({
     name: playerName,
     status: 'waiting',
     isHost: false,
     ready: false,
+    joinedMidRound: room.status === 'started',
     joinedAt: Date.now(),
   })
 
@@ -129,6 +134,9 @@ app.patch('/rooms/:roomCode/start', (req, res) => {
   room.prompts = {}
   room.drawings = {}
   room.guesses = {}
+  for (const p of room.players) {
+    p.joinedMidRound = false
+  }
   io.to(room.code).emit('game-start', room)
   io.to(room.code).emit('room-update', room)
   res.json({ success: true, room })
@@ -155,6 +163,10 @@ app.patch('/rooms/:roomCode/restart', (req, res) => {
   room.drawings = {}
   room.guesses = {}
   room.round = (room.round || 1) + 1
+  // A new round starts — mid-round joiners become full participants.
+  for (const p of room.players) {
+    p.joinedMidRound = false
+  }
   io.to(room.code).emit('room-update', room)
   res.json({ success: true, room, maxRounds: MAX_ROUNDS })
 })
@@ -173,6 +185,7 @@ app.patch('/rooms/:roomCode/end', (req, res) => {
   room.drawings = {}
   room.guesses = {}
   for (const p of room.players) {
+    p.joinedMidRound = false
     if (!p.isHost) {
       p.ready = false
       p.status = 'waiting'
@@ -198,6 +211,18 @@ function submitForPhase(roomCode, playerName, value, expectedPhase, bucket, next
     }
   }
 
+  if (player.joinedMidRound) {
+    return {
+      error: {
+        status: 409,
+        body: {
+          success: false,
+          message: 'You joined mid-round — you can play from the next round',
+        },
+      },
+    }
+  }
+
   if (validate && !validate(value)) {
     return { error: { status: 400, body: { success: false, message: 'Invalid submission' } } }
   }
@@ -205,9 +230,14 @@ function submitForPhase(roomCode, playerName, value, expectedPhase, bucket, next
   room[bucket] = room[bucket] || {}
   room[bucket][playerName] = value
 
-  const everyoneSubmitted = room.players.every(
-    (p) => room[bucket][p.name] !== undefined && room[bucket][p.name] !== null,
-  )
+  // Mid-round joiners don't owe content for the current round, so only the
+  // players who were in the game when the round started gate phase advancement.
+  const activePlayers = room.players.filter((p) => !p.joinedMidRound)
+  const everyoneSubmitted =
+    activePlayers.length > 0 &&
+    activePlayers.every(
+      (p) => room[bucket][p.name] !== undefined && room[bucket][p.name] !== null,
+    )
 
   if (everyoneSubmitted) {
     room.phase = nextPhase
