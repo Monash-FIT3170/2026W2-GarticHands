@@ -9,7 +9,7 @@ const branch =
   }).trim();
 
 // These branches don't follow the feature branch naming convention
-const protectedBranches = ['main'];
+const protectedBranches = ['main', 'dev'];
 
 if (protectedBranches.includes(branch)) {
   process.exit(0);
