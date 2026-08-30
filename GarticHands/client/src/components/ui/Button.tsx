@@ -53,7 +53,7 @@ function variantClasses(
         : 'bg-gray-500 text-gray-300 rounded font-bold';
     case 'ready':
       if (disabled) {
-        return 'bg-[#4a6e69] text-[#8aaba6] rounded-lg font-extrabold cursor-not-allowed opacity-50'
+        return 'bg-[#4a6e69] text-[#8aaba6] rounded-lg font-extrabold cursor-not-allowed opacity-50';
       }
       return active
         ? 'bg-[#78EF57] text-[#2E5534] hover:bg-[#67DD48] rounded-lg font-extrabold transition-colors'
