@@ -3,6 +3,8 @@
  * 100 concrete, easy-to-draw nouns spanning everyday objects, animals, food,
  * and simple icons. Skewed toward items with recognisable silhouettes.
  */
+
+/** start function here */
 export const PROMPT_WORDS: readonly string[] = [
   // Animals
   'cat',
