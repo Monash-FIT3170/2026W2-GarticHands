@@ -46,6 +46,9 @@ vi.mock('react-router-dom', () => ({
 vi.mock('../client/src/api/room', () => ({
   getRoom: mockGetRoom,
   submitGuess: mockSubmitGuess,
+  // Real constant re-declared here because the whole module is mocked away:
+  // the page compares `data.status === PhaseConflictStatus` on failures.
+  PhaseConflictStatus: 409,
 }))
 
 vi.mock('../client/src/hooks/usePhaseAdvance', () => ({
@@ -201,7 +204,7 @@ describe('GuessingPage', () => {
     fireEvent.click(screen.getByText('Submit Guess'))
 
     await waitFor(() => {
-      expect(mockSubmitGuess).toHaveBeenCalledWith('ABC123', 'Ash', 'a robot')
+      expect(mockSubmitGuess).toHaveBeenCalledWith('ABC123', 'Ash', 'a robot', 'Sam')
     })
     expect(screen.getByPlaceholderText('What is this drawing?')).toBeDisabled()
   })
@@ -296,7 +299,7 @@ describe('GuessingPage', () => {
     fireEvent.click(screen.getByTestId('expire-timer'))
 
     await waitFor(() => {
-      expect(mockSubmitGuess).toHaveBeenCalledWith('ABC123', 'Ash', 'a robot')
+      expect(mockSubmitGuess).toHaveBeenCalledWith('ABC123', 'Ash', 'a robot', 'Sam')
     })
   })
 
@@ -307,7 +310,7 @@ describe('GuessingPage', () => {
     fireEvent.click(screen.getByTestId('expire-timer'))
 
     await waitFor(() => {
-      expect(mockSubmitGuess).toHaveBeenCalledWith('ABC123', 'Ash', '')
+      expect(mockSubmitGuess).toHaveBeenCalledWith('ABC123', 'Ash', '', 'Sam')
     })
   })
 

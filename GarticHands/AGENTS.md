@@ -86,6 +86,7 @@ There's no test suite yet. If you add one, put it in `client/src/__tests__/` (fo
 - **Port 3000**: hard-coded for the server. Set `PORT` env var to override.
 - **Room codes are case-insensitive on the server** (`.toUpperCase()` everywhere) but **case-sensitive in routes** (`/joined/:code` is whatever the URL contains). The client uppercases before navigating.
 - **Polling**: the lobby polls `GET /rooms/:code` every second. Don't add more polls — wire up Socket.IO first.
+- **The poll is also the presence heartbeat**: always pass `?playerName=` from a repeating `getRoom` call. A client that polls anonymously looks idle and the server drops it out of its own room after 30s. See [`server/README.md` § Presence](server/README.md#presence).
 
 ## Glossary
 
@@ -93,7 +94,7 @@ There's no test suite yet. If you add one, put it in `client/src/__tests__/` (fo
 - **Gesture** — one of `NO_HAND` / `HAND_PRESENT` / `PINCH` / `OPEN_PALM` derived from landmarks.
 - **CanvasOp** — a strategy that consumes `(landmarks, gesture)` and mutates the canvas. One op per gesture.
 - **Room** — server-side game session. In-memory. Identified by a 6-char code.
-- **Phase** *(planned)* — a stage within a round: `prompt`, `draw`, `guess`, `reveal`. Not implemented yet.
+- **Phase** — a stage within a round: `lobby`, `prompt`, `draw`, `guess`, `reveal`. `prompt`/`draw`/`guess` run on a server-owned deadline (`room.phaseEndsAt`); the server force-advances when it passes. See [`ARCHITECTURE.md` § Phase deadlines](ARCHITECTURE.md#phase-deadlines).
 
 ## When in doubt
 

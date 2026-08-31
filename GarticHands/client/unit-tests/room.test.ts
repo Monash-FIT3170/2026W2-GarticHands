@@ -3,6 +3,7 @@ import {
   createRoom,
   joinRoom,
   getRoom,
+  leaveRoom,
   updateReady,
   startRoom,
   submitPrompt,
@@ -15,12 +16,15 @@ import {
 interface FetchCallOptions {
   method?: string;
   body?: string;
+  keepalive?: boolean;
 }
 type FetchCall = [url: string, options?: FetchCallOptions];
 
 function mockFetchOnce(responseBody: unknown) {
   const json = vi.fn().mockResolvedValue(responseBody);
-  const fetchMock = vi.fn().mockResolvedValue({ json });
+  // `status` matters to the submit helpers, which surface it so callers can
+  // tell a phase-deadline 409 apart from a real failure.
+  const fetchMock = vi.fn().mockResolvedValue({ json, status: 200 });
   vi.stubGlobal('fetch', fetchMock);
   return fetchMock;
 }
@@ -61,6 +65,35 @@ describe('api/room', () => {
     const [url, options] = fetchMock.mock.calls[0] as FetchCall;
     expect(url).toContain('/rooms/ABCD');
     expect(options).toBeUndefined();
+  });
+
+  it('getRoom passes playerName as a query param when given (presence heartbeat)', async () => {
+    const fetchMock = mockFetchOnce({ players: [] });
+
+    await getRoom('ABCD', 'Bob');
+
+    const [url] = fetchMock.mock.calls[0] as FetchCall;
+    expect(url).toContain('/rooms/ABCD?playerName=Bob');
+  });
+
+  it('leaveRoom DELETEs the player resource', async () => {
+    const fetchMock = mockFetchOnce({ ok: true });
+
+    await leaveRoom('ABCD', 'Bob');
+
+    const [url, options] = fetchMock.mock.calls[0] as FetchCall;
+    expect(url).toContain('/rooms/ABCD/players/Bob');
+    expect(options?.method).toBe('DELETE');
+    expect(options?.keepalive).toBe(false);
+  });
+
+  it('leaveRoom passes keepalive so a closing tab can still report the departure', async () => {
+    const fetchMock = mockFetchOnce({ ok: true });
+
+    await leaveRoom('ABCD', 'Bob', true);
+
+    const [, options] = fetchMock.mock.calls[0] as FetchCall;
+    expect(options?.keepalive).toBe(true);
   });
 
   it('updateReady PATCHes playerName and ready state', async () => {
@@ -121,6 +154,19 @@ describe('api/room', () => {
     expect(JSON.parse(options?.body ?? '{}')).toEqual({
       playerName: 'Bob',
       guess: 'a toaster with wings',
+    });
+  });
+
+  it('submitGuess also POSTs the guessed drawer as `of` when given', async () => {
+    const fetchMock = mockFetchOnce({ ok: true });
+
+    await submitGuess('ABCD', 'Bob', 'a toaster with wings', 'Alice');
+
+    const [, options] = fetchMock.mock.calls[0] as FetchCall;
+    expect(JSON.parse(options?.body ?? '{}')).toEqual({
+      playerName: 'Bob',
+      guess: 'a toaster with wings',
+      of: 'Alice',
     });
   });
 

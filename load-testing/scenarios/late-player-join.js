@@ -1,19 +1,23 @@
 import { check } from 'k6';
-import { sleep } from 'k6';
 import {
     createRoom,
     joinRoom,
     setReady,
     waitForPlayers,
+    waitForGameStart,
+    waitForPhase,
     startGame,
     playRound,
 } from '../helpers/game.js';
 import { post } from '../helpers/api.js';
 
 /*
- * Tests whether players can join a game after it has started.
- * Three players start the game, while two additional players attempt
- * to join late. The test expects these late join attempts to be rejected.
+ * Tests that players can join a game after it has started.
+ *
+ * Three players start the game, while two additional players join
+ * late. The test expects the late joins to be accepted, the late
+ * joiners to be flagged as mid-round joiners, and the original three
+ * players to finish the round without waiting on the late joiners.
  */
 
 const INITIAL_PLAYERS = 3;
@@ -56,10 +60,9 @@ export default function (data) {
         startGame(roomCode);
     }
 
-    // Players 4 and 5 wait until the game has started,
-    // then attempt to join the room.
+    // Players 4 and 5 wait until the game has started, then join late.
     if (__VU === 4 || __VU === 5) {
-        sleep(2);
+        waitForGameStart(roomCode);
 
         const response = post(
             '/rooms/join',
@@ -72,11 +75,25 @@ export default function (data) {
 
         console.log(`${playerName} late join status: ${response.status}`);
 
-        // Late joins should be rejected with a 4xx response.
+        // Late joins are accepted, and the late joiner is marked as a
+        // mid-round joiner so the current round doesn't wait on them.
         check(response, {
-            [`Late join ${playerName}: rejected`]: (r) =>
-                r.status >= 400 && r.status < 500,
+            [`Late join ${playerName}: accepted`]: (r) =>
+                r.status >= 200 && r.status < 300,
+            [`Late join ${playerName}: room already started`]: (r) =>
+                r.json().room.status === 'started',
+            [`Late join ${playerName}: flagged as mid-round joiner`]: (r) => {
+                const me = r.json().room.players.find(
+                    (p) => p.name === playerName,
+                );
+
+                return me !== undefined && me.joinedMidRound === true;
+            },
         });
+
+        // The round must still complete even though the late joiners
+        // never submit anything for it.
+        waitForPhase(roomCode, 'reveal');
     }
 
     // Players 1-3 complete the game normally.

@@ -27,3 +27,101 @@
     @apply w-full bg-white rounded-full px-5 py-3 text-[#3D6B64] placeholder-[#3D6B64]/40 font-semibold outline-none focus:ring-2 focus:ring-[#D4623E]/40 mt-3;
   }
 }
+
+/* ============================================================================
+   Colour-blind palette variants (User Story 25)
+
+   `SettingsProvider` (client/src/state/SettingsContext.tsx) mirrors the chosen
+   mode onto `<html data-color-vision="…">`. In the default mode the attribute
+   is absent, none of the rules below match, and the app renders exactly the
+   stock palette — keeping the us21 visual-regression baselines byte-identical.
+
+   Each mode defines the semantic variables below; the attribute-scoped rules
+   that follow remap the existing Tailwind colour utilities onto them, so no
+   component needed restyling. The problem pairs in the stock palette are the
+   ready/start greens (#78EF57 / #2E5534) against the coral action orange
+   (#D4623E):
+   - deuteranopia / protanopia (red-green blindness): greens shift to blues so
+     ready/positive states never sit on the red-green axis; protanopia also
+     brightens the coral (pure reds read as near-black to protanopes).
+   - tritanopia (blue-yellow blindness): greens shift to roses/magentas, which
+     stay clearly separate from the teal page chrome (teal reads as green to
+     tritanopes, so green accents would vanish into the background).
+   ========================================================================== */
+
+:root[data-color-vision='deuteranopia'],
+:root[data-color-vision='protanopia'] {
+  --cv-accent: #56b4e9; /* replaces #78EF57 — ready/start sky blue */
+  --cv-accent-hover: #3da5e0; /* replaces #67DD48 */
+  --cv-accent-deep: #123a63; /* replaces #2E5534 — dark navy */
+  --cv-accent-deep-hover: #0d2c4d; /* replaces #244529 */
+  --cv-accent-soft: #bfdbfe; /* replaces green-200 — ready badge bg */
+  --cv-submit: #2563eb; /* replaces green-600 — submit buttons */
+  --cv-submit-hover: #1d4ed8; /* replaces green-700 */
+  --cv-action: #d4623e; /* coral unchanged — reads brownish-yellow, distinct from blue */
+  --cv-action-strong: #e67b2e; /* avatar inner unchanged */
+}
+
+:root[data-color-vision='protanopia'] {
+  --cv-action: #e69f00; /* brightened — protanopes see #D4623E as muddy/dark */
+  --cv-action-strong: #f0a202;
+}
+
+:root[data-color-vision='tritanopia'] {
+  --cv-accent: #f07ea8; /* replaces #78EF57 — ready/start rose */
+  --cv-accent-hover: #ec6497; /* replaces #67DD48 */
+  --cv-accent-deep: #8a2b57; /* replaces #2E5534 — dark raspberry */
+  --cv-accent-deep-hover: #701f45; /* replaces #244529 */
+  --cv-accent-soft: #f9cfe0; /* replaces green-200 — ready badge bg */
+  --cv-submit: #db2777; /* replaces green-600 — submit buttons */
+  --cv-submit-hover: #be185d; /* replaces green-700 */
+  --cv-action: #d4623e; /* coral unchanged — reds are safe for tritanopes */
+  --cv-action-strong: #e67b2e;
+}
+
+/* Remap the existing colour utilities whenever any non-default mode is active.
+   Selector escapes match the Tailwind-generated class names for the arbitrary
+   hex values used across components (Button, Badge, PlayerList, …). */
+[data-color-vision] .bg-\[\#78EF57\] {
+  background-color: var(--cv-accent);
+}
+[data-color-vision] .bg-\[\#78EF57\]\/90 {
+  background-color: color-mix(in srgb, var(--cv-accent) 90%, transparent);
+}
+[data-color-vision] .hover\:bg-\[\#67DD48\]:hover {
+  background-color: var(--cv-accent-hover);
+}
+[data-color-vision] .border-\[\#78EF57\] {
+  border-color: var(--cv-accent);
+}
+[data-color-vision] .bg-\[\#2E5534\] {
+  background-color: var(--cv-accent-deep);
+}
+[data-color-vision] .text-\[\#2E5534\] {
+  color: var(--cv-accent-deep);
+}
+[data-color-vision] .hover\:bg-\[\#244529\]:hover {
+  background-color: var(--cv-accent-deep-hover);
+}
+[data-color-vision] .bg-green-200 {
+  background-color: var(--cv-accent-soft);
+}
+[data-color-vision] .bg-green-600 {
+  background-color: var(--cv-submit);
+}
+[data-color-vision] .hover\:bg-green-700:hover {
+  background-color: var(--cv-submit-hover);
+}
+[data-color-vision] .text-\[\#D4623E\] {
+  color: var(--cv-action);
+}
+[data-color-vision] .border-\[\#D4623E\] {
+  border-color: var(--cv-action);
+}
+[data-color-vision] .bg-\[\#E67B2E\] {
+  background-color: var(--cv-action-strong);
+}
+/* `.rounds` applies the coral via @apply, so it needs its own remap. */
+[data-color-vision] .rounds {
+  color: var(--cv-action);
+}

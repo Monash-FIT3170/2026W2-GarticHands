@@ -47,6 +47,9 @@ vi.mock('react-router-dom', () => ({
 
 vi.mock('../client/src/api/room', () => ({
   submitPrompt: mockSubmitPrompt,
+  // Real constant re-declared here because the whole module is mocked away:
+  // the page compares `data.status === PhaseConflictStatus` on failures.
+  PhaseConflictStatus: 409,
 }))
 
 vi.mock('../client/src/hooks/usePhaseAdvance', () => ({
