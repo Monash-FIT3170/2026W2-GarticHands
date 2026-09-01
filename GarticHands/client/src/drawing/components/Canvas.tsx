@@ -9,6 +9,7 @@ import type { CanvasOp } from './CanvasOperations/CanvasOps';
 import { CanvasDraw } from './CanvasOperations/CanvasDraw';
 import { CanvasErase } from './CanvasOperations/CanvasErase';
 import { CanvasLocation } from './CanvasOperations/CanvasLocation';
+import { STROKE_SMOOTHING_ALPHA } from '../DrawingSettings';
 
 export interface CanvasHandle {
   onFrame: (landmarks: HandLandmark[] | null, gesture: GestureType) => void;
@@ -42,7 +43,7 @@ const Canvas = ({
 }: CanvasProps) => {
   const drawCanvasRef = useRef<HTMLCanvasElement>(null);
   const overlayCanvasRef = useRef<HTMLCanvasElement>(null);
-  const { registerDrawCanvasElement } = useDrawingContext();
+  const { registerDrawCanvasElement, strokeSmoothing } = useDrawingContext();
 
   // Publish the draw-canvas DOM node so the recorder can sample it per-frame.
   useEffect(() => {
@@ -59,20 +60,24 @@ const Canvas = ({
     active: CanvasOp | null;
   } | null>(null);
 
-  // Recreate ops when strokeColor changes — preserves the already-drawn pixels
-  // (those live on the canvas element, not in the op instances) while routing
-  // future strokes through the new-colored CanvasDraw.
+  // Recreate ops when strokeColor or the smoothing level changes — preserves
+  // the already-drawn pixels (those live on the canvas element, not in the op
+  // instances) while routing future strokes through the newly-configured
+  // CanvasDraw.
   useEffect(() => {
     const drawCtx = drawCanvasRef.current?.getContext('2d');
     const overlayCtx = overlayCanvasRef.current?.getContext('2d');
     if (!drawCtx || !overlayCtx) return;
 
     stateRef.current = {
-      ops: [new CanvasDraw(drawCtx, strokeColor), new CanvasErase(drawCtx)],
+      ops: [
+        new CanvasDraw(drawCtx, strokeColor, STROKE_SMOOTHING_ALPHA[strokeSmoothing]),
+        new CanvasErase(drawCtx),
+      ],
       cursor: new CanvasLocation(overlayCtx),
       active: null,
     };
-  }, [strokeColor]);
+  }, [strokeColor, strokeSmoothing]);
 
   useImperativeHandle(
     ref,

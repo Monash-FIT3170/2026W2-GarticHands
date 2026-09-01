@@ -9,6 +9,7 @@ import {
 } from '../drawing';
 import { Card, Button, CountdownTimer } from '../components/ui';
 import { randomPrompt } from '../data/prompts';
+import { useSettings } from '../state/SettingsContext';
 
 const TotalTime = 60;
 
@@ -23,8 +24,11 @@ interface SavedDrawing {
  * No timer-forced submit, no networking.
  */
 export default function SoloPage() {
+  // Drawing adjustments live in app state; the self-contained drawing module
+  // receives them as plain provider props.
+  const { gestureSensitivity, strokeSmoothing } = useSettings();
   return (
-    <DrawingProvider>
+    <DrawingProvider gestureSensitivity={gestureSensitivity} strokeSmoothing={strokeSmoothing}>
       <SoloInner />
     </DrawingProvider>
   );

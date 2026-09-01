@@ -12,14 +12,18 @@ import { Card, Button, RoundHeader, CountdownTimer } from '../components/ui';
 import { getRoom, submitDrawing, PhaseConflictStatus } from '../api/room';
 import { usePhaseAdvance } from '../hooks/usePhaseAdvance';
 import { useRecordings } from '../state/RecordingsContext';
+import { useSettings } from '../state/SettingsContext';
 import type { DrawLocationState } from '../types/room';
 
 /** Shown until the room's server-owned deadline arrives. Real limit: `PHASE_DURATIONS` in `server/index.js`. */
 const TotalTime = 60;
 
 export default function DrawPage() {
+  // Drawing adjustments live in app state; the self-contained drawing module
+  // receives them as plain provider props.
+  const { gestureSensitivity, strokeSmoothing } = useSettings();
   return (
-    <DrawingProvider>
+    <DrawingProvider gestureSensitivity={gestureSensitivity} strokeSmoothing={strokeSmoothing}>
       <DrawPageInner />
     </DrawingProvider>
   );
