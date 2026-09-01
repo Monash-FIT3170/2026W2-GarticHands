@@ -4,6 +4,7 @@ import { GestureType } from '../src/drawing/gestures/GestureTypes';
 import { detectHandOnScreen } from '../src/drawing/gestures/detectors/detectHandOnScreen';
 import { detectPinch } from '../src/drawing/gestures/detectors/detectPinch';
 import { detectOpenPalm } from '../src/drawing/gestures/detectors/detectOpenPalm';
+import { GESTURE_THRESHOLD_SCALE } from '../src/drawing/DrawingSettings';
 import type { HandLandmark } from '../src/drawing/Models/HandLandmark';
 
 vi.mock('../src/drawing/gestures/detectors/detectHandOnScreen');
@@ -55,5 +56,26 @@ describe('detectGesture', () => {
     vi.mocked(detectOpenPalm).mockReturnValue(false);
 
     expect(detectGesture(landmarks)).toBe(GestureType.HAND_PRESENT);
+  });
+
+  it('feeds detectPinch the default threshold scale when no sensitivity is given', () => {
+    vi.mocked(detectHandOnScreen).mockReturnValue(true);
+    vi.mocked(detectPinch).mockReturnValue(true);
+
+    detectGesture(landmarks);
+
+    expect(detectPinch).toHaveBeenCalledWith(landmarks, GESTURE_THRESHOLD_SCALE.default);
+  });
+
+  it('feeds detectPinch the threshold scale of the selected sensitivity', () => {
+    vi.mocked(detectHandOnScreen).mockReturnValue(true);
+    vi.mocked(detectPinch).mockReturnValue(false);
+    vi.mocked(detectOpenPalm).mockReturnValue(false);
+
+    detectGesture(landmarks, 'high');
+    expect(detectPinch).toHaveBeenLastCalledWith(landmarks, GESTURE_THRESHOLD_SCALE.high);
+
+    detectGesture(landmarks, 'low');
+    expect(detectPinch).toHaveBeenLastCalledWith(landmarks, GESTURE_THRESHOLD_SCALE.low);
   });
 });

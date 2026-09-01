@@ -11,8 +11,8 @@
  * the recorder in parallel before optionally navigating to /guess.
  *
  * Because this page pulls in routing, the drawing module, the shared UI
- * kit, the room API, a phase-advance hook, and a recordings context, all
- * of those are mocked here. The goal is to test DrawPage own
+ * kit, the room API, a phase-advance hook, and the recordings and
+ * settings contexts, all of those are mocked here. The goal is to test DrawPage own
  * orchestration logic (what it does with the data those pieces provide),
  * not the internals of any of them.
  */
@@ -119,6 +119,12 @@ vi.mock('../client/src/hooks/usePhaseAdvance', () => ({
 
 vi.mock('../client/src/state/RecordingsContext', () => ({
   useRecordings: () => ({ saveRecording: mockSaveRecording }),
+}))
+
+// Settings context: DrawPage only reads the drawing adjustments to forward
+// them into DrawingProvider (mocked above), so defaults are all it needs.
+vi.mock('../client/src/state/SettingsContext', () => ({
+  useSettings: () => ({ gestureSensitivity: 'default', strokeSmoothing: 'default' }),
 }))
 
 // Shared "happy path" room fixture returned by getRoom, reused across

@@ -196,6 +196,8 @@ Example: add `FIST` (closed hand).
 
 If users find pinch too sensitive (drawing happens when they're not trying to), drop `PINCH_THRESHOLD` to `0.3`. If it's too hard to trigger, raise it to `0.5`.
 
+Users can also adjust this per-person at runtime: the **gesture sensitivity** setting (Settings panel → persisted by `SettingsContext`, passed in via `<DrawingProvider gestureSensitivity>`) multiplies `PINCH_THRESHOLD` by `GESTURE_THRESHOLD_SCALE` from [`../DrawingSettings.ts`](../DrawingSettings.ts) — low/default/high map to effective thresholds of 0.3 / 0.4 / 0.5. The `default` level is scale `1`, i.e. exactly the stock behavior.
+
 ---
 
 ## Common gotchas

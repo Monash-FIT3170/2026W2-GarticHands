@@ -24,9 +24,13 @@ import {
   SettingsProvider,
   useSettings,
   COLOR_VISION_MODES,
+  GESTURE_SENSITIVITIES,
+  STROKE_SMOOTHING_LEVELS,
 } from '../client/src/state/SettingsContext'
 
 const STORAGE_KEY = 'gartichands.colorVision'
+const SENSITIVITY_KEY = 'gartichands.gestureSensitivity'
+const SMOOTHING_KEY = 'gartichands.strokeSmoothing'
 
 const wrapper = ({ children }: { children: ReactNode }) => (
   <SettingsProvider>{children}</SettingsProvider>
@@ -98,5 +102,96 @@ describe('SettingsProvider / useSettings', () => {
     expect(() => renderHook(() => useSettings())).toThrow(
       'useSettings must be called inside <SettingsProvider>.',
     )
+  })
+})
+
+describe('SettingsProvider drawing adjustments', () => {
+  beforeEach(() => {
+    localStorage.clear()
+  })
+
+  test('exposes the selectable levels in panel order', () => {
+    expect(GESTURE_SENSITIVITIES).toEqual(['low', 'default', 'high'])
+    expect(STROKE_SMOOTHING_LEVELS).toEqual(['light', 'default', 'strong'])
+  })
+
+  test('defaults both adjustments and keeps their storage keys empty', () => {
+    const { result } = renderHook(() => useSettings(), { wrapper })
+
+    expect(result.current.gestureSensitivity).toBe('default')
+    expect(result.current.strokeSmoothing).toBe('default')
+    expect(localStorage.getItem(SENSITIVITY_KEY)).toBeNull()
+    expect(localStorage.getItem(SMOOTHING_KEY)).toBeNull()
+  })
+
+  test('setGestureSensitivity updates the value and persists it', () => {
+    const { result } = renderHook(() => useSettings(), { wrapper })
+
+    act(() => {
+      result.current.setGestureSensitivity('high')
+    })
+
+    expect(result.current.gestureSensitivity).toBe('high')
+    expect(localStorage.getItem(SENSITIVITY_KEY)).toBe('high')
+  })
+
+  test('setStrokeSmoothing updates the value and persists it', () => {
+    const { result } = renderHook(() => useSettings(), { wrapper })
+
+    act(() => {
+      result.current.setStrokeSmoothing('strong')
+    })
+
+    expect(result.current.strokeSmoothing).toBe('strong')
+    expect(localStorage.getItem(SMOOTHING_KEY)).toBe('strong')
+  })
+
+  test('switching back to default removes the stored values', () => {
+    const { result } = renderHook(() => useSettings(), { wrapper })
+
+    act(() => {
+      result.current.setGestureSensitivity('low')
+      result.current.setStrokeSmoothing('light')
+    })
+    act(() => {
+      result.current.setGestureSensitivity('default')
+      result.current.setStrokeSmoothing('default')
+    })
+
+    expect(localStorage.getItem(SENSITIVITY_KEY)).toBeNull()
+    expect(localStorage.getItem(SMOOTHING_KEY)).toBeNull()
+  })
+
+  test('restores persisted levels on mount', () => {
+    localStorage.setItem(SENSITIVITY_KEY, 'low')
+    localStorage.setItem(SMOOTHING_KEY, 'strong')
+
+    const { result } = renderHook(() => useSettings(), { wrapper })
+
+    expect(result.current.gestureSensitivity).toBe('low')
+    expect(result.current.strokeSmoothing).toBe('strong')
+  })
+
+  test('falls back to default when the stored values are garbage', () => {
+    localStorage.setItem(SENSITIVITY_KEY, 'ultra')
+    localStorage.setItem(SMOOTHING_KEY, '9000')
+
+    const { result } = renderHook(() => useSettings(), { wrapper })
+
+    expect(result.current.gestureSensitivity).toBe('default')
+    expect(result.current.strokeSmoothing).toBe('default')
+  })
+
+  test('the drawing adjustments do not disturb the colour-vision mode', () => {
+    const { result } = renderHook(() => useSettings(), { wrapper })
+
+    act(() => {
+      result.current.setGestureSensitivity('high')
+      result.current.setStrokeSmoothing('light')
+    })
+
+    expect(result.current.colorVision).toBe('default')
+    expect(document.documentElement.hasAttribute('data-color-vision')).toBe(false)
+    expect(localStorage.getItem(STORAGE_KEY)).toBeNull()
   })
 })

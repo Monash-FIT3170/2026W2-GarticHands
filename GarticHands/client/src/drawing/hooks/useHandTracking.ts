@@ -7,11 +7,14 @@ import { detectGesture } from '../gestures/GestureRecogniser';
 import { GestureBuffer } from '../utils/gestureBuffer';
 import { drawLandmarks, drawConnections } from '../utils/drawHand';
 import type { HandLandmark } from '../Models/HandLandmark';
+import { DEFAULT_GESTURE_SENSITIVITY, type GestureSensitivity } from '../DrawingSettings';
 
 interface UseHandTrackingOptions {
   videoRef: React.RefObject<HTMLVideoElement | null>;
   canvasRef: React.RefObject<HTMLCanvasElement | null>;
   onFrame?: (landmarks: HandLandmark[] | null, gesture: GestureType) => void;
+  /** Scales gesture-detection thresholds. Defaults to stock behavior. */
+  gestureSensitivity?: GestureSensitivity;
 }
 
 interface UseHandTrackingResult {
@@ -34,6 +37,7 @@ export function useHandTracking({
   videoRef,
   canvasRef,
   onFrame,
+  gestureSensitivity = DEFAULT_GESTURE_SENSITIVITY,
 }: UseHandTrackingOptions): UseHandTrackingResult {
   // Lazy initializer avoids a cascading render: in E2E mode we already
   // know on mount that loading should start as false, so there's no
@@ -47,6 +51,14 @@ export function useHandTracking({
   useEffect(() => {
     onFrameRef.current = onFrame;
   }, [onFrame]);
+
+  // Read through a ref (same pattern as onFrame) so a sensitivity change takes
+  // effect on the next frame without re-running the main effect — which would
+  // tear down and restart the camera + MediaPipe pipeline.
+  const sensitivityRef = useRef(gestureSensitivity);
+  useEffect(() => {
+    sensitivityRef.current = gestureSensitivity;
+  }, [gestureSensitivity]);
 
   useEffect(() => {
     let cancelled = false;
@@ -115,7 +127,7 @@ export function useHandTracking({
 
       if (detected) {
         const landmarks = results.landmarks[0] as HandLandmark[];
-        const rawGesture = detectGesture(landmarks);
+        const rawGesture = detectGesture(landmarks, sensitivityRef.current);
         const stableGesture = gestureBuffer.push(rawGesture);
 
         setGesture((prev) => (prev !== stableGesture ? stableGesture : prev));

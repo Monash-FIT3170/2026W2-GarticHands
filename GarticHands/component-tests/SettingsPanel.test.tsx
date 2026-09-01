@@ -93,6 +93,63 @@ describe('SettingsPanel', () => {
   })
 })
 
+describe('SettingsPanel drawing adjustments', () => {
+  beforeEach(() => {
+    localStorage.clear()
+  })
+
+  test('renders labelled groups for gesture sensitivity and stroke smoothing', () => {
+    renderPanel(true)
+
+    expect(screen.getByRole('group', { name: 'Gesture sensitivity' })).toBeInTheDocument()
+    expect(screen.getByLabelText('Low')).toBeInTheDocument()
+    expect(screen.getByLabelText('Medium (default)')).toBeInTheDocument()
+    expect(screen.getByLabelText('High')).toBeInTheDocument()
+
+    expect(screen.getByRole('group', { name: 'Stroke smoothing' })).toBeInTheDocument()
+    expect(screen.getByLabelText('Light')).toBeInTheDocument()
+    expect(screen.getByLabelText('Balanced (default)')).toBeInTheDocument()
+    expect(screen.getByLabelText('Strong')).toBeInTheDocument()
+  })
+
+  test('the default levels are selected initially', () => {
+    renderPanel(true)
+
+    expect(screen.getByLabelText('Medium (default)')).toBeChecked()
+    expect(screen.getByLabelText('Balanced (default)')).toBeChecked()
+  })
+
+  test('selecting a sensitivity checks it and persists it', () => {
+    renderPanel(true)
+
+    fireEvent.click(screen.getByLabelText('High'))
+
+    expect(screen.getByLabelText('High')).toBeChecked()
+    expect(screen.getByLabelText('Medium (default)')).not.toBeChecked()
+    expect(localStorage.getItem('gartichands.gestureSensitivity')).toBe('high')
+  })
+
+  test('selecting a smoothing level checks it and persists it', () => {
+    renderPanel(true)
+
+    fireEvent.click(screen.getByLabelText('Strong'))
+
+    expect(screen.getByLabelText('Strong')).toBeChecked()
+    expect(screen.getByLabelText('Balanced (default)')).not.toBeChecked()
+    expect(localStorage.getItem('gartichands.strokeSmoothing')).toBe('strong')
+  })
+
+  test('the three settings are independent radio groups', () => {
+    renderPanel(true)
+
+    fireEvent.click(screen.getByLabelText('High'))
+
+    // Changing sensitivity leaves the other groups on their defaults.
+    expect(screen.getByLabelText('Default')).toBeChecked()
+    expect(screen.getByLabelText('Balanced (default)')).toBeChecked()
+  })
+})
+
 describe('Page settings wiring', () => {
   beforeEach(() => {
     localStorage.clear()

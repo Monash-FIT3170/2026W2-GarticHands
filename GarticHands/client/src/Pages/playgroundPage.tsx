@@ -8,6 +8,7 @@ import {
   useDrawingMode,
 } from '../drawing';
 import { Card, Button } from '../components/ui';
+import { useSettings } from '../state/SettingsContext';
 
 /**
  * Free-form sandbox — load MediaPipe, see your hand tracking, draw anything you
@@ -15,8 +16,11 @@ import { Card, Button } from '../components/ui';
  * testing the camera setup and experimenting with gestures before joining a game.
  */
 export default function PlaygroundPage() {
+  // Drawing adjustments live in app state; the self-contained drawing module
+  // receives them as plain provider props.
+  const { gestureSensitivity, strokeSmoothing } = useSettings();
   return (
-    <DrawingProvider>
+    <DrawingProvider gestureSensitivity={gestureSensitivity} strokeSmoothing={strokeSmoothing}>
       <PlaygroundInner />
     </DrawingProvider>
   );
