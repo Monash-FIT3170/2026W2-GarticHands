@@ -19,21 +19,27 @@ export class CanvasDraw implements CanvasOp {
   readonly activatedBy = GestureType.PINCH;
 
   /** Higher = follows the cursor faster, lower = more smoothing. 0.5 is a balance. */
-  private static readonly EMA_ALPHA = 0.5;
+  private static readonly DEFAULT_EMA_ALPHA = 0.5;
 
   private smoothed: Point | null = null;
   private prevSmoothed: Point | null = null;
   private prevMid: Point | null = null;
 
+  /**
+   * @param emaAlpha EMA blend factor — the user's stroke-smoothing setting
+   * (`STROKE_SMOOTHING_ALPHA` in `DrawingSettings.ts`). Defaults to the stock
+   * 0.5 so existing callers keep the exact current behavior.
+   */
   constructor(
     private readonly ctx: CanvasRenderingContext2D,
     private readonly color: string = 'black',
+    private readonly emaAlpha: number = CanvasDraw.DEFAULT_EMA_ALPHA,
     private readonly lineWidth: number = 4,
   ) {}
 
   tick(point: Point): void {
     // 1. EMA — blend the new sample with the running smoothed point.
-    const a = CanvasDraw.EMA_ALPHA;
+    const a = this.emaAlpha;
     this.smoothed = this.smoothed
       ? {
           x: a * point.x + (1 - a) * this.smoothed.x,

@@ -2,8 +2,24 @@ import { createContext, useCallback, useRef, useContext, type ReactNode } from '
 import type { CanvasHandle } from './components/Canvas';
 import type { HandLandmark } from './Models/HandLandmark';
 import type { GestureType } from './gestures/GestureTypes';
+import {
+  DEFAULT_GESTURE_SENSITIVITY,
+  DEFAULT_STROKE_SMOOTHING,
+  type GestureSensitivity,
+  type StrokeSmoothing,
+} from './DrawingSettings';
 
 interface DrawingContextValue {
+  /**
+   * Gesture-trigger sensitivity for this provider tree. Internal —
+   * `<HandTracking>` reads it and feeds it to the gesture recogniser.
+   */
+  gestureSensitivity: GestureSensitivity;
+  /**
+   * Stroke-smoothing level for this provider tree. Internal — `<Canvas>` reads
+   * it and configures the draw op's EMA factor.
+   */
+  strokeSmoothing: StrokeSmoothing;
   /** Camera input pushes a frame here. Internal — `<DrawingCameraInput>` calls it. */
   pushFrame: (landmarks: HandLandmark[] | null, gesture: GestureType) => void;
   /**
@@ -37,6 +53,17 @@ const DrawingContext = createContext<DrawingContextValue | null>(null);
 
 interface DrawingProviderProps {
   children: ReactNode;
+  /**
+   * How easily gestures trigger (scales the pinch threshold). The drawing
+   * module never reads app state itself — pages pass the user's persisted
+   * choice in from `SettingsContext`. Omitted = stock behavior.
+   */
+  gestureSensitivity?: GestureSensitivity;
+  /**
+   * How aggressively draw strokes are smoothed (sets the EMA factor in
+   * `CanvasDraw`). Omitted = stock behavior.
+   */
+  strokeSmoothing?: StrokeSmoothing;
 }
 
 /**
@@ -48,7 +75,11 @@ interface DrawingProviderProps {
  * Also exposes the camera-canvas DOM element so the recorder can composite the
  * camera feed into the saved video.
  */
-export function DrawingProvider({ children }: DrawingProviderProps) {
+export function DrawingProvider({
+  children,
+  gestureSensitivity = DEFAULT_GESTURE_SENSITIVITY,
+  strokeSmoothing = DEFAULT_STROKE_SMOOTHING,
+}: DrawingProviderProps) {
   const canvasesRef = useRef<CanvasHandle[]>([]);
   const cameraCanvasRef = useRef<HTMLCanvasElement | null>(null);
   const drawCanvasElementsRef = useRef<HTMLCanvasElement[]>([]);
@@ -93,6 +124,8 @@ export function DrawingProvider({ children }: DrawingProviderProps) {
   return (
     <DrawingContext.Provider
       value={{
+        gestureSensitivity,
+        strokeSmoothing,
         pushFrame,
         registerCanvas,
         getDrawingImage,

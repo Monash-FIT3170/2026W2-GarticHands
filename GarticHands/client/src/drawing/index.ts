@@ -30,6 +30,18 @@ export {
   type DrawModeOption,
 } from './DrawingStage';
 
+// Tunable-settings vocabulary for the <DrawingProvider> props. App code that
+// only needs these (e.g. SettingsContext) may import the dependency-free leaf
+// `./DrawingSettings` directly instead of this index.
+export {
+  GESTURE_SENSITIVITIES,
+  DEFAULT_GESTURE_SENSITIVITY,
+  STROKE_SMOOTHING_LEVELS,
+  DEFAULT_STROKE_SMOOTHING,
+  type GestureSensitivity,
+  type StrokeSmoothing,
+} from './DrawingSettings';
+
 // Type re-exports for callers that need to type their own handlers
 export type { HandLandmark } from './Models/HandLandmark';
 export type { GestureType } from './gestures/GestureTypes';

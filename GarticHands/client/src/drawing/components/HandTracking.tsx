@@ -18,12 +18,13 @@ interface HandTrackingProps {
 export default function HandTracking({ onFrame }: HandTrackingProps) {
   const videoRef = useRef<HTMLVideoElement>(null);
   const canvasRef = useRef<HTMLCanvasElement>(null);
-  const { registerCameraCanvas } = useDrawingContext();
+  const { registerCameraCanvas, gestureSensitivity } = useDrawingContext();
 
   const { isLoading, error, handDetected, gesture } = useHandTracking({
     videoRef,
     canvasRef,
     onFrame,
+    gestureSensitivity,
   });
 
   useEffect(() => {
