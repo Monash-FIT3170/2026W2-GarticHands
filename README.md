@@ -4,6 +4,21 @@ Multiplayer drawing-and-guessing game built for FIT3170. Players draw prompts us
 
 > **All code, docs, and assets live under [`GarticHands/`](GarticHands/).** Start there.
 
+> Last edits to this project were made on the **3/09/2026**
+
+## Team - Individuals who built the code
+
+| Name                  | Email                       | GitHub         |
+| --------------------- | --------------------------- | -------------- |
+| Forrest Huang         | fhua0018@student.monash.edu | forrestdesu12  |
+| Jayavi Meemaduma      | jmee0005@student.monash.edu | jayavi999      |
+| Bexley D'Rozario      | bdro0002@student.monash.edu | bexley07       |
+| Ashutosh Shrivastav   | ashr0018@student.monash.edu | hshdhshshjjjjj |
+| Chinmay Purohit       | cpur0011@student.monash.edu | ChinmayGit8765 |
+| Hoang Minh Do         | hdoo0027@student.monash.edu | Shuriky        |
+| Nikunj Gupta          | ngup0018@student.monash.edu | nik6052        |
+| Skand Advaith Maddula | smad0038@student.monash.edu | skandadvaith09 |
+
 ## Quickstart - Run the game locally
 
 ```bash
@@ -37,43 +52,17 @@ Open http://localhost:8080. See [`GarticHands/DOCKER.md`](GarticHands/DOCKER.md)
 2. Put the shared code in to join room - server will add them to the room
 3. real time events broadcasted to room
 
-## Documentation
-
-- **[`GarticHands/README.md`](GarticHands/README.md)** — project overview, packages, MVP status, full merge log.
-- **[`GarticHands/ARCHITECTURE.md`](GarticHands/ARCHITECTURE.md)** — how the pieces fit together, with sequence diagrams.
-- **[`GarticHands/AGENTS.md`](GarticHands/AGENTS.md)** — quick context for coding agents (Claude / Cursor / Copilot / MCP tools).
-- **[`GarticHands/DOCKER.md`](GarticHands/DOCKER.md)** — run the whole stack in containers (`docker compose up`).
-- **[`GarticHands/FORKING.md`](GarticHands/FORKING.md)** — forkability seams + suggested prompts for future developers.
-- **[`INSTRUCTION_MANUAL.md`](INSTRUCTION_MANUAL.md)** — the working method (containerization, MCP, forkability, how-to standards).
-- **[`GarticHands/CONTRIBUTING.md`](GarticHands/CONTRIBUTING.md)** — dev workflow, branching, commit conventions.
-- **[`GarticHands/client/README.md`](GarticHands/client/README.md)** — front-end (React 19 + Vite 8 + TS).
-- **[`GarticHands/server/README.md`](GarticHands/server/README.md)** — back-end REST + Socket.IO API reference.
-- **[`GarticHands/legacy/README.md`](GarticHands/legacy/README.md)** — what's in the pre-merge `legacy/` folder and why it's preserved.
-
-## Team
-
-| Name                  | Email                       | GitHub         |
-| --------------------- | --------------------------- | -------------- |
-| Forrest Huang         | fhua0018@student.monash.edu | forrestdesu12  |
-| Jayavi Meemaduma      | jmee0005@student.monash.edu | jayavi999      |
-| Bexley D'Rozario      | bdro0002@student.monash.edu | bexley07       |
-| Ashutosh Shrivastav   | ashr0018@student.monash.edu | hshdhshshjjjjj |
-| Chinmay Purohit       | cpur0011@student.monash.edu | ChinmayGit8765 |
-| Hoang Minh Do         | hdoo0027@student.monash.edu | Shuriky        |
-| Nikunj Gupta          | ngup0018@student.monash.edu | nik6052        |
-| Skand Advaith Maddula | smad0038@student.monash.edu | skandadvaith09 |
-
 ## Requirments
 
 ### Software
 
-- You will need some form of IDE to be able to spin start up the program
+You will need some form of IDE to be able to spin start up the program
 
 ### Hardware
 
-As most of this application is hosted via the web, a simple laptop is all that is required to run this software
+As most of this application is hosted via the web, a simple computer is all that is required to run this software
 
-The laptop in question must have:
+The computer in question must have:
 
 - A working camera
 - A working browser
@@ -101,3 +90,16 @@ Manages Express + Socket.io
 Start command: node index.js
 
 Build command: npm install --ignore-scripts
+
+## For Extra Information see
+
+- **[`GarticHands/README.md`](GarticHands/README.md)** — project overview, packages, MVP status, full merge log.
+- **[`GarticHands/ARCHITECTURE.md`](GarticHands/ARCHITECTURE.md)** — how the pieces fit together, with sequence diagrams.
+- **[`GarticHands/AGENTS.md`](GarticHands/AGENTS.md)** — quick context for coding agents (Claude / Cursor / Copilot / MCP tools).
+- **[`GarticHands/DOCKER.md`](GarticHands/DOCKER.md)** — run the whole stack in containers (`docker compose up`).
+- **[`GarticHands/FORKING.md`](GarticHands/FORKING.md)** — forkability seams + suggested prompts for future developers.
+- **[`INSTRUCTION_MANUAL.md`](INSTRUCTION_MANUAL.md)** — the working method (containerization, MCP, forkability, how-to standards).
+- **[`GarticHands/CONTRIBUTING.md`](GarticHands/CONTRIBUTING.md)** — dev workflow, branching, commit conventions.
+- **[`GarticHands/client/README.md`](GarticHands/client/README.md)** — front-end (React 19 + Vite 8 + TS).
+- **[`GarticHands/server/README.md`](GarticHands/server/README.md)** — back-end REST + Socket.IO API reference.
+- **[`GarticHands/legacy/README.md`](GarticHands/legacy/README.md)** — what's in the pre-merge `legacy/` folder and why it's preserved.
