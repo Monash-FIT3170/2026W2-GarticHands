@@ -20,7 +20,7 @@ interface DrawingCameraInputProps {
 export default function DrawingCameraInput({ enabled = true }: DrawingCameraInputProps) {
   const { pushFrame } = useDrawingContext();
 
-  const { handleFrame } = useCallback(
+  const handleFrame = useCallback(
     (landmarks: HandLandmark[] | null, gesture: Gesture) => {
       if (!enabled) {
         return;
@@ -37,5 +37,5 @@ export default function DrawingCameraInput({ enabled = true }: DrawingCameraInpu
     }
   }, [enabled, pushFrame]);
 
-  return <HandTracking onFrame={pushFrame} />;
+  return <HandTracking onFrame={handleFrame} />;
 }
