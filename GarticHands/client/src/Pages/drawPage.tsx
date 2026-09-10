@@ -37,6 +37,7 @@ function DrawPageInner() {
   const recorder = useRecorder();
   const { saveRecording } = useRecordings();
   const [mode, setMode] = useDrawingMode();
+  const [drawingEnabled, setDrawingEnabled] = useState(false);
   const [submitted, setSubmitted] = useState(false);
   const [error, setError] = useState('');
   const [prompt, setPrompt] = useState<string>('');
@@ -153,11 +154,24 @@ function DrawPageInner() {
         </div>
 
         <DrawingModePicker mode={mode} onModeChange={setMode} disabled={submitted} />
-        <DrawingStage mode={mode} />
+        <DrawingStage mode={mode} drawingEnabled={drawingEnabled} />
 
         <p className="text-xs text-white/70 mt-4 text-center">
           Pinch your index finger and thumb to draw &middot; Open palm to erase
         </p>
+
+        <div className="flex justify-center mt-4">
+          <Button
+            type="button"
+            onClick={() => setDrawingEnabled((enabled) => !enabled)}
+            disabled={submitted}
+            className={`px-6 py-3 rounded-lg font-bold text-white transition-colors ${
+              drawingEnabled ? 'bg-green-600 hover:bg-green-700' : 'bg-red-600 hover:bg-red-700'
+            } ${submitted ? 'opacity-50 cursor-not-allowed' : ''}`}
+          >
+            {drawingEnabled ? 'Drawing' : 'Not Drawing'}
+          </Button>
+        </div>
 
         <div className="flex flex-col items-end mt-4 gap-2">
           <Button
