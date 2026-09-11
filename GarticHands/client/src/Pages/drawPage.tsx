@@ -166,10 +166,10 @@ function DrawPageInner() {
             onClick={() => setDrawingEnabled((enabled) => !enabled)}
             disabled={submitted}
             className={`px-6 py-3 rounded-lg font-bold text-white transition-colors ${
-              drawingEnabled ? 'bg-green-600 hover:bg-green-700' : 'bg-red-600 hover:bg-red-700'
+              drawingEnabled ? 'bg-red-600 hover:bg-red-700' : 'bg-green-600 hover:bg-green-700'
             } ${submitted ? 'opacity-50 cursor-not-allowed' : ''}`}
           >
-            {drawingEnabled ? 'Drawing' : 'Not Drawing'}
+            {drawingEnabled ? 'Stop Drawing' : 'Start Drawing'}
           </Button>
         </div>
 
