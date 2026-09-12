@@ -31,7 +31,7 @@ the whole chain — sentence → drawing → guess — is revealed, and it is us
  Host                                  Everyone else
  ─────────────────────────────────     ─────────────────────────────────
  1. Type a name → Host Game            1. Type a name → Join Room
- 2. Copy Room Code → send it to        2. Paste the 6-letter code → Join Game
+ 2. Copy Room Code → send it to        2. Paste the 6-character code → Join Game
     friends                            3. Press Ready Up
  3. When everyone is ready →
     Start Game
@@ -57,8 +57,8 @@ Then every player plays the same four steps: **✍️ Write → 🖐️ Draw →
 - The host's **Start Game** button unlocks only when every player is ready. Anyone can press
   **Leave Room** at any time.
 
-> 💡 The room lives only while the host's game server is running. If a code stops working,
-> ask the host to create a new room.
+> 💡 A room disappears about a minute after its last player leaves, and whenever the game
+> server restarts. If a code stops working, ask the host to create a new room.
 
 ### 2 · Write a sentence  ✍️
 
@@ -84,7 +84,8 @@ Your browser will ask for **camera permission** the first time — allow it. The
 | ✋ **Open palm** (all four fingers up) and sweep | **Erases** wherever your hand passes | Small circles work better than big swipes |
 | ✋ Hand visible, no gesture | Shows a cursor so you can position before drawing | — |
 
-The pill under the camera tells you what the game currently sees: **NO_HAND**,
+The pills in the bottom-left corner of the camera view tell you what the game currently
+sees — "Show your hand" / "Hand detected", plus the gesture: **NO_HAND**,
 **HAND_PRESENT**, **PINCH** or **OPEN_PALM**. If it says NO_HAND, move your hand fully into
 frame and towards the light.
 
@@ -113,7 +114,7 @@ drawn → what was guessed**. Three tabs:
 - **Reveal** — all chains as cards.
 - **Slideshow** — steps through each chain automatically (every 4 seconds), with Prev / Pause /
   Next.
-- **My Recordings** — a video replay of *your own* drawing phase, camera picture-in-picture
+- **My Recordings (N)** — a video replay of *your own* drawing phase, camera picture-in-picture
   included. Recordings stay on your device; nobody else can see them.
 
 The host then presses **Play Round 2** (a game is **4 rounds**), or **Back to Lobby** after
@@ -143,8 +144,10 @@ device.
 
 From the landing page you can also open:
 
-- **Solo (Computer Mode)** — draw random prompts on your own with no timer pressure, save
-  the ones you like to a gallery, or skip to the next prompt. Nothing is sent anywhere.
+- **Solo (Computer Mode)** — draw random prompts on your own. A 60-second clock runs for
+  pacing, but nothing is submitted when it hits zero. **Save + New Prompt** keeps your
+  drawing in an on-page gallery and moves on; **Skip Prompt** moves on without saving.
+  Nothing is sent anywhere.
 - **Playground** — a free canvas for testing your camera, lighting and gestures before a
   real game. **Snapshot** saves what you drew to an on-screen preview.
 
@@ -164,7 +167,7 @@ real round much more fun.
 | Lines are wobbly | Settings → **Stroke smoothing: Strong** |
 | I refreshed the page and got kicked to the start | Expected for now — refreshing leaves the room. Rejoin with the same code; you will sit out the current round and play from the next one |
 | I joined and see "Round N is still being played" | You joined mid-round. Wait for the reveal; you are in from the next round |
-| The room code says invalid | Codes are 6 letters/numbers and expire when the host's server restarts. Ask for a fresh one |
+| The room code says invalid | Codes are 6 letters/numbers; rooms expire a minute after everyone leaves or when the server restarts. Ask for a fresh one |
 
 ---
 
