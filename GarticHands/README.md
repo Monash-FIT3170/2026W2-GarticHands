@@ -226,6 +226,8 @@ Every package now uses the **highest version** found across the legacy projects.
 
 ## Further reading
 
+- [`USER_GUIDE.md`](USER_GUIDE.md) — new-player guide: how to host, join, draw with gestures, and what every setting does.
+- [`TESTING_GUIDE.md`](TESTING_GUIDE.md) — how to set up, run and record every test suite, plus the manual test matrix and defect template.
 - [`ARCHITECTURE.md`](ARCHITECTURE.md) — how the modules fit together, request/event flow diagrams.
 - [`DOCKER.md`](DOCKER.md) — run the whole stack in containers, with verification + troubleshooting.
 - [`FORKING.md`](FORKING.md) — forkability seams and suggested prompts for future developers.
