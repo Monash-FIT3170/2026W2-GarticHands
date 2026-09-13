@@ -399,6 +399,8 @@ Paste session records into the team's user-story tracking sheet (linked from
 | --- | --- | --- |
 | `Error: browserType.launch: Executable doesn't exist` | Playwright browsers not installed | `npx playwright install` |
 | E2E hangs on the first test | Port `3000` or `5173` already in use by something else | Stop it, or run `npm run dev` yourself so Playwright reuses it |
+| E2E: `Timed out waiting 30000ms from config.webServer` | Playwright gives itself 30 s to boot both servers; on a slow Windows machine `npm run` start-up alone eats most of that | Run `npm run dev` first, then `npm run test:e2e` — the config reuses running servers |
+| `us9` / `us15` fail with `Test timeout of 60000ms exceeded` at the reveal / round 2 screen | Full-round specs need ~80 s on a slow machine; they pass in CI | Not a defect. Confirm by running the spec with a longer `test.setTimeout` locally; do not commit the change |
 | `us21` fails with "missing snapshot" | New OS without a baseline | Run once with `--update-snapshots`; only commit if intended |
 | `us22` shows 2 and `us16` shows 1 "expected failure" | Expected (see §5.4) — the run is still green | Nothing |
 | Vitest: `Failed to start forks worker` / `Timeout waiting for worker to respond`, some files never run | Machine under load (dev servers, Playwright or another suite running at the same time) | Re-run the suite on its own; do not run unit and component suites concurrently |
