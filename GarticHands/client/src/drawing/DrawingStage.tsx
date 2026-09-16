@@ -146,6 +146,7 @@ export function Panel({ label, children, className = '' }: PanelProps) {
 
 interface DrawingStageProps {
   mode: DrawMode;
+  drawingEnabled?: boolean;
 }
 
 /**
@@ -158,22 +159,26 @@ interface DrawingStageProps {
  *  - `both`:    Camera-with-overlay | Canvas — primary canvas (mounted first)
  *               is the white-background black-strokes one that gets submitted.
  */
-export function DrawingStage({ mode }: DrawingStageProps) {
+export function DrawingStage({ mode, drawingEnabled = true }: DrawingStageProps) {
   switch (mode) {
     case 'split':
-      return <SplitLayout />;
+      return <SplitLayout drawingEnabled={drawingEnabled} />;
     case 'overlay':
-      return <OverlayLayout />;
+      return <OverlayLayout drawingEnabled={drawingEnabled} />;
     case 'both':
-      return <BothLayout />;
+      return <BothLayout drawingEnabled={drawingEnabled} />;
   }
 }
 
-function SplitLayout() {
+interface DrawingLayoutProps {
+  drawingEnabled: boolean;
+}
+
+function SplitLayout({ drawingEnabled }: DrawingLayoutProps) {
   return (
     <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mt-2">
       <Panel label="Camera">
-        <DrawingCameraInput />
+        <DrawingCameraInput enabled={drawingEnabled} />
       </Panel>
       <Panel label="Canvas">
         <DrawingCameraCanvas strokeColor="black" />
@@ -182,11 +187,11 @@ function SplitLayout() {
   );
 }
 
-function OverlayLayout() {
+function OverlayLayout({ drawingEnabled }: DrawingLayoutProps) {
   return (
     <Panel label="Camera + Canvas">
       <div className="relative">
-        <DrawingCameraInput />
+        <DrawingCameraInput enabled={drawingEnabled} />
         {/*
           Hidden primary canvas — mounted FIRST so it's the one submitted via
           `getDrawingImage()`. Black strokes; `Canvas.getImage()` composites the
@@ -204,12 +209,12 @@ function OverlayLayout() {
   );
 }
 
-function BothLayout() {
+function BothLayout({ drawingEnabled }: DrawingLayoutProps) {
   return (
     <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mt-2">
       <Panel label="Camera + Overlay">
         <div className="relative">
-          <DrawingCameraInput />
+          <DrawingCameraInput enabled={drawingEnabled} />
           {/* Mounted second → shadow overlay, not submitted. */}
           <DrawingCameraCanvas strokeColor="white" className="absolute inset-0 w-full h-full" />
         </div>
