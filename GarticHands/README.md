@@ -2,7 +2,7 @@
 
 Multiplayer drawing-and-guessing game. Players draw prompts with their **hands in front of a webcam** (MediaPipe hand-tracking), other players guess what was drawn. Think *Gartic Phone* with no mouse/stylus.
 
-> **Status**: monorepo consolidation in progress. Lobby flow works. Drawing + guessing routes exist but are not yet networked across players. See [MVP status](#mvp-status) below.
+> **Status**: the full loop — lobby → prompt → draw → guess → reveal — is networked across players, with server-owned phase timers, late joins and 4 rounds per game. See [MVP status](#mvp-status) and [Known limitations](#known-limitations) below.
 
 ---
 
@@ -226,6 +226,8 @@ Every package now uses the **highest version** found across the legacy projects.
 
 ## Further reading
 
+- [`USER_GUIDE.md`](USER_GUIDE.md) — new-player guide: how to host, join, draw with gestures, and what every setting does. Printable copy: [`docs/USER_GUIDE.pdf`](docs/USER_GUIDE.pdf).
+- [`TESTING_GUIDE.md`](TESTING_GUIDE.md) — how to set up, run and record every test suite, plus the manual test matrix and defect template. Printable copy: [`docs/TESTING_GUIDE.pdf`](docs/TESTING_GUIDE.pdf).
 - [`ARCHITECTURE.md`](ARCHITECTURE.md) — how the modules fit together, request/event flow diagrams.
 - [`DOCKER.md`](DOCKER.md) — run the whole stack in containers, with verification + troubleshooting.
 - [`FORKING.md`](FORKING.md) — forkability seams and suggested prompts for future developers.

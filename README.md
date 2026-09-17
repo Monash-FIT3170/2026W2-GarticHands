@@ -25,6 +25,8 @@ Open http://localhost:8080. See [`GarticHands/DOCKER.md`](GarticHands/DOCKER.md)
 
 ## Documentation
 
+- **[`GarticHands/USER_GUIDE.md`](GarticHands/USER_GUIDE.md)** — new-player guide (host, join, gestures, settings, troubleshooting). PDF: [`GarticHands/docs/USER_GUIDE.pdf`](GarticHands/docs/USER_GUIDE.pdf).
+- **[`GarticHands/TESTING_GUIDE.md`](GarticHands/TESTING_GUIDE.md)** — how to run every suite, manual test matrix, defect template. PDF: [`GarticHands/docs/TESTING_GUIDE.pdf`](GarticHands/docs/TESTING_GUIDE.pdf).
 - **[`GarticHands/README.md`](GarticHands/README.md)** — project overview, packages, MVP status, full merge log.
 - **[`GarticHands/ARCHITECTURE.md`](GarticHands/ARCHITECTURE.md)** — how the pieces fit together, with sequence diagrams.
 - **[`GarticHands/AGENTS.md`](GarticHands/AGENTS.md)** — quick context for coding agents (Claude / Cursor / Copilot / MCP tools).
