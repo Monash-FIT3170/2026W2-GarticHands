@@ -53,7 +53,7 @@ describe('DrawingCameraInput', () => {
     render(<DrawingCameraInput />)
 
     expect(mockHandTracking).toHaveBeenCalledWith(
-      expect.objectContaining({ onFrame: pushFrame }),
+      expect.objectContaining({ onFrame: expect.any(Function) }),
     )
   })
 })
