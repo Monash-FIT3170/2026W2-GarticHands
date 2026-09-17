@@ -16,7 +16,8 @@ if (protectedBranches.includes(branch)) {
 }
 
 // Allowed format: type/description
-const branchPattern = /^(feature|bugfix|docs|refactor|test|chore)\/[a-zA-Z0-9]+(?:-[a-zA-Z0-9]+)*$/;
+const branchPattern =
+  /^(feature|bugfix|docs|refactor|test|chore|dev)\/[a-zA-Z0-9]+(?:-[a-zA-Z0-9]+)*$/;
 
 if (!branchPattern.test(branch)) {
   console.error('');
@@ -28,7 +29,7 @@ if (!branchPattern.test(branch)) {
   console.error('  <type>/<description>');
   console.error('');
   console.error('Allowed types:');
-  console.error('  feature, bugfix, docs, refactor, test, chore');
+  console.error('  feature, bugfix, docs, refactor, test, chore, dev');
   console.error('');
   console.error('Examples:');
   console.error('  feature/lobby-resize');
