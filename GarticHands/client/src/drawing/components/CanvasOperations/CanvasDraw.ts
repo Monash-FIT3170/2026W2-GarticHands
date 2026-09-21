@@ -19,8 +19,8 @@ export class CanvasDraw implements CanvasOp {
   readonly activatedBy = GestureType.PINCH;
 
   private static readonly FREQUENCY = 60;
-  private static readonly MIN_CUTOFF = 1.0;
-  private static readonly BETA = 0.1;
+  private static readonly MIN_CUTOFF = 0.5;
+  private static readonly BETA = 0.005;
   private static readonly D_CUTOFF = 1.0;
 
   private readonly xFilter: OneEuroFilter;
