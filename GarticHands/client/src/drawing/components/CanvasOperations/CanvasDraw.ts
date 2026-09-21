@@ -1,25 +1,30 @@
 import type { CanvasOp } from './CanvasOps';
 import type { Point } from '../../Models/Point';
 import { GestureType } from '../../gestures/GestureTypes';
+import { OneEuroFilter } from '1eurofilter';
 
 /**
  * Draws a continuous stroke while the user is pinching.
  *
  * Smoothing pipeline (per point, in order):
- *  1. Exponential moving average — filters jittery landmark noise.
+ *  1. One Euro filter — adaptively filters jitter while preserving responsiveness.
  *  2. Midpoint-quadratic interpolation — turns the polyline into a smooth curve
  *     by drawing the segment from the previous mid-point to the current mid-point
  *     using the previous landmark as the Bezier control.
  *
- * Together these produce noticeably smoother strokes than a raw `lineTo` chain
- * without changing the input pipeline.
+ * Together these produce smoother strokes without changing the input pipeline.
  */
 export class CanvasDraw implements CanvasOp {
   readonly name = 'draw';
   readonly activatedBy = GestureType.PINCH;
 
-  /** Higher = follows the cursor faster, lower = more smoothing. 0.5 is a balance. */
-  private static readonly EMA_ALPHA = 0.5;
+  private static readonly FREQUENCY = 60;
+  private static readonly MIN_CUTOFF = 1.0;
+  private static readonly BETA = 0.1;
+  private static readonly D_CUTOFF = 1.0;
+
+  private readonly xFilter: OneEuroFilter;
+  private readonly yFilter: OneEuroFilter;
 
   private smoothed: Point | null = null;
   private prevSmoothed: Point | null = null;
@@ -29,17 +34,29 @@ export class CanvasDraw implements CanvasOp {
     private readonly ctx: CanvasRenderingContext2D,
     private readonly color: string = 'black',
     private readonly lineWidth: number = 4,
-  ) {}
+  ) {
+    this.xFilter = new OneEuroFilter(
+      CanvasDraw.FREQUENCY,
+      CanvasDraw.MIN_CUTOFF,
+      CanvasDraw.BETA,
+      CanvasDraw.D_CUTOFF,
+    );
+
+    this.yFilter = new OneEuroFilter(
+      CanvasDraw.FREQUENCY,
+      CanvasDraw.MIN_CUTOFF,
+      CanvasDraw.BETA,
+      CanvasDraw.D_CUTOFF,
+    );
+  }
 
   tick(point: Point): void {
-    // 1. EMA — blend the new sample with the running smoothed point.
-    const a = CanvasDraw.EMA_ALPHA;
-    this.smoothed = this.smoothed
-      ? {
-          x: a * point.x + (1 - a) * this.smoothed.x,
-          y: a * point.y + (1 - a) * this.smoothed.y,
-        }
-      : point;
+    // 1. One Euro filter — filter x and y independently.
+    const timestamp = performance.now() / 1000;
+    this.smoothed = {
+      x: this.xFilter.filter(point.x, timestamp),
+      y: this.yFilter.filter(point.y, timestamp),
+    };
 
     // 2. Need at least two smoothed points before we can draw a curve.
     if (!this.prevSmoothed) {
@@ -75,6 +92,8 @@ export class CanvasDraw implements CanvasOp {
   }
 
   reset(): void {
+    this.xFilter.reset();
+    this.yFilter.reset();
     this.smoothed = null;
     this.prevSmoothed = null;
     this.prevMid = null;
