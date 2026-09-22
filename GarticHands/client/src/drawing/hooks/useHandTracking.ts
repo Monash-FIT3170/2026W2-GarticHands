@@ -58,6 +58,14 @@ export function useHandTracking({
     const gestureBuffer = new GestureBuffer(5);
     const pinchStabilizer = new PinchStabilizer();
 
+    // Grace period before a missed detection is treated as real hand-loss.
+    // MediaPipe can drop a frame or two during fast motion, edge-of-frame
+    // hands, or rotation — without this, a single miss would reset the
+    // gesture buffer, pinch stabilizer, and (via onFrame(null, ...)) the
+    // active CanvasOp, fragmenting an in-progress stroke.
+    let missedFrames = 0;
+    const MAX_MISSED_FRAMES = 4; // ~65ms of grace at 60fps — tune by feel
+
     if (isHandE2EMode()) {
       const hooks = (window.__ghTestHooks ??= {});
       hooks.injectHandFrame = (landmarks, gesture) => {
@@ -116,6 +124,8 @@ export function useHandTracking({
       setHandDetected((prev) => (prev !== detected ? detected : prev));
 
       if (detected) {
+        missedFrames = 0;
+
         const landmarks = results.landmarks[0] as HandLandmark[];
         const rawGesture = detectGesture(landmarks, pinchStabilizer);
         const stableGesture = gestureBuffer.push(rawGesture);
@@ -126,10 +136,18 @@ export function useHandTracking({
         drawConnections(ctx, landmarks);
         drawLandmarks(ctx, landmarks);
       } else {
-        gestureBuffer.clear();
-        pinchStabilizer.reset();
-        setGesture((prev) => (prev !== GestureTypeEnum.NO_HAND ? GestureTypeEnum.NO_HAND : prev));
-        onFrameRef.current?.(null, GestureTypeEnum.NO_HAND);
+        missedFrames++;
+
+        if (missedFrames > MAX_MISSED_FRAMES) {
+          gestureBuffer.clear();
+          pinchStabilizer.reset();
+          setGesture((prev) =>
+            prev !== GestureTypeEnum.NO_HAND ? GestureTypeEnum.NO_HAND : prev,
+          );
+          onFrameRef.current?.(null, GestureTypeEnum.NO_HAND);
+        }
+        // else: transient miss — skip this frame without touching gesture,
+        // pinch, or draw state, so an in-progress stroke survives a blip.
       }
 
       ctx.restore();
