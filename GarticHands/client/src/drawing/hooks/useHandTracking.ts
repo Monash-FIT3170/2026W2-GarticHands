@@ -5,6 +5,7 @@ import type { GestureType } from '../gestures/GestureTypes';
 import { GestureType as GestureTypeEnum } from '../gestures/GestureTypes';
 import { detectGesture } from '../gestures/GestureRecogniser';
 import { GestureBuffer } from '../utils/gestureBuffer';
+import { PinchStabilizer } from '../gestures/detectors/detectPinch';
 import { drawLandmarks, drawConnections } from '../utils/drawHand';
 import type { HandLandmark } from '../Models/HandLandmark';
 
@@ -55,6 +56,7 @@ export function useHandTracking({
     let mediaStream: MediaStream | null = null;
 
     const gestureBuffer = new GestureBuffer(5);
+    const pinchStabilizer = new PinchStabilizer();
 
     if (isHandE2EMode()) {
       const hooks = (window.__ghTestHooks ??= {});
@@ -115,7 +117,7 @@ export function useHandTracking({
 
       if (detected) {
         const landmarks = results.landmarks[0] as HandLandmark[];
-        const rawGesture = detectGesture(landmarks);
+        const rawGesture = detectGesture(landmarks, pinchStabilizer);
         const stableGesture = gestureBuffer.push(rawGesture);
 
         setGesture((prev) => (prev !== stableGesture ? stableGesture : prev));
@@ -125,6 +127,7 @@ export function useHandTracking({
         drawLandmarks(ctx, landmarks);
       } else {
         gestureBuffer.clear();
+        pinchStabilizer.reset();
         setGesture((prev) => (prev !== GestureTypeEnum.NO_HAND ? GestureTypeEnum.NO_HAND : prev));
         onFrameRef.current?.(null, GestureTypeEnum.NO_HAND);
       }
