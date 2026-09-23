@@ -11,7 +11,7 @@ interface CountdownTimerProps {
   secondsLeft?: number | null;
   /** Frozen when true — used to pause after submit. Also suppresses `onExpire`. */
   paused?: boolean;
-  /** Threshold below which the timer turns red. Default: 10. */
+  /** Threshold below which the timer turns urgent. Default: 10. */
   urgentAt?: number;
   /** Called once when the timer hits zero. */
   onExpire?: () => void;
@@ -60,8 +60,15 @@ export default function CountdownTimer({
   }, [paused, timeLeft, onExpire]);
 
   const isUrgent = timeLeft <= urgentAt;
+
   return (
-    <span className={`text-sm ${isUrgent ? 'text-red-400' : 'text-black/50'}`}>
+    <span
+      className={`text-sm ${
+        isUrgent
+          ? 'text-[var(--action)] font-bold'
+          : 'text-[var(--text-muted)]'
+      }`}
+    >
       {timeLeft}
       {suffix}
     </span>
