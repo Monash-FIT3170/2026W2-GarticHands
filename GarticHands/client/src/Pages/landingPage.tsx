@@ -29,14 +29,25 @@ export default function LandingPage() {
           onChange={(e) => setPlayerName(e.target.value)}
           placeholder="Enter username..."
           maxLength={20}
-          className="w-full bg-white rounded-full px-6 py-3 text-center text-[#D4623E] placeholder-[#D4623E]/50 font-medium outline-none focus:ring-2 focus:ring-[#D4623E]/40"
+          className="w-full bg-[var(--surface)] rounded-full px-6 py-3 text-center text-[var(--input-text)] placeholder-[var(--input-placeholder)] font-medium outline-none focus:ring-2 focus:ring-[var(--action)]/40"
         />
 
         <div className="flex gap-3 w-full">
-          <Button variant="secondary" onClick={joinRoom} disabled={!canContinue} className="flex-1">
+          <Button
+            variant="secondary"
+            onClick={joinRoom}
+            disabled={!canContinue}
+            className="flex-1"
+          >
             Join Room
           </Button>
-          <Button variant="primary" onClick={hostRoom} disabled={!canContinue} className="flex-1">
+
+          <Button
+            variant="primary"
+            onClick={hostRoom}
+            disabled={!canContinue}
+            className="flex-1"
+          >
             Host Game
           </Button>
         </div>
@@ -49,7 +60,9 @@ export default function LandingPage() {
           >
             Solo (Computer Mode)
           </button>
+
           <span className="text-white/40">·</span>
+
           <button
             type="button"
             onClick={() => void navigate('/playground')}
