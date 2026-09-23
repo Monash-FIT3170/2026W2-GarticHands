@@ -111,54 +111,58 @@
 
 /* =========================================================
    Protanopia
-   Red/green distinctions are replaced with blue/orange.
+   Gold/yellow is used for the main theme, with green/turquoise
+   used for buttons and success/ready states.
    ========================================================= */
 
 :root[data-color-vision='protanopia'] {
-  --page-bg: #679BA7;
+  --page-bg: #B89B45;
 
-  --card-bg: #527F8A;
-  --hero-bg: #4B808A;
-  --card-border: #679BA7;
-  --lobby-section-bg: rgba(24, 70, 83, 0.25);
+  --card-bg: #987E35;
+  --hero-bg: #876E2D;
+  --card-border: #B89B45;
+  --lobby-section-bg: rgba(85, 65, 15, 0.30);
 
   --surface: #ffffff;
   --surface-soft: rgba(255, 255, 255, 0.08);
   --surface-border: rgba(255, 255, 255, 0.18);
 
-  --text-primary: #234D58;
-  --text-secondary: #2D6470;
-  --text-muted: #D5E7EA;
+  --text-primary: #4A3D18;
+  --text-secondary: #655522;
+  --text-muted: #F1E7C5;
 
-  --primary: #123F61;
-  --primary-hover: #0C304A;
+  --primary: #008B6A;
+  --primary-hover: #006F55;
 
-  --accent: #009EDE;
-  --accent-hover: #007FB5;
-  --accent-soft: #B7E2F2;
+  /* Gold main accent */
+  --accent: #F0C419;
+  --accent-hover: #D4A900;
+  --accent-soft: #F8E7A3;
 
-  --action: #E69F00;
-  --action-strong: #F0A202;
+  /* Orange for actions */
+  --action: #D66F28;
+  --action-strong: #E88B38;
 
-  --success: #009EDE;
-  --success-hover: #007FB5;
-  --success-soft: #B7E2F2;
+  /* Green/turquoise for success and buttons */
+  --success: #008B6A;
+  --success-hover: #006F55;
+  --success-soft: #B8E1D5;
 
-  --warning-soft: #F6DFA6;
-  --warning-text: #9A6500;
+  --warning-soft: #F8E7A3;
+  --warning-text: #765700;
 
-  --input-text: #9A6500;
-  --input-placeholder: rgba(154, 101, 0, 0.5);
+  --input-text: #765700;
+  --input-placeholder: rgba(118, 87, 0, 0.5);
 
-  --icon: #2D6470;
-  --icon-hover: #123F61;
+  --icon: #655522;
+  --icon-hover: #4A3D18;
 
-  --disabled-bg: #A7CBD1;
-  --disabled-text: #416A73;
+  --disabled-bg: #C9BD91;
+  --disabled-text: #6E6445;
 
-  --avatar-bg: #274A50;
-  --player-bg: #73A5AC;
-  --empty-avatar-bg: #99C1C7;
+  --avatar-bg: #514821;
+  --player-bg: #B8A866;
+  --empty-avatar-bg: #C9BC8A;
 }
 
 
