@@ -139,12 +139,14 @@ function DrawPageInner() {
           <div>
             <RoundHeader round={room?.round ?? 1} totalRounds={room?.maxRounds ?? 4} />
             <h1 className="text-3xl">Draw with your hands</h1>
+
             {prompt && (
               <p className="text-sm text-white/80 mt-1">
                 Your prompt: <span className="font-semibold">{prompt}</span>
               </p>
             )}
           </div>
+
           <CountdownTimer
             seconds={TotalTime}
             secondsLeft={secondsLeft}
@@ -153,7 +155,12 @@ function DrawPageInner() {
           />
         </div>
 
-        <DrawingModePicker mode={mode} onModeChange={setMode} disabled={submitted} />
+        <DrawingModePicker
+          mode={mode}
+          onModeChange={setMode}
+          disabled={submitted}
+        />
+
         <DrawingStage mode={mode} drawingEnabled={drawingEnabled} />
 
         <p className="text-xs text-white/70 mt-4 text-center">
@@ -166,7 +173,9 @@ function DrawPageInner() {
             onClick={() => setDrawingEnabled((enabled) => !enabled)}
             disabled={submitted}
             className={`px-6 py-3 rounded-lg font-bold text-white transition-colors ${
-              drawingEnabled ? 'bg-red-600 hover:bg-red-700' : 'bg-green-600 hover:bg-green-700'
+              drawingEnabled
+                ? 'bg-[var(--action)] hover:bg-[var(--action-strong)]'
+                : 'bg-[var(--success)] hover:bg-[var(--success-hover)]'
             } ${submitted ? 'opacity-50 cursor-not-allowed' : ''}`}
           >
             {drawingEnabled ? 'Stop Drawing' : 'Start Drawing'}
@@ -182,16 +191,23 @@ function DrawPageInner() {
           >
             Submit Drawing
           </Button>
+
           {submitted && !error && (
-            <p className="text-sm text-white/80">
+            <p className="text-sm text-[var(--text-muted)]">
               {waitingFor > 0
                 ? `Waiting for ${waitingFor} other player${waitingFor === 1 ? '' : 's'}...`
                 : 'Starting guessing phase...'}
             </p>
           )}
-          {error && <p className="text-sm text-red-300">{error}</p>}
+
+          {error && (
+            <p className="text-sm text-[var(--action)]">
+              {error}
+            </p>
+          )}
         </div>
       </Card>
     </div>
   );
 }
+
