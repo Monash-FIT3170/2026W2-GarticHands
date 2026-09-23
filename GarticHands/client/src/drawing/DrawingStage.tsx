@@ -96,7 +96,7 @@ export function DrawingModePicker({
   return (
     <div className={`mt-2 mb-2 ${className}`}>
       <div
-        className={`inline-flex rounded-full bg-white/80 p-1 gap-1 ${
+        className={`inline-flex rounded-full bg-[var(--surface)] p-1 gap-1 ${
           disabled ? 'opacity-50 pointer-events-none' : ''
         }`}
       >
@@ -108,7 +108,9 @@ export function DrawingModePicker({
               type="button"
               onClick={() => onModeChange(m.id)}
               className={`px-3 py-1.5 rounded-full text-xs font-bold uppercase tracking-[0.12em] transition-colors ${
-                selected ? 'bg-[#2E5534] text-white shadow-sm' : 'text-[#3D6B64] hover:bg-white'
+                selected
+                  ? 'bg-[var(--primary)] text-white shadow-sm'
+                  : 'text-[var(--text-primary)] hover:bg-black/5'
               }`}
               title={m.description}
             >
@@ -134,7 +136,9 @@ interface PanelProps {
 export function Panel({ label, children, className = '' }: PanelProps) {
   return (
     <div className={`flex flex-col gap-2 ${className}`}>
-      <p className="text-xs font-extrabold uppercase tracking-[0.2em] text-white/80">{label}</p>
+      <p className="text-xs font-extrabold uppercase tracking-[0.2em] text-[var(--text-muted)]">
+        {label}
+      </p>
       {children}
     </div>
   );
@@ -226,3 +230,4 @@ function BothLayout({ drawingEnabled }: DrawingLayoutProps) {
     </div>
   );
 }
+

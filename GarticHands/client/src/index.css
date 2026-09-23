@@ -4,124 +4,437 @@
 @tailwind components;
 @tailwind utilities;
 
+/* =========================================================
+   Default colour palette
+   ========================================================= */
+
+:root {
+  --page-bg: #6FADA0;
+
+  --card-bg: #5E9990;
+  --hero-bg: #559490;
+  --card-border: #6FADA0;
+  --lobby-section-bg: rgba(22, 89, 74, 0.2);
+
+  --surface: #ffffff;
+  --surface-soft: rgba(255, 255, 255, 0.07);
+  --surface-border: rgba(255, 255, 255, 0.14);
+
+  --text-primary: #3D6B64;
+  --text-secondary: #3D7A72;
+  --text-muted: #C8DDD9;
+
+  --primary: #2E5534;
+  --primary-hover: #244529;
+
+  --accent: #78EF57;
+  --accent-hover: #67DD48;
+  --accent-soft: #9CC9C1;
+
+  --action: #D4623E;
+  --action-strong: #E67B2E;
+
+  --success: #16a34a;
+  --success-hover: #15803d;
+  --success-soft: #bbf7d0;
+
+  --warning-soft: #fef08a;
+  --warning-text: #D4623E;
+
+  --input-text: #D4623E;
+  --input-placeholder: rgba(212, 98, 62, 0.5);
+
+  --icon: #3D7A72;
+  --icon-hover: #2A5E58;
+
+  --disabled-bg: #9CC9C1;
+  --disabled-text: #47756E;
+
+  --avatar-bg: #2F4542;
+  --player-bg: #79A8A0;
+  --empty-avatar-bg: #8EBAB3;
+}
+
+
+/* =========================================================
+   Deuteranopia
+   Green/red distinctions are replaced with blue/orange.
+   ========================================================= */
+
+:root[data-color-vision='deuteranopia'] {
+  --page-bg: #5B8FA3;
+
+  --card-bg: #426F82;
+  --hero-bg: #376579;
+  --card-border: #5B8FA3;
+  --lobby-section-bg: rgba(20, 55, 75, 0.30);
+
+  --surface: #ffffff;
+  --surface-soft: rgba(255, 255, 255, 0.08);
+  --surface-border: rgba(255, 255, 255, 0.18);
+
+  --text-primary: #173B4A;
+  --text-secondary: #24586A;
+  --text-muted: #D6E8ED;
+
+  --primary: #124E78;
+  --primary-hover: #0B3A5B;
+
+  --accent: #00A6D6;
+  --accent-hover: #0088B3;
+  --accent-soft: #B8E6F2;
+
+  --action: #E69F00;
+  --action-strong: #F2B300;
+
+  --success: #0072B2;
+  --success-hover: #005A8C;
+  --success-soft: #B9DDF0;
+
+  --warning-soft: #F6DFA6;
+  --warning-text: #A84A00;
+
+  --input-text: #A84A00;
+  --input-placeholder: rgba(168, 74, 0, 0.5);
+
+  --icon: #24586A;
+  --icon-hover: #124E78;
+
+  --disabled-bg: #A9CDD2;
+  --disabled-text: #416D75;
+
+  --avatar-bg: #274A50;
+  --player-bg: #75A8AE;
+  --empty-avatar-bg: #9BC3C8;
+}
+
+
+/* =========================================================
+   Protanopia
+   Gold/yellow is used for the main theme, with green/turquoise
+   used for buttons and success/ready states.
+   ========================================================= */
+
+:root[data-color-vision='protanopia'] {
+  --page-bg: #B89B45;
+
+  --card-bg: #987E35;
+  --hero-bg: #876E2D;
+  --card-border: #B89B45;
+  --lobby-section-bg: rgba(85, 65, 15, 0.30);
+
+  --surface: #ffffff;
+  --surface-soft: rgba(255, 255, 255, 0.08);
+  --surface-border: rgba(255, 255, 255, 0.18);
+
+  --text-primary: #4A3D18;
+  --text-secondary: #655522;
+  --text-muted: #F1E7C5;
+
+  --primary: #008B6A;
+  --primary-hover: #006F55;
+
+  /* Gold main accent */
+  --accent: #F0C419;
+  --accent-hover: #D4A900;
+  --accent-soft: #F8E7A3;
+
+  /* Orange for actions */
+  --action: #D66F28;
+  --action-strong: #E88B38;
+
+  /* Green/turquoise for success and buttons */
+  --success: #008B6A;
+  --success-hover: #006F55;
+  --success-soft: #B8E1D5;
+
+  --warning-soft: #F8E7A3;
+  --warning-text: #765700;
+
+  --input-text: #765700;
+  --input-placeholder: rgba(118, 87, 0, 0.5);
+
+  --icon: #655522;
+  --icon-hover: #4A3D18;
+
+  --disabled-bg: #C9BD91;
+  --disabled-text: #6E6445;
+
+  --avatar-bg: #514821;
+  --player-bg: #B8A866;
+  --empty-avatar-bg: #C9BC8A;
+}
+
+
+/* =========================================================
+   Tritanopia
+   Blue/yellow distinctions are reduced, so the palette shifts
+   toward purple/magenta for a stronger visual distinction.
+   ========================================================= */
+
+:root[data-color-vision='tritanopia'] {
+  --page-bg: #8A7FA3;
+
+  --card-bg: #6E6287;
+  --hero-bg: #5F5378;
+  --card-border: #8A7FA3;
+  --lobby-section-bg: rgba(55, 35, 70, 0.28);
+
+  --surface: #ffffff;
+  --surface-soft: rgba(255, 255, 255, 0.08);
+  --surface-border: rgba(255, 255, 255, 0.18);
+
+  --text-primary: #40304F;
+  --text-secondary: #594166;
+  --text-muted: #E7DDF0;
+
+  --primary: #703B78;
+  --primary-hover: #572B60;
+
+  --accent: #D94F9D;
+  --accent-hover: #BD3B83;
+  --accent-soft: #F2C4DF;
+
+  --action: #C85A35;
+  --action-strong: #E67B2E;
+
+  --success: #D94F9D;
+  --success-hover: #C53B88;
+  --success-soft: #F2C4DF;
+
+  --warning-soft: #F4D6E7;
+  --warning-text: #9B3C72;
+
+  --input-text: #A94A78;
+  --input-placeholder: rgba(169, 74, 120, 0.5);
+
+  --icon: #594166;
+  --icon-hover: #703B78;
+
+  --disabled-bg: #B7CFCC;
+  --disabled-text: #617D79;
+
+  --avatar-bg: #465B59;
+  --player-bg: #83AAA5;
+  --empty-avatar-bg: #A8C5C1;
+}
+
+
+/* =========================================================
+   Global base styles
+   ========================================================= */
+
 @layer base {
   body {
     font-family: 'Baloo 2', cursive;
   }
 }
 
+
+/* =========================================================
+   Shared components
+   ========================================================= */
+
 @layer components {
-  /* Page-level background used by /input, /draw, /guess. Matches the lobby teal. */
   .background {
-    @apply min-h-screen bg-[#6FADA0] flex flex-col items-center justify-center px-4 py-10 text-white;
+    @apply min-h-screen flex flex-col items-center justify-center px-4 py-10 text-white;
+    background-color: var(--page-bg);
   }
 
-  /* Small label above each in-game card — "Round 1 of 4". */
   .rounds {
-    @apply text-xs font-extrabold uppercase tracking-[0.2em] text-[#D4623E] bg-white/80 rounded-full px-3 py-1 inline-block mb-3;
+    @apply text-xs font-extrabold uppercase tracking-[0.2em] rounded-full px-3 py-1 inline-block mb-3;
+    color: var(--action);
+    background-color: rgba(255, 255, 255, 0.8);
   }
 
-  /* Text-input baseline used inside glass cards on /input and /guess. */
   .text.box,
   .background input[type='text'] {
-    @apply w-full bg-white rounded-full px-5 py-3 text-[#3D6B64] placeholder-[#3D6B64]/40 font-semibold outline-none focus:ring-2 focus:ring-[#D4623E]/40 mt-3;
+    @apply w-full rounded-full px-5 py-3 font-semibold outline-none focus:ring-2 mt-3;
+    background-color: var(--surface);
+    color: var(--text-primary);
+  }
+
+  .text.box::placeholder,
+  .background input[type='text']::placeholder {
+    color: var(--text-primary);
+    opacity: 0.4;
   }
 }
 
-/* ============================================================================
-   Colour-blind palette variants (User Story 25)
 
-   `SettingsProvider` (client/src/state/SettingsContext.tsx) mirrors the chosen
-   mode onto `<html data-color-vision="…">`. In the default mode the attribute
-   is absent, none of the rules below match, and the app renders exactly the
-   stock palette — keeping the us21 visual-regression baselines byte-identical.
+/* =========================================================
+   Tailwind utility overrides
+   These allow existing page/component classes to respond
+   to the active colour-vision mode without changing every
+   page immediately.
+   ========================================================= */
 
-   Each mode defines the semantic variables below; the attribute-scoped rules
-   that follow remap the existing Tailwind colour utilities onto them, so no
-   component needed restyling. The problem pairs in the stock palette are the
-   ready/start greens (#78EF57 / #2E5534) against the coral action orange
-   (#D4623E):
-   - deuteranopia / protanopia (red-green blindness): greens shift to blues so
-     ready/positive states never sit on the red-green axis; protanopia also
-     brightens the coral (pure reds read as near-black to protanopes).
-   - tritanopia (blue-yellow blindness): greens shift to roses/magentas, which
-     stay clearly separate from the teal page chrome (teal reads as green to
-     tritanopes, so green accents would vanish into the background).
-   ========================================================================== */
+/* Page backgrounds */
 
-:root[data-color-vision='deuteranopia'],
-:root[data-color-vision='protanopia'] {
-  --cv-accent: #56b4e9; /* replaces #78EF57 — ready/start sky blue */
-  --cv-accent-hover: #3da5e0; /* replaces #67DD48 */
-  --cv-accent-deep: #123a63; /* replaces #2E5534 — dark navy */
-  --cv-accent-deep-hover: #0d2c4d; /* replaces #244529 */
-  --cv-accent-soft: #bfdbfe; /* replaces green-200 — ready badge bg */
-  --cv-submit: #2563eb; /* replaces green-600 — submit buttons */
-  --cv-submit-hover: #1d4ed8; /* replaces green-700 */
-  --cv-action: #d4623e; /* coral unchanged — reads brownish-yellow, distinct from blue */
-  --cv-action-strong: #e67b2e; /* avatar inner unchanged */
+[data-color-vision] .bg-\[\#6FADA0\] {
+  background-color: var(--page-bg);
 }
 
-:root[data-color-vision='protanopia'] {
-  --cv-action: #e69f00; /* brightened — protanopes see #D4623E as muddy/dark */
-  --cv-action-strong: #f0a202;
+
+/* Card backgrounds */
+
+[data-color-vision] .bg-\[\#5E9990\] {
+  background-color: var(--card-bg);
 }
 
-:root[data-color-vision='tritanopia'] {
-  --cv-accent: #f07ea8; /* replaces #78EF57 — ready/start rose */
-  --cv-accent-hover: #ec6497; /* replaces #67DD48 */
-  --cv-accent-deep: #8a2b57; /* replaces #2E5534 — dark raspberry */
-  --cv-accent-deep-hover: #701f45; /* replaces #244529 */
-  --cv-accent-soft: #f9cfe0; /* replaces green-200 — ready badge bg */
-  --cv-submit: #db2777; /* replaces green-600 — submit buttons */
-  --cv-submit-hover: #be185d; /* replaces green-700 */
-  --cv-action: #d4623e; /* coral unchanged — reds are safe for tritanopes */
-  --cv-action-strong: #e67b2e;
+[data-color-vision] .bg-\[\#559490\] {
+  background-color: var(--hero-bg);
 }
 
-/* Remap the existing colour utilities whenever any non-default mode is active.
-   Selector escapes match the Tailwind-generated class names for the arbitrary
-   hex values used across components (Button, Badge, PlayerList, …). */
-[data-color-vision] .bg-\[\#78EF57\] {
-  background-color: var(--cv-accent);
-}
-[data-color-vision] .bg-\[\#78EF57\]\/90 {
-  background-color: color-mix(in srgb, var(--cv-accent) 90%, transparent);
-}
-[data-color-vision] .hover\:bg-\[\#67DD48\]:hover {
-  background-color: var(--cv-accent-hover);
-}
-[data-color-vision] .border-\[\#78EF57\] {
-  border-color: var(--cv-accent);
-}
+
+/* Primary dark green */
+
 [data-color-vision] .bg-\[\#2E5534\] {
-  background-color: var(--cv-accent-deep);
+  background-color: var(--primary);
 }
+
 [data-color-vision] .text-\[\#2E5534\] {
-  color: var(--cv-accent-deep);
+  color: var(--primary);
 }
+
 [data-color-vision] .hover\:bg-\[\#244529\]:hover {
-  background-color: var(--cv-accent-deep-hover);
+  background-color: var(--primary-hover);
 }
+
+
+/* Ready/start accent */
+
+[data-color-vision] .bg-\[\#78EF57\] {
+  background-color: var(--accent);
+}
+
+[data-color-vision] .bg-\[\#78EF57\]\/90 {
+  background-color: color-mix(in srgb, var(--accent) 90%, transparent);
+}
+
+[data-color-vision] .hover\:bg-\[\#67DD48\]:hover {
+  background-color: var(--accent-hover);
+}
+
+[data-color-vision] .border-\[\#78EF57\] {
+  border-color: var(--accent);
+}
+
+
+/* Green utility classes */
+
 [data-color-vision] .bg-green-200 {
-  background-color: var(--cv-accent-soft);
+  background-color: var(--success-soft);
 }
+
 [data-color-vision] .bg-green-600 {
-  background-color: var(--cv-submit);
+  background-color: var(--success);
 }
+
 [data-color-vision] .hover\:bg-green-700:hover {
-  background-color: var(--cv-submit-hover);
+  background-color: var(--success-hover);
 }
+
+
+/* Coral/action colour */
+
 [data-color-vision] .text-\[\#D4623E\] {
-  color: var(--cv-action);
+  color: var(--action);
 }
+
 [data-color-vision] .border-\[\#D4623E\] {
-  border-color: var(--cv-action);
+  border-color: var(--action);
 }
+
 [data-color-vision] .bg-\[\#E67B2E\] {
-  background-color: var(--cv-action-strong);
+  background-color: var(--action-strong);
 }
-/* `.rounds` applies the coral via @apply, so it needs its own remap. */
+
 [data-color-vision] .rounds {
-  color: var(--cv-action);
+  color: var(--action);
+}
+
+
+/* Teal text */
+
+[data-color-vision] .text-\[\#3D6B64\] {
+  color: var(--text-primary);
+}
+
+[data-color-vision] .text-\[\#3D7A72\] {
+  color: var(--text-secondary);
+}
+
+[data-color-vision] .hover\:text-\[\#2A5E58\]:hover {
+  color: var(--icon-hover);
+}
+
+
+/* Teal backgrounds */
+
+[data-color-vision] .bg-\[\#79A8A0\] {
+  background-color: var(--player-bg);
+}
+
+[data-color-vision] .bg-\[\#8EBAB3\] {
+  background-color: var(--empty-avatar-bg);
+}
+
+[data-color-vision] .bg-\[\#2F4542\] {
+  background-color: var(--avatar-bg);
+}
+
+
+/* Disabled states */
+
+[data-color-vision] .bg-\[\#9CC9C1\] {
+  background-color: var(--disabled-bg);
+}
+
+[data-color-vision] .text-\[\#47756E\] {
+  color: var(--disabled-text);
+}
+
+[data-color-vision] .bg-\[\#4a6e69\] {
+  background-color: var(--avatar-bg);
+}
+
+[data-color-vision] .text-\[\#8aaba6\] {
+  color: var(--disabled-text);
+}
+
+[data-color-vision] .text-\[\#C8DDD9\] {
+  color: var(--text-muted);
+}
+
+
+/* =========================================================
+   Lobby section backgrounds
+   ========================================================= */
+
+[data-color-vision] .color-vision-lobby-section {
+  background-color: var(--lobby-section-bg) !important;
+}
+
+
+/* =========================================================
+   Glass surfaces
+   ========================================================= */
+
+[data-color-vision] .bg-white\/\[0\.07\] {
+  background-color: var(--surface-soft);
+}
+
+[data-color-vision] .border-white\/\[0\.14\] {
+  border-color: var(--surface-border);
+}
+
+
+/* =========================================================
+   Settings panel
+   ========================================================= */
+
+[data-color-vision] .color-vision-settings {
+  color: var(--text-primary);
+  background-color: rgba(255, 255, 255, 0.95);
 }

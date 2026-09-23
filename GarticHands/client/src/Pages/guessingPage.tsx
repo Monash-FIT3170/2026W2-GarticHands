@@ -91,8 +91,13 @@ export default function GuessingPage() {
     <div className="background">
       <Card variant="glass">
         <RoundHeader round={room?.round ?? 1} totalRounds={room?.maxRounds ?? 4} />
+
         <h1 className="text-3xl">Guess this Drawing</h1>
-        <p className="text-sm text-black/45 mb-5">Drawn by {drawnBy}</p>
+
+        <p className="text-sm text-[var(--text-muted)] mb-5">
+          Drawn by {drawnBy}
+        </p>
+
         {drawing ? (
           <img
             src={drawing}
@@ -100,10 +105,13 @@ export default function GuessingPage() {
             className="w-full h-48 object-contain bg-white/[0.14] rounded-lg mb-5"
           />
         ) : (
-          <div className="w-full h-48 bg-white/[0.14] rounded-lg mb-5 flex items-center justify-center text-sm text-black/50">
-            {drawingLoaded ? `${drawnBy} ran out of time — no drawing` : 'Loading drawing...'}
+          <div className="w-full h-48 bg-white/[0.14] rounded-lg mb-5 flex items-center justify-center text-sm text-[var(--text-muted)]">
+            {drawingLoaded
+              ? `${drawnBy} ran out of time — no drawing`
+              : 'Loading drawing...'}
           </div>
         )}
+
         <div className="flex items-center justify-between mb-3">
           <CountdownTimer
             seconds={TotalTime}
@@ -113,6 +121,7 @@ export default function GuessingPage() {
             suffix=" seconds left"
           />
         </div>
+
         <input
           type="text"
           value={guess}
@@ -121,6 +130,7 @@ export default function GuessingPage() {
           placeholder="What is this drawing?"
           disabled={submitted}
         />
+
         <Button
           variant="submit"
           size="sm"
@@ -131,14 +141,20 @@ export default function GuessingPage() {
         </Button>
 
         {submitted && !error && (
-          <p className="text-sm text-black/60 mt-3">
+          <p className="text-sm text-[var(--text-muted)] mt-3">
             {waitingFor > 0
               ? `Waiting for ${waitingFor} other player${waitingFor === 1 ? '' : 's'}...`
               : 'Revealing results...'}
           </p>
         )}
-        {error && <p className="text-sm text-red-400 mt-3">{error}</p>}
+
+        {error && (
+          <p className="text-sm text-[var(--action)] mt-3">
+            {error}
+          </p>
+        )}
       </Card>
     </div>
   );
 }
+

@@ -59,6 +59,7 @@ export default function GamePage() {
         void navigate('/input', { state: { roomCode, playerName } });
         return;
       }
+
       if (data.room.phase === 'lobby') {
         cancelled = true;
         void navigate(`/joined/${roomCode}`, { state: { roomCode, playerName } });
@@ -66,9 +67,11 @@ export default function GamePage() {
     }
 
     void load();
+
     const interval = setInterval(() => {
       void load();
     }, 1500);
+
     return () => {
       cancelled = true;
       clearInterval(interval);
@@ -101,23 +104,35 @@ export default function GamePage() {
     <div className="background !justify-start">
       <Card variant="glass" className="w-full !max-w-3xl">
         <RoundHeader round={round} totalRounds={maxRounds} />
-        <h1 className="text-3xl mb-4">{roundInProgress ? 'Round in Progress' : 'Reveal'}</h1>
 
-        {!room && <p className="text-sm text-white/70">Loading results...</p>}
+        <h1 className="text-3xl mb-4">
+          {roundInProgress ? 'Round in Progress' : 'Reveal'}
+        </h1>
+
+        {!room && (
+          <p className="text-sm text-[var(--text-muted)]">
+            Loading results...
+          </p>
+        )}
 
         {roundInProgress && (
-          <div className="bg-white/[0.10] border border-white/[0.20] rounded-xl p-6 text-center">
-            <p className="text-sm text-white/80 font-semibold">
+          <div className="bg-[var(--surface-soft)] border border-[var(--surface-border)] rounded-xl p-6 text-center">
+            <p className="text-sm text-[var(--text-muted)] font-semibold">
               Round {round} is still being played...
             </p>
-            <p className="text-xs text-white/60 mt-2">
+
+            <p className="text-xs text-[var(--text-muted)] mt-2">
               You joined mid-round — hang tight, you&apos;ll jump in when the next round starts.
             </p>
           </div>
         )}
 
         {room && !roundInProgress && (
-          <ViewTabs view={view} onChange={setView} recordingsCount={recordings.length} />
+          <ViewTabs
+            view={view}
+            onChange={setView}
+            recordingsCount={recordings.length}
+          />
         )}
 
         {!roundInProgress && view === 'cards' && <CardsView chains={chains} />}
@@ -126,11 +141,15 @@ export default function GamePage() {
           <SlideshowView chains={chains.filter((c) => c.drawing)} />
         )}
 
-        {!roundInProgress && view === 'recordings' && <RecordingsView recordings={recordings} />}
+        {!roundInProgress && view === 'recordings' && (
+          <RecordingsView recordings={recordings} />
+        )}
 
         <div className="flex flex-col items-end mt-6 gap-2">
           {roundInProgress ? (
-            <p className="text-sm text-white/70">Waiting for the round to finish...</p>
+            <p className="text-sm text-[var(--text-muted)]">
+              Waiting for the round to finish...
+            </p>
           ) : isHost ? (
             isFinalRound ? (
               <Button
@@ -152,7 +171,7 @@ export default function GamePage() {
               </Button>
             )
           ) : (
-            <p className="text-sm text-white/70">
+            <p className="text-sm text-[var(--text-muted)]">
               {isFinalRound
                 ? 'Waiting for the host to return to the lobby...'
                 : 'Waiting for the host to start the next round...'}
@@ -182,17 +201,21 @@ function ViewTabs({ view, onChange, recordingsCount }: ViewTabsProps) {
     { id: 'slideshow', label: 'Slideshow' },
     { id: 'recordings', label: `My Recordings (${recordingsCount})` },
   ];
+
   return (
-    <div className="mb-4 inline-flex rounded-full bg-white/80 p-1 gap-1">
+    <div className="mb-4 inline-flex rounded-full bg-[var(--surface)] p-1 gap-1">
       {tabs.map((t) => {
         const selected = view === t.id;
+
         return (
           <button
             key={t.id}
             type="button"
             onClick={() => onChange(t.id)}
             className={`px-3 py-1.5 rounded-full text-xs font-bold uppercase tracking-[0.12em] transition-colors ${
-              selected ? 'bg-[#2E5534] text-white shadow-sm' : 'text-[#3D6B64] hover:bg-white'
+              selected
+                ? 'bg-[var(--primary)] text-white shadow-sm'
+                : 'text-[var(--text-primary)] hover:bg-black/5'
             }`}
           >
             {t.label}
@@ -209,19 +232,25 @@ function ViewTabs({ view, onChange, recordingsCount }: ViewTabsProps) {
 
 function CardsView({ chains }: { chains: RevealChain[] }) {
   if (chains.length === 0) {
-    return <p className="text-sm text-white/70">No drawings to reveal.</p>;
+    return (
+      <p className="text-sm text-[var(--text-muted)]">
+        No drawings to reveal.
+      </p>
+    );
   }
+
   return (
     <div className="space-y-6">
       {chains.map((chain) => (
         <div
           key={chain.drawer.name}
-          className="bg-white/[0.10] border border-white/[0.20] rounded-xl p-4"
+          className="bg-[var(--surface-soft)] border border-[var(--surface-border)] rounded-xl p-4"
         >
-          <p className="text-sm text-white/80">
+          <p className="text-sm text-[var(--text-muted)]">
             <span className="font-semibold">{chain.drawer.name}</span> wrote:{' '}
             <span className="italic">&quot;{chain.prompt || '(no prompt)'}&quot;</span>
           </p>
+
           {chain.drawing ? (
             <img
               src={chain.drawing}
@@ -229,11 +258,12 @@ function CardsView({ chains }: { chains: RevealChain[] }) {
               className="w-full h-56 object-contain bg-black rounded-lg my-3"
             />
           ) : (
-            <div className="w-full h-56 bg-white/[0.14] rounded-lg my-3 flex items-center justify-center text-sm text-white/70">
+            <div className="w-full h-56 bg-[var(--surface-soft)] rounded-lg my-3 flex items-center justify-center text-sm text-[var(--text-muted)]">
               No drawing submitted
             </div>
           )}
-          <p className="text-sm text-white/80">
+
+          <p className="text-sm text-[var(--text-muted)]">
             <span className="font-semibold">{chain.guesserName}</span> guessed:{' '}
             <span className="italic">&quot;{chain.guess || '(no guess)'}&quot;</span>
           </p>
@@ -256,12 +286,18 @@ function SlideshowView({ chains }: { chains: RevealChain[] }) {
 
   useEffect(() => {
     if (!playing || chains.length <= 1) return;
+
     const t = setInterval(() => setIndex((i) => i + 1), SLIDE_INTERVAL_MS);
+
     return () => clearInterval(t);
   }, [playing, chains.length]);
 
   if (chains.length === 0) {
-    return <p className="text-sm text-white/70">No drawings were submitted this round.</p>;
+    return (
+      <p className="text-sm text-[var(--text-muted)]">
+        No drawings were submitted this round.
+      </p>
+    );
   }
 
   const current = chains[safeIndex];
@@ -275,11 +311,13 @@ function SlideshowView({ chains }: { chains: RevealChain[] }) {
           className="w-full h-80 object-contain"
         />
       </div>
-      <p className="text-sm text-white/80 mt-3 text-center">
+
+      <p className="text-sm text-[var(--text-muted)] mt-3 text-center">
         <span className="font-semibold">{current.drawer.name}</span> drew{' '}
         <span className="italic">&quot;{current.prompt || '(no prompt)'}&quot;</span>
       </p>
-      <p className="text-xs text-white/60 mt-1 text-center">
+
+      <p className="text-xs text-[var(--text-muted)] mt-1 text-center">
         Guessed by <span className="font-semibold">{current.guesserName}</span>:{' '}
         <span className="italic">&quot;{current.guess || '(no guess)'}&quot;</span>
       </p>
@@ -288,25 +326,28 @@ function SlideshowView({ chains }: { chains: RevealChain[] }) {
         <button
           type="button"
           onClick={() => setIndex((i) => (i - 1 + chains.length) % chains.length)}
-          className="px-3 py-1.5 rounded-full bg-white/80 text-[#3D6B64] text-xs font-bold uppercase tracking-[0.12em] hover:bg-white"
+          className="px-3 py-1.5 rounded-full bg-[var(--surface)] text-[var(--text-primary)] text-xs font-bold uppercase tracking-[0.12em] hover:bg-black/5"
         >
           Prev
         </button>
+
         <button
           type="button"
           onClick={() => setPlaying((p) => !p)}
-          className="px-3 py-1.5 rounded-full bg-white/80 text-[#3D6B64] text-xs font-bold uppercase tracking-[0.12em] hover:bg-white"
+          className="px-3 py-1.5 rounded-full bg-[var(--surface)] text-[var(--text-primary)] text-xs font-bold uppercase tracking-[0.12em] hover:bg-black/5"
         >
           {playing ? 'Pause' : 'Play'}
         </button>
+
         <button
           type="button"
           onClick={() => setIndex((i) => (i + 1) % chains.length)}
-          className="px-3 py-1.5 rounded-full bg-white/80 text-[#3D6B64] text-xs font-bold uppercase tracking-[0.12em] hover:bg-white"
+          className="px-3 py-1.5 rounded-full bg-[var(--surface)] text-[var(--text-primary)] text-xs font-bold uppercase tracking-[0.12em] hover:bg-black/5"
         >
           Next
         </button>
-        <span className="text-xs text-white/70 ml-2">
+
+        <span className="text-xs text-[var(--text-muted)] ml-2">
           {safeIndex + 1} / {chains.length}
         </span>
       </div>
@@ -319,17 +360,22 @@ function SlideshowView({ chains }: { chains: RevealChain[] }) {
 // ---------------------------------------------------------------------------
 
 function RecordingsView({ recordings }: { recordings: Recording[] }) {
-  const sorted = useMemo(() => [...recordings].sort((a, b) => a.round - b.round), [recordings]);
+  const sorted = useMemo(
+    () => [...recordings].sort((a, b) => a.round - b.round),
+    [recordings],
+  );
+
   const [index, setIndex] = useState(0);
   const videoRef = useRef<HTMLVideoElement | null>(null);
 
   if (sorted.length === 0) {
     return (
-      <div className="bg-white/[0.10] border border-white/[0.20] rounded-xl p-6 text-center">
-        <p className="text-sm text-white/80">
+      <div className="bg-[var(--surface-soft)] border border-[var(--surface-border)] rounded-xl p-6 text-center">
+        <p className="text-sm text-[var(--text-muted)]">
           No recordings yet — recordings appear here after you submit a drawing.
         </p>
-        <p className="text-xs text-white/60 mt-2">
+
+        <p className="text-xs text-[var(--text-muted)] mt-2">
           (Recordings stay on your device — other players see only their own.)
         </p>
       </div>
@@ -344,10 +390,11 @@ function RecordingsView({ recordings }: { recordings: Recording[] }) {
 
   return (
     <div className="flex flex-col items-center">
-      <p className="text-xs font-extrabold uppercase tracking-[0.2em] text-white/80 mb-2">
+      <p className="text-xs font-extrabold uppercase tracking-[0.2em] text-[var(--text-muted)] mb-2">
         Round {current.round}
         {current.prompt && ` · "${current.prompt}"`}
       </p>
+
       <video
         ref={videoRef}
         key={current.blobUrl}
@@ -357,27 +404,31 @@ function RecordingsView({ recordings }: { recordings: Recording[] }) {
         onEnded={handleEnded}
         className="w-full max-h-[460px] rounded-xl bg-black"
       />
+
       <div className="flex items-center gap-2 mt-3">
         <button
           type="button"
           onClick={() => setIndex((i) => Math.max(0, i - 1))}
           disabled={index === 0}
-          className="px-3 py-1.5 rounded-full bg-white/80 text-[#3D6B64] text-xs font-bold uppercase tracking-[0.12em] hover:bg-white disabled:opacity-50"
+          className="px-3 py-1.5 rounded-full bg-[var(--surface)] text-[var(--text-primary)] text-xs font-bold uppercase tracking-[0.12em] hover:bg-black/5 disabled:opacity-50"
         >
           Prev
         </button>
+
         <button
           type="button"
           onClick={() => setIndex((i) => Math.min(sorted.length - 1, i + 1))}
           disabled={index >= sorted.length - 1}
-          className="px-3 py-1.5 rounded-full bg-white/80 text-[#3D6B64] text-xs font-bold uppercase tracking-[0.12em] hover:bg-white disabled:opacity-50"
+          className="px-3 py-1.5 rounded-full bg-[var(--surface)] text-[var(--text-primary)] text-xs font-bold uppercase tracking-[0.12em] hover:bg-black/5 disabled:opacity-50"
         >
           Next
         </button>
-        <span className="text-xs text-white/70 ml-2">
+
+        <span className="text-xs text-[var(--text-muted)] ml-2">
           {index + 1} / {sorted.length}
         </span>
       </div>
     </div>
   );
 }
+

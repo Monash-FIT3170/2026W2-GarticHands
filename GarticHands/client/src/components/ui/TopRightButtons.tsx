@@ -8,20 +8,23 @@ interface TopRightButtonsProps {
   onRules?: () => void;
 }
 
-/**
- * Top-right utility row (volume / settings / rules). `Page` wires `onSettings` to
- * the shared `SettingsPanel`; wire the remaining handlers when those features land.
- */
-export default function TopRightButtons({ onVolume, onSettings, onRules }: TopRightButtonsProps) {
-  const base = 'hover:text-[#2A5E58] transition-colors';
+export default function TopRightButtons({
+  onVolume,
+  onSettings,
+  onRules,
+}: TopRightButtonsProps) {
+  const base = 'hover:text-[var(--icon-hover)] transition-colors';
+
   return (
-    <div className="absolute top-5 right-6 flex gap-5 text-[#3D7A72]">
+    <div className="absolute top-5 right-6 flex gap-5 text-[var(--icon)]">
       <button className={base} onClick={onVolume} aria-label="Volume">
         <VolumeIcon className="w-7 h-7" />
       </button>
+
       <button className={base} onClick={onSettings} aria-label="Settings">
         <GearIcon className="w-7 h-7" />
       </button>
+
       <button className={base} onClick={onRules} aria-label="Rules">
         <BookIcon className="w-7 h-7" />
       </button>

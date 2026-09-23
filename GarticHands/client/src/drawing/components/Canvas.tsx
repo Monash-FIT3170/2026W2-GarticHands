@@ -187,7 +187,7 @@ const Canvas = ({
 
   const wrapperClass =
     className ??
-    'relative w-full aspect-[4/3] rounded-xl overflow-hidden bg-white border border-white/30 shadow-inner';
+    'relative w-full aspect-[4/3] rounded-xl overflow-hidden bg-[var(--surface)] border border-[var(--surface-border)] shadow-inner';
 
   return (
     <div ref={wrapperRef} className={wrapperClass}>

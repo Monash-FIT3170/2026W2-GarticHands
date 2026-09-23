@@ -63,7 +63,7 @@ function SoloInner() {
             <h1 className="text-3xl">
               Draw: <span className="italic">{prompt}</span>
             </h1>
-            <p className="text-sm text-white/80 mt-1">
+            <p className="text-sm text-[var(--text-muted)] mt-1">
               The computer picked this prompt. Draw it, save it, then get a new one.
             </p>
           </div>
@@ -78,7 +78,7 @@ function SoloInner() {
         <DrawingModePicker mode={mode} onModeChange={setMode} />
         <DrawingStage mode={mode} />
 
-        <p className="text-xs text-white/70 mt-4 text-center">
+        <p className="text-xs text-[var(--text-muted)] mt-4 text-center">
           Pinch to draw &middot; Open palm to erase
         </p>
 
@@ -93,18 +93,23 @@ function SoloInner() {
 
         {results.length > 0 && (
           <div className="mt-6">
-            <p className="text-xs font-extrabold uppercase tracking-[0.2em] text-white/80 mb-2">
+            <p className="text-xs font-extrabold uppercase tracking-[0.2em] text-[var(--text-muted)] mb-2">
               Your Drawings ({results.length})
             </p>
             <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
               {results.map((r, i) => (
-                <div key={i} className="bg-white/[0.10] border border-white/20 rounded-lg p-2">
+                <div
+                  key={i}
+                  className="bg-[var(--surface-soft)] border border-[var(--surface-border)] rounded-lg p-2"
+                >
                   <img
                     src={r.image}
                     alt={r.prompt}
-                    className="w-full aspect-[4/3] object-contain bg-white rounded"
+                    className="w-full aspect-[4/3] object-contain bg-[var(--surface)] rounded"
                   />
-                  <p className="text-xs text-white/80 mt-1 text-center italic">{r.prompt}</p>
+                  <p className="text-xs text-[var(--text-muted)] mt-1 text-center italic">
+                    {r.prompt}
+                  </p>
                 </div>
               ))}
             </div>
@@ -114,3 +119,4 @@ function SoloInner() {
     </div>
   );
 }
+
