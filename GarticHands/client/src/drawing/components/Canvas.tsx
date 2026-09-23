@@ -20,10 +20,10 @@ interface CanvasProps {
   width?: number;
   height?: number;
   ref?: Ref<CanvasHandle>;
-  /** Color for the draw-stroke op. Default black. Switch to e.g. 'white' when
-   *  overlaying on the camera feed for contrast. Changing this preserves the
-   *  existing canvas pixels — only future strokes adopt the new color. */
+  /** Color for the draw-stroke op. Default black. */
   strokeColor?: string;
+  /** Thickness of the draw stroke in pixels. Default 4. */
+  strokeWidth?: number;
   /** Wrapper class override. When omitted, the default rounded white panel is used.
    *  Pass an absolute-positioned, transparent class set to overlay on the camera. */
   className?: string;
@@ -38,6 +38,7 @@ const Canvas = ({
   height = 480,
   ref,
   strokeColor = 'black',
+  strokeWidth = 4,
   className,
 }: CanvasProps) => {
   const wrapperRef = useRef<HTMLDivElement>(null);
@@ -53,16 +54,7 @@ const Canvas = ({
   }, [registerDrawCanvasElement]);
 
   // Keep each canvas's backing-store pixel size in lockstep with its actual
-  // rendered CSS box. The backing store used to be a hardcoded 640x480 (4:3)
-  // regardless of the box it rendered into — depending on the surrounding
-  // grid/flex layout, that box can end up a different aspect ratio, and the
-  // browser then stretches the raster non-uniformly (different x/y scale
-  // factors) to force-fill it. That distorts every shape drawn (circles
-  // become ellipses, stroke width becomes direction-dependent) and throws
-  // off the 1:1 assumption between a canvas pixel and a screen pixel that
-  // `landmarkToCanvas` relies on. Measuring the real rendered box and
-  // resizing the backing store to match removes the stretch at the source,
-  // independent of whatever layout ends up surrounding this component.
+  // rendered CSS box.
   useLayoutEffect(() => {
     const wrapper = wrapperRef.current;
     const drawCanvas = drawCanvasRef.current;
@@ -124,20 +116,23 @@ const Canvas = ({
     active: CanvasOp | null;
   } | null>(null);
 
-  // Recreate ops when strokeColor changes — preserves the already-drawn pixels
-  // (those live on the canvas element, not in the op instances) while routing
-  // future strokes through the new-colored CanvasDraw.
+  // Recreate the draw operation when colour or thickness changes.
+  // Existing pixels are preserved because they live on the canvas element.
+  // Only future strokes use the new settings.
   useLayoutEffect(() => {
     const drawCtx = drawCanvasRef.current?.getContext('2d');
     const overlayCtx = overlayCanvasRef.current?.getContext('2d');
     if (!drawCtx || !overlayCtx) return;
 
     stateRef.current = {
-      ops: [new CanvasDraw(drawCtx, strokeColor), new CanvasErase(drawCtx)],
+      ops: [
+        new CanvasDraw(drawCtx, strokeColor, strokeWidth),
+        new CanvasErase(drawCtx),
+      ],
       cursor: new CanvasLocation(overlayCtx),
       active: null,
     };
-  }, [strokeColor]);
+  }, [strokeColor, strokeWidth]);
 
   useImperativeHandle(
     ref,
@@ -157,28 +152,34 @@ const Canvas = ({
         }
 
         if (landmarks) {
-          const point = landmarkToCanvas(landmarks[INDEX_FINGERTIP], drawCanvas);
+          const point = landmarkToCanvas(
+            landmarks[INDEX_FINGERTIP],
+            drawCanvas,
+          );
           state.cursor.render(point, gesture);
           next?.tick(point);
         } else {
           state.cursor.clear();
         }
       },
+
       getImage() {
         // Composite onto a white background before exporting so the submitted
-        // PNG is always strokes-on-white — never a transparent canvas that
-        // renders as a black box on dark themes (and never white-on-white when
-        // the visible canvas used white strokes for camera overlay).
+        // PNG is always strokes-on-white.
         const src = drawCanvasRef.current;
         if (!src) return null;
+
         const composite = document.createElement('canvas');
         composite.width = src.width;
         composite.height = src.height;
+
         const ctx = composite.getContext('2d');
         if (!ctx) return null;
+
         ctx.fillStyle = 'white';
         ctx.fillRect(0, 0, composite.width, composite.height);
         ctx.drawImage(src, 0, 0);
+
         return composite.toDataURL('image/png');
       },
     }),
