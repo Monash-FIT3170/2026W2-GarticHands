@@ -7,6 +7,8 @@ interface DrawingCameraCanvasProps {
   height?: number;
   /** Stroke color (default 'black'). Switch to e.g. 'white' for camera overlay. */
   strokeColor?: string;
+  /** Stroke thickness in pixels (default 4). */
+  strokeWidth?: number;
   /** Wrapper class override — pass `absolute inset-0` for overlay use. */
   className?: string;
 }
@@ -24,6 +26,7 @@ export default function DrawingCameraCanvas({
   width,
   height,
   strokeColor,
+  strokeWidth,
   className,
 }: DrawingCameraCanvasProps) {
   const { registerCanvas } = useDrawingContext();
@@ -42,6 +45,7 @@ export default function DrawingCameraCanvas({
       width={width}
       height={height}
       strokeColor={strokeColor}
+      strokeWidth={strokeWidth}
       className={className}
     />
   );
