@@ -26,17 +26,21 @@ export default function HostingPage() {
         void navigate('/');
         return;
       }
+
       const data = await createRoom(hostName);
+
       if (data.success && data.roomCode && data.room) {
         setRoomCode(data.roomCode);
         setPlayers(data.room.players);
       }
     }
+
     void setupRoom();
   }, [hostName, navigate]);
 
   useEffect(() => {
     if (!roomCode || !hostName) return;
+
     async function loadRoom() {
       // Passing the name doubles as this player's presence heartbeat.
       const data = await getRoom(roomCode, hostName);
@@ -45,6 +49,7 @@ export default function HostingPage() {
       // Dropped by the server (network died long enough to look like leaving) —
       // the room carries on without us, so stop pretending we're still in it.
       const stillIn = data.room.players.some((p: Player) => p.name === hostName);
+
       if (!stillIn) {
         void navigate('/');
         return;
@@ -52,10 +57,13 @@ export default function HostingPage() {
 
       setPlayers(data.room.players);
     }
+
     void loadRoom();
+
     const interval = setInterval(() => {
       void loadRoom();
     }, 1000);
+
     return () => clearInterval(interval);
   }, [roomCode, hostName, navigate]);
 
@@ -73,16 +81,21 @@ export default function HostingPage() {
 
   function copyCode() {
     if (!roomCode) return;
+
     navigator.clipboard.writeText(roomCode).catch(() => {});
     show('Invite code copied!');
   }
 
   async function handleStart() {
     if (!allReady || !hostName) return;
+
     await startRoom(roomCode);
     show('Starting game...');
+
     setTimeout(() => {
-      void navigate('/input', { state: { roomCode, playerName: hostName } });
+      void navigate('/input', {
+        state: { roomCode, playerName: hostName },
+      });
     }, 1200);
   }
 
@@ -90,11 +103,12 @@ export default function HostingPage() {
     <Page variant="centered" logo>
       <Card variant="lobby">
         <div className="grid grid-cols-1 md:grid-cols-[1.4fr_1fr] gap-8">
-          <section className="rounded-xl p-6" style={{ backgroundColor: 'rgba(22, 89, 74, 0.2)' }}>
+          <section className="color-vision-lobby-section rounded-xl p-6">
             <div className="flex items-center justify-between mb-5">
               <h2 className="text-white text-2xl font-extrabold tracking-wide">
                 PLAYERS {players.length}/{MAX_PLAYERS}
               </h2>
+
               <p className="text-white/80 text-sm font-semibold">
                 {readyCount}/{players.length} ready
               </p>
@@ -109,11 +123,11 @@ export default function HostingPage() {
           </section>
 
           <section className="flex flex-col items-center">
-            <div
-              className="rounded-xl p-6 w-full flex flex-col items-center"
-              style={{ backgroundColor: 'rgba(22, 89, 74, 0.2)' }}
-            >
-              <h2 className="text-white text-2xl font-extrabold tracking-wide mb-5">GAMEMODE</h2>
+            <div className="color-vision-lobby-section rounded-xl p-6 w-full flex flex-col items-center">
+              <h2 className="text-white text-2xl font-extrabold tracking-wide mb-5">
+                GAMEMODE
+              </h2>
+
               <GamemodeSelect />
             </div>
 
@@ -121,9 +135,11 @@ export default function HostingPage() {
               <p className="text-white/60 text-xs font-semibold uppercase tracking-widest">
                 Room Code
               </p>
+
               <p className="text-white font-mono font-extrabold text-4xl tracking-[0.3em]">
                 {roomCode}
               </p>
+
               <Button variant="outline" size="full" onClick={copyCode}>
                 <span className="flex items-center justify-center gap-2">
                   <svg
@@ -154,7 +170,12 @@ export default function HostingPage() {
               {allReady ? 'Start Game' : 'Waiting for Players'}
             </Button>
 
-            <Button variant="leave" size="full" onClick={() => void handleLeave()} className="mt-3">
+            <Button
+              variant="leave"
+              size="full"
+              onClick={() => void handleLeave()}
+              className="mt-3"
+            >
               Leave Room
             </Button>
           </section>
@@ -169,9 +190,13 @@ export default function HostingPage() {
 function GamemodeSelect() {
   return (
     <div className="grid grid-cols-1 gap-4 w-full max-w-[200px]">
-      <button className="bg-white rounded-lg border-4 border-[#78EF57] flex flex-col items-center justify-center shadow-sm">
-        <img src="/gamemode_classic.png" alt="Classic" className="w-16 h-16 mb-2 object-contain" />
-        <p className="text-[#2E5534] font-extrabold">Classic</p>
+      <button className="bg-[var(--surface)] rounded-lg border-4 border-[var(--accent)] flex flex-col items-center justify-center shadow-sm">
+        <img
+          src="/gamemode_classic.png"
+          alt="Classic"
+          className="w-16 h-16 mb-2 object-contain"
+        />
+        <p className="text-[var(--primary)] font-extrabold">Classic</p>
       </button>
     </div>
   );
