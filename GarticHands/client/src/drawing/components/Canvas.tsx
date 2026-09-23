@@ -1,4 +1,4 @@
-import { useEffect, useImperativeHandle, useRef, type Ref } from 'react';
+import { useImperativeHandle, useLayoutEffect, useRef, type Ref } from 'react';
 
 import type { HandLandmark } from '../Models/HandLandmark';
 import { GestureType } from '../gestures/GestureTypes';
@@ -40,16 +40,81 @@ const Canvas = ({
   strokeColor = 'black',
   className,
 }: CanvasProps) => {
+  const wrapperRef = useRef<HTMLDivElement>(null);
   const drawCanvasRef = useRef<HTMLCanvasElement>(null);
   const overlayCanvasRef = useRef<HTMLCanvasElement>(null);
   const { registerDrawCanvasElement } = useDrawingContext();
 
   // Publish the draw-canvas DOM node so the recorder can sample it per-frame.
-  useEffect(() => {
+  useLayoutEffect(() => {
     const canvas = drawCanvasRef.current;
     if (!canvas) return;
     return registerDrawCanvasElement(canvas);
   }, [registerDrawCanvasElement]);
+
+  // Keep each canvas's backing-store pixel size in lockstep with its actual
+  // rendered CSS box. The backing store used to be a hardcoded 640x480 (4:3)
+  // regardless of the box it rendered into — depending on the surrounding
+  // grid/flex layout, that box can end up a different aspect ratio, and the
+  // browser then stretches the raster non-uniformly (different x/y scale
+  // factors) to force-fill it. That distorts every shape drawn (circles
+  // become ellipses, stroke width becomes direction-dependent) and throws
+  // off the 1:1 assumption between a canvas pixel and a screen pixel that
+  // `landmarkToCanvas` relies on. Measuring the real rendered box and
+  // resizing the backing store to match removes the stretch at the source,
+  // independent of whatever layout ends up surrounding this component.
+  useLayoutEffect(() => {
+    const wrapper = wrapperRef.current;
+    const drawCanvas = drawCanvasRef.current;
+    const overlayCanvas = overlayCanvasRef.current;
+    if (!wrapper || !drawCanvas || !overlayCanvas) return;
+
+    const resize = () => {
+      const rect = wrapper.getBoundingClientRect();
+      const nextWidth = Math.max(1, Math.round(rect.width));
+      const nextHeight = Math.max(1, Math.round(rect.height));
+
+      // Setting canvas.width/height clears its pixels, so preserve whatever
+      // is already drawn by snapshotting it onto a scratch canvas first and
+      // drawing that back scaled into the newly-sized backing store.
+      for (const canvas of [drawCanvas, overlayCanvas]) {
+        if (canvas.width === nextWidth && canvas.height === nextHeight) continue;
+
+        if (canvas.width > 0 && canvas.height > 0) {
+          const snapshot = document.createElement('canvas');
+          snapshot.width = canvas.width;
+          snapshot.height = canvas.height;
+          snapshot.getContext('2d')?.drawImage(canvas, 0, 0);
+
+          canvas.width = nextWidth;
+          canvas.height = nextHeight;
+
+          canvas
+            .getContext('2d')
+            ?.drawImage(
+              snapshot,
+              0,
+              0,
+              snapshot.width,
+              snapshot.height,
+              0,
+              0,
+              nextWidth,
+              nextHeight,
+            );
+        } else {
+          canvas.width = nextWidth;
+          canvas.height = nextHeight;
+        }
+      }
+    };
+
+    resize();
+
+    const observer = new ResizeObserver(resize);
+    observer.observe(wrapper);
+    return () => observer.disconnect();
+  }, []);
 
   // Ops, cursor, and the currently-routed op live in a ref so the
   // imperative onFrame handler can mutate them without re-renders.
@@ -62,7 +127,7 @@ const Canvas = ({
   // Recreate ops when strokeColor changes — preserves the already-drawn pixels
   // (those live on the canvas element, not in the op instances) while routing
   // future strokes through the new-colored CanvasDraw.
-  useEffect(() => {
+  useLayoutEffect(() => {
     const drawCtx = drawCanvasRef.current?.getContext('2d');
     const overlayCtx = overlayCanvasRef.current?.getContext('2d');
     if (!drawCtx || !overlayCtx) return;
@@ -125,7 +190,7 @@ const Canvas = ({
     'relative w-full aspect-[4/3] rounded-xl overflow-hidden bg-white border border-white/30 shadow-inner';
 
   return (
-    <div className={wrapperClass}>
+    <div ref={wrapperRef} className={wrapperClass}>
       <canvas
         ref={drawCanvasRef}
         width={width}
