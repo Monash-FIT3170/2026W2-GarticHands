@@ -33,7 +33,7 @@ export default function HandTracking({ onFrame }: HandTrackingProps) {
   }, [registerCameraCanvas]);
 
   return (
-    <div className="relative w-full aspect-[4/3] rounded-xl overflow-hidden bg-white border border-white/30 shadow-inner">
+    <div className="relative w-full aspect-[4/3] rounded-xl overflow-hidden bg-[var(--surface)] border border-[var(--surface-border)] shadow-inner">
       {/* Hidden raw webcam — visibility:hidden keeps the track active while invisible. */}
       <video
         ref={videoRef}
@@ -47,24 +47,31 @@ export default function HandTracking({ onFrame }: HandTrackingProps) {
       {/* Status overlay — pinned to bottom so it never crowds the drawing area. */}
       <div className="absolute left-2 bottom-2 flex gap-2 text-xs font-semibold">
         {error ? (
-          <span className="px-2 py-1 rounded-full bg-red-500/90 text-white">{error}</span>
+          <span className="px-2 py-1 rounded-full bg-[var(--action)]/90 text-white">
+            {error}
+          </span>
         ) : isLoading ? (
-          <span className="px-2 py-1 rounded-full bg-white/90 text-[#3D6B64]">
+          <span className="px-2 py-1 rounded-full bg-[var(--surface)]/90 text-[var(--text-primary)]">
             Loading camera...
           </span>
         ) : (
           <>
             <span
               className={`px-2 py-1 rounded-full ${
-                handDetected ? 'bg-[#78EF57]/90 text-[#2E5534]' : 'bg-white/90 text-[#3D6B64]'
+                handDetected
+                  ? 'bg-[var(--accent)]/90 text-[var(--primary)]'
+                  : 'bg-[var(--surface)]/90 text-[var(--text-primary)]'
               }`}
             >
               {handDetected ? 'Hand detected' : 'Show your hand'}
             </span>
-            <span className="px-2 py-1 rounded-full bg-[#2F4542]/90 text-white">{gesture}</span>
+            <span className="px-2 py-1 rounded-full bg-[var(--avatar-bg)]/90 text-white">
+              {gesture}
+            </span>
           </>
         )}
       </div>
     </div>
   );
 }
+
