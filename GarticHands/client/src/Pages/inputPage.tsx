@@ -66,7 +66,9 @@ export default function InputPage() {
     <div className="background">
       <Card variant="glass">
         <RoundHeader round={room?.round ?? 1} totalRounds={room?.maxRounds ?? 4} />
+
         <h1 className="text-3xl">Write a sentence</h1>
+
         <input
           type="text"
           className="text box"
@@ -76,6 +78,7 @@ export default function InputPage() {
           disabled={submitted}
           placeholder="Start typing your prompt here..."
         />
+
         <div className="flex items-center justify-between mt-3">
           <CountdownTimer
             seconds={TotalTime}
@@ -83,6 +86,7 @@ export default function InputPage() {
             paused={submitted}
             onExpire={handleExpire}
           />
+
           <Button
             variant="submit"
             size="sm"
@@ -94,13 +98,18 @@ export default function InputPage() {
         </div>
 
         {submitted && !error && (
-          <p className="text-sm text-black/60 mt-3">
+          <p className="text-sm text-[var(--text-muted)] mt-3">
             {waitingFor > 0
               ? `Waiting for ${waitingFor} other player${waitingFor === 1 ? '' : 's'}...`
               : 'Starting drawing phase...'}
           </p>
         )}
-        {error && <p className="text-sm text-red-400 mt-3">{error}</p>}
+
+        {error && (
+          <p className="text-sm text-[var(--action)] mt-3">
+            {error}
+          </p>
+        )}
       </Card>
     </div>
   );
