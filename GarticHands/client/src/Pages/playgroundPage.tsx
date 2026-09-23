@@ -39,7 +39,7 @@ function PlaygroundInner() {
           <div>
             <p className="rounds">Playground</p>
             <h1 className="text-3xl">MediaPipe Sandbox</h1>
-            <p className="text-sm text-white/80 mt-1">
+            <p className="text-sm text-[var(--text-muted)] mt-1">
               No timer, no network — try every layout and gesture.
             </p>
           </div>
@@ -51,7 +51,7 @@ function PlaygroundInner() {
         <DrawingModePicker mode={mode} onModeChange={setMode} />
         <DrawingStage mode={mode} />
 
-        <p className="text-xs text-white/70 mt-4 text-center">
+        <p className="text-xs text-[var(--text-muted)] mt-4 text-center">
           Pinch your index finger and thumb to draw &middot; Open palm to erase
         </p>
 
@@ -63,13 +63,13 @@ function PlaygroundInner() {
 
         {snapshot && (
           <div className="mt-4">
-            <p className="text-xs font-extrabold uppercase tracking-[0.2em] text-white/80 mb-2">
+            <p className="text-xs font-extrabold uppercase tracking-[0.2em] text-[var(--text-muted)] mb-2">
               Last Snapshot
             </p>
             <img
               src={snapshot}
               alt="Snapshot of your drawing"
-              className="w-full max-w-md bg-white rounded-lg border border-white/30"
+              className="w-full max-w-md bg-[var(--surface)] rounded-lg border border-[var(--surface-border)]"
             />
           </div>
         )}
@@ -77,3 +77,4 @@ function PlaygroundInner() {
     </div>
   );
 }
+
