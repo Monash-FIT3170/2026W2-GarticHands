@@ -2,21 +2,18 @@ type BadgeTone = 'lobby' | 'simple';
 type BadgeKind = 'host' | 'ready' | 'waiting';
 
 interface BadgeProps {
-  /** Visual flavor — `lobby` is the colorful hostingPage pill, `simple` is the joinedPage variant. */
   tone?: BadgeTone;
-  /** Semantic state. */
   kind: BadgeKind;
 }
 
 const lobbyClasses: Record<BadgeKind, string> = {
-  host: 'text-xs font-bold px-3 py-1 rounded-full bg-yellow-200 text-[#D4623E]',
-  ready: 'text-xs font-bold px-3 py-1 rounded-full bg-green-200 text-[#2E5534]',
-  waiting: 'text-xs font-bold px-3 py-1 rounded-full bg-orange-100 text-[#D4623E]',
+  host: 'text-xs font-bold px-3 py-1 rounded-full bg-[var(--warning-soft)] text-[var(--warning-text)]',
+  ready: 'text-xs font-bold px-3 py-1 rounded-full bg-[var(--success-soft)] text-[var(--primary)]',
+  waiting: 'text-xs font-bold px-3 py-1 rounded-full bg-[var(--warning-soft)] text-[var(--warning-text)]',
 };
 
 const simpleClass = 'text-xs font-bold px-3 py-0.5 rounded-full';
 
-/** Status pill displayed next to player names. */
 export default function Badge({ tone = 'simple', kind }: BadgeProps) {
   if (tone === 'simple') {
     return <span className={simpleClass}>{labelFor(kind)}</span>;
