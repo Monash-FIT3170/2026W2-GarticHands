@@ -62,30 +62,30 @@
    ========================================================= */
 
 :root[data-color-vision='deuteranopia'] {
-  --page-bg: #6B9FA8;
+  --page-bg: #5B8FA3;
 
-  --card-bg: #56858F;
-  --hero-bg: #4F858D;
-  --card-border: #6B9FA8;
-  --lobby-section-bg: rgba(25, 73, 84, 0.25);
+  --card-bg: #426F82;
+  --hero-bg: #376579;
+  --card-border: #5B8FA3;
+  --lobby-section-bg: rgba(20, 55, 75, 0.30);
 
   --surface: #ffffff;
   --surface-soft: rgba(255, 255, 255, 0.08);
   --surface-border: rgba(255, 255, 255, 0.18);
 
-  --text-primary: #244F59;
-  --text-secondary: #2F6873;
-  --text-muted: #D4E7EA;
+  --text-primary: #173B4A;
+  --text-secondary: #24586A;
+  --text-muted: #D6E8ED;
 
-  --primary: #174A6B;
-  --primary-hover: #103A55;
+  --primary: #124E78;
+  --primary-hover: #0B3A5B;
 
-  --accent: #0072B2;
-  --accent-hover: #005A8C;
-  --accent-soft: #B9DDF0;
+  --accent: #00A6D6;
+  --accent-hover: #0088B3;
+  --accent-soft: #B8E6F2;
 
-  --action: #D55E00;
-  --action-strong: #E69F00;
+  --action: #E69F00;
+  --action-strong: #F2B300;
 
   --success: #0072B2;
   --success-hover: #005A8C;
@@ -97,8 +97,8 @@
   --input-text: #A84A00;
   --input-placeholder: rgba(168, 74, 0, 0.5);
 
-  --icon: #2F6873;
-  --icon-hover: #174A6B;
+  --icon: #24586A;
+  --icon-hover: #124E78;
 
   --disabled-bg: #A9CDD2;
   --disabled-text: #416D75;
@@ -164,31 +164,31 @@
 
 /* =========================================================
    Tritanopia
-   Blue/yellow distinctions are reduced, so the accent shifts
-   toward pink/magenta while retaining the teal base.
+   Blue/yellow distinctions are reduced, so the palette shifts
+   toward purple/magenta for a stronger visual distinction.
    ========================================================= */
 
 :root[data-color-vision='tritanopia'] {
-  --page-bg: #79A5A0;
+  --page-bg: #8A7FA3;
 
-  --card-bg: #638D89;
-  --hero-bg: #5C8985;
-  --card-border: #79A5A0;
-  --lobby-section-bg: rgba(56, 70, 69, 0.22);
+  --card-bg: #6E6287;
+  --hero-bg: #5F5378;
+  --card-border: #8A7FA3;
+  --lobby-section-bg: rgba(55, 35, 70, 0.28);
 
   --surface: #ffffff;
   --surface-soft: rgba(255, 255, 255, 0.08);
   --surface-border: rgba(255, 255, 255, 0.18);
 
-  --text-primary: #3F5553;
-  --text-secondary: #466C68;
-  --text-muted: #D8E5E3;
+  --text-primary: #40304F;
+  --text-secondary: #594166;
+  --text-muted: #E7DDF0;
 
-  --primary: #703052;
-  --primary-hover: #57223F;
+  --primary: #703B78;
+  --primary-hover: #572B60;
 
   --accent: #D94F9D;
-  --accent-hover: #C53B88;
+  --accent-hover: #BD3B83;
   --accent-soft: #F2C4DF;
 
   --action: #C85A35;
@@ -204,8 +204,8 @@
   --input-text: #A94A78;
   --input-placeholder: rgba(169, 74, 120, 0.5);
 
-  --icon: #466C68;
-  --icon-hover: #703052;
+  --icon: #594166;
+  --icon-hover: #703B78;
 
   --disabled-bg: #B7CFCC;
   --disabled-text: #617D79;
