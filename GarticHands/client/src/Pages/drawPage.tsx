@@ -164,7 +164,7 @@ function DrawPageInner() {
         <DrawingStage mode={mode} drawingEnabled={drawingEnabled} />
 
         <p className="text-xs text-white/70 mt-4 text-center">
-          Pinch your index finger and thumb to draw &middot; Open palm to erase
+          Pinch your index finger and thumb to use the selected tool.
         </p>
 
         <div className="flex justify-center mt-4">
@@ -210,4 +210,3 @@ function DrawPageInner() {
     </div>
   );
 }
-
