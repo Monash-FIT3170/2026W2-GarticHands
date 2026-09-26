@@ -227,7 +227,7 @@ function DrawingToolPicker({
         }`}
         aria-pressed={tool === 'draw'}
       >
-        ✎ Drawing
+        ✏️ Drawing
       </button>
 
       <button
@@ -240,7 +240,7 @@ function DrawingToolPicker({
         }`}
         aria-pressed={tool === 'erase'}
       >
-        Eraser
+        🧽 Eraser
       </button>
     </div>
   );
@@ -337,13 +337,23 @@ export function Panel({ label, children, className = '' }: PanelProps) {
 interface DrawingStageProps {
   mode: DrawMode;
   drawingEnabled?: boolean;
+  tool?: DrawingTool;
+  onToolChange?: (tool: DrawingTool) => void;
 }
 
 export function DrawingStage({
   mode,
   drawingEnabled = true,
+  tool: controlledTool,
+  onToolChange,
 }: DrawingStageProps) {
-  const [tool, setTool] = useState<DrawingTool>('draw');
+  const [internalTool, setInternalTool] = useState<DrawingTool>('draw');
+  const tool = controlledTool ?? internalTool;
+
+  function handleToolChange(nextTool: DrawingTool) {
+    setInternalTool(nextTool);
+    onToolChange?.(nextTool);
+  }
 
   const [settings, setSettings] = useState<DrawingSettings>({
     colour: '#000000',
@@ -356,7 +366,7 @@ export function DrawingStage({
     <div>
       <DrawingToolPicker
         tool={tool}
-        onToolChange={setTool}
+        onToolChange={handleToolChange}
         disabled={!drawingEnabled}
       />
 
