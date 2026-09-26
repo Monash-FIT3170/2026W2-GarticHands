@@ -170,7 +170,7 @@ const Canvas = ({
             landmarks[INDEX_FINGERTIP],
             drawCanvas,
           );
-          state.cursor.render(point, gesture);
+          state.cursor.render(point, gesture, toolRef.current);
           next?.tick(point);
         } else {
           state.cursor.clear();
