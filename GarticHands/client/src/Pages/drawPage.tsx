@@ -8,6 +8,7 @@ import {
   useDrawingMode,
   useRecorder,
 } from '../drawing';
+import type { DrawingTool } from '../drawing/components/Canvas';
 import { Card, Button, RoundHeader, CountdownTimer } from '../components/ui';
 import { getRoom, submitDrawing, PhaseConflictStatus } from '../api/room';
 import { usePhaseAdvance } from '../hooks/usePhaseAdvance';
@@ -37,6 +38,7 @@ function DrawPageInner() {
   const recorder = useRecorder();
   const { saveRecording } = useRecordings();
   const [mode, setMode] = useDrawingMode();
+  const [tool, setTool] = useState<DrawingTool>('draw');
   const [drawingEnabled, setDrawingEnabled] = useState(false);
   const [submitted, setSubmitted] = useState(false);
   const [error, setError] = useState('');
@@ -69,7 +71,6 @@ function DrawPageInner() {
     if (roundNum === null) return;
     if (!recorder.isSupported) return;
     startedRef.current = true;
-    // Slight delay so the camera canvas has mounted and started drawing frames.
     const t = setTimeout(() => void recorder.start(), 400);
     return () => clearTimeout(t);
     // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -96,9 +97,6 @@ function DrawPageInner() {
     setSubmitted(true);
     setError('');
 
-    // Stop recording in parallel with the submit. `stop()` resolves with `null`
-    // if nothing was being recorded, so no isRecording-state check is needed —
-    // that check was racy (state lags by a render) and silently dropped saves.
     const [data, blobUrl] = await Promise.all([
       submitDrawing(roomCode, playerName, dataUrl),
       recorder.stop(),
@@ -114,8 +112,6 @@ function DrawPageInner() {
     }
 
     if (!data.success) {
-      // Raced the phase deadline: the server already moved everyone on and
-      // recorded a blank drawing. Stay submitted and let the phase poll navigate.
       if (data.status === PhaseConflictStatus) return;
       setError(data.message || 'Failed to submit drawing.');
       setSubmitted(false);
@@ -131,6 +127,14 @@ function DrawPageInner() {
   function handleExpire() {
     if (!submitted) void handleSubmit();
   }
+
+  const actionLabel = tool === 'draw'
+    ? drawingEnabled
+      ? 'Stop Drawing'
+      : 'Start Drawing'
+    : drawingEnabled
+      ? 'Stop Erasing'
+      : 'Start Erasing';
 
   return (
     <div className="background !justify-start">
@@ -161,7 +165,12 @@ function DrawPageInner() {
           disabled={submitted}
         />
 
-        <DrawingStage mode={mode} drawingEnabled={drawingEnabled} />
+        <DrawingStage
+          mode={mode}
+          drawingEnabled={drawingEnabled}
+          tool={tool}
+          onToolChange={setTool}
+        />
 
         <p className="text-xs text-white/70 mt-4 text-center">
           Pinch your index finger and thumb to use the selected tool.
@@ -178,7 +187,7 @@ function DrawPageInner() {
                 : 'bg-[var(--success)] hover:bg-[var(--success-hover)]'
             } ${submitted ? 'opacity-50 cursor-not-allowed' : ''}`}
           >
-            {drawingEnabled ? 'Stop Drawing' : 'Start Drawing'}
+            {actionLabel}
           </Button>
         </div>
 
