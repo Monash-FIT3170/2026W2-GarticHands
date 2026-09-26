@@ -1,11 +1,12 @@
 import type { Point } from '../../Models/Point';
 import { GestureType } from '../../gestures/GestureTypes';
+import type { DrawingTool } from '../Canvas';
 
 // Cursor renderer for the overlay canvas. Intentionally NOT a CanvasOp:
 // it runs every frame a hand is on screen and swaps its icon based on the
-// current gesture, so the user has continuous feedback about which mode
-// they're in. Lives on its own overlay context so the cursor never gets
-// baked into the artwork.
+// current tool and gesture, so the user has continuous feedback about
+// which mode they're in. Lives on its own overlay context so the cursor
+// never gets baked into the artwork.
 export class CanvasLocation {
   readonly name = 'location';
 
@@ -14,16 +15,12 @@ export class CanvasLocation {
     private readonly iconSize: number = 28,
   ) {}
 
-  render(point: Point, gesture: GestureType): void {
+  render(point: Point, gesture: GestureType, tool: DrawingTool): void {
     this.clear();
 
-    // currently using placeholders for things, and basic sizing.
     switch (gesture) {
       case GestureType.PINCH:
-        this.drawIcon(point, '✏️'); // pencil
-        return;
-      case GestureType.OPEN_PALM:
-        this.drawIcon(point, '🧽'); // sponge
+        this.drawIcon(point, tool === 'erase' ? '🧽' : '✏️');
         return;
       case GestureType.HAND_PRESENT:
         this.drawPointer(point);
@@ -43,7 +40,6 @@ export class CanvasLocation {
   }
 
   private drawIcon(p: Point, glyph: string): void {
-    // Emoji font stack covers Windows (Segoe), macOS (Apple), and Linux (Noto).
     this.ctx.font = `${this.iconSize}px "Segoe UI Emoji", "Apple Color Emoji", "Noto Color Emoji", sans-serif`;
     this.ctx.textAlign = 'center';
     this.ctx.textBaseline = 'middle';

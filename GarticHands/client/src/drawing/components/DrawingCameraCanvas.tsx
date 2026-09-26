@@ -1,5 +1,5 @@
 import { useEffect, useRef } from 'react';
-import Canvas, { type CanvasHandle } from './Canvas';
+import Canvas, { type CanvasHandle, type DrawingTool } from './Canvas';
 import { useDrawingContext } from '../DrawingContext';
 
 interface DrawingCameraCanvasProps {
@@ -9,6 +9,10 @@ interface DrawingCameraCanvasProps {
   strokeColor?: string;
   /** Stroke thickness in pixels (default 4). */
   strokeWidth?: number;
+  /** Active drawing tool. Default draw. */
+  tool?: DrawingTool;
+  /** Eraser radius in pixels (default 18). */
+  eraserSize?: number;
   /** Wrapper class override — pass `absolute inset-0` for overlay use. */
   className?: string;
 }
@@ -27,6 +31,8 @@ export default function DrawingCameraCanvas({
   height,
   strokeColor,
   strokeWidth,
+  tool,
+  eraserSize,
   className,
 }: DrawingCameraCanvasProps) {
   const { registerCanvas } = useDrawingContext();
@@ -46,6 +52,8 @@ export default function DrawingCameraCanvas({
       height={height}
       strokeColor={strokeColor}
       strokeWidth={strokeWidth}
+      tool={tool}
+      eraserSize={eraserSize}
       className={className}
     />
   );
