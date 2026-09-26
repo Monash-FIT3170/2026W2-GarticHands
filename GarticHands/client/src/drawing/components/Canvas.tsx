@@ -16,21 +16,25 @@ export interface CanvasHandle {
   getImage: () => string | null;
 }
 
+export type DrawingTool = 'draw' | 'erase';
+
 interface CanvasProps {
   width?: number;
   height?: number;
   ref?: Ref<CanvasHandle>;
   /** Color for the draw-stroke op. Default black. */
   strokeColor?: string;
-  /** Thickness of the draw stroke in pixels. Default 4. */
+  /** Thickness of the drawing stroke in pixels. Default 4. */
   strokeWidth?: number;
+  /** Active drawing tool. Default draw. */
+  tool?: DrawingTool;
+  /** Eraser radius in pixels. Default 18. */
+  eraserSize?: number;
   /** Wrapper class override. When omitted, the default rounded white panel is used.
    *  Pass an absolute-positioned, transparent class set to overlay on the camera. */
   className?: string;
 }
 
-// MediaPipe landmark index for the tip of the index finger — the single
-// "cursor point" used across all operations for consistency.
 const INDEX_FINGERTIP = 8;
 
 const Canvas = ({
@@ -39,6 +43,8 @@ const Canvas = ({
   ref,
   strokeColor = 'black',
   strokeWidth = 4,
+  tool = 'draw',
+  eraserSize = 18,
   className,
 }: CanvasProps) => {
   const wrapperRef = useRef<HTMLDivElement>(null);
@@ -116,9 +122,9 @@ const Canvas = ({
     active: CanvasOp | null;
   } | null>(null);
 
-  // Recreate the draw operation when colour or thickness changes.
+  // Recreate the operations when drawing or eraser settings change.
   // Existing pixels are preserved because they live on the canvas element.
-  // Only future strokes use the new settings.
+  // Only future actions use the new settings.
   useLayoutEffect(() => {
     const drawCtx = drawCanvasRef.current?.getContext('2d');
     const overlayCtx = overlayCanvasRef.current?.getContext('2d');
@@ -127,12 +133,12 @@ const Canvas = ({
     stateRef.current = {
       ops: [
         new CanvasDraw(drawCtx, strokeColor, strokeWidth),
-        new CanvasErase(drawCtx),
+        new CanvasErase(drawCtx, eraserSize),
       ],
       cursor: new CanvasLocation(overlayCtx),
       active: null,
     };
-  }, [strokeColor, strokeWidth]);
+  }, [strokeColor, strokeWidth, eraserSize]);
 
   useImperativeHandle(
     ref,
@@ -142,10 +148,15 @@ const Canvas = ({
         const drawCanvas = drawCanvasRef.current;
         if (!state || !drawCanvas) return;
 
-        const next = state.ops.find((op) => op.activatedBy === gesture) ?? null;
+        // Only pinch performs an action. The selected tool determines whether
+        // that pinch draws or erases. Open palm and other gestures do nothing.
+        const next =
+          gesture === GestureType.PINCH
+            ? state.ops.find((op) => op.name === tool) ?? null
+            : null;
 
-        // Gesture transition — clear any in-progress state on the outgoing op
-        // so e.g. a half-finished stroke doesn't reconnect to the next stroke.
+        // Gesture/tool transition — clear any in-progress state on the
+        // outgoing op so a new action doesn't reconnect to the previous one.
         if (next !== state.active) {
           state.active?.reset();
           state.active = next;
@@ -183,7 +194,7 @@ const Canvas = ({
         return composite.toDataURL('image/png');
       },
     }),
-    [],
+    [tool],
   );
 
   const wrapperClass =
@@ -208,4 +219,4 @@ const Canvas = ({
   );
 };
 
-export default Canvas;
+export default Canvas; 
