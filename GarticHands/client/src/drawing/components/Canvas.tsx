@@ -52,6 +52,9 @@ const Canvas = ({
   const overlayCanvasRef = useRef<HTMLCanvasElement>(null);
   const { registerDrawCanvasElement } = useDrawingContext();
 
+  const toolRef = useRef<DrawingTool>(tool);
+  toolRef.current = tool;
+
   // Publish the draw-canvas DOM node so the recorder can sample it per-frame.
   useLayoutEffect(() => {
     const canvas = drawCanvasRef.current;
@@ -148,11 +151,11 @@ const Canvas = ({
         const drawCanvas = drawCanvasRef.current;
         if (!state || !drawCanvas) return;
 
-        // Only pinch performs an action. The selected tool determines whether
-        // that pinch draws or erases. Open palm and other gestures do nothing.
+        // Only pinch performs an action. The latest selected tool determines
+        // whether that pinch draws or erases.
         const next =
           gesture === GestureType.PINCH
-            ? state.ops.find((op) => op.name === tool) ?? null
+            ? state.ops.find((op) => op.name === toolRef.current) ?? null
             : null;
 
         // Gesture/tool transition — clear any in-progress state on the
@@ -194,7 +197,7 @@ const Canvas = ({
         return composite.toDataURL('image/png');
       },
     }),
-    [tool],
+    [],
   );
 
   const wrapperClass =
@@ -219,4 +222,4 @@ const Canvas = ({
   );
 };
 
-export default Canvas; 
+export default Canvas;
