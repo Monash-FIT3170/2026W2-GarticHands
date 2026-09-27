@@ -7,8 +7,8 @@ import { useLeaveRoom } from '../hooks/useLeaveRoom';
 import { usePlayerDepartures } from '../hooks/usePlayerDepartures';
 import type { Player, DrawLocationState } from '../types/room';
 
-const MAX_PLAYERS_DISPLAY = 4;
-const MAX_PLAYERS = 4;
+const MAX_PLAYERS_DISPLAY = 8;
+const MAX_PLAYERS = 8;
 
 export default function JoinedPage() {
   const { roomCode } = useParams();
