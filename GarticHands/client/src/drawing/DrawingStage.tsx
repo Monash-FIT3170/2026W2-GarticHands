@@ -99,13 +99,20 @@ function DrawingColourPicker({
         })}
 
         <label
-          className={`relative block cursor-pointer overflow-hidden border-2 border-white ${gameStyle ? 'h-10 w-10 rounded-lg' : 'flex h-7 w-7 items-center justify-center rounded-full border-dashed border-[var(--text-muted)] transition-transform hover:scale-110'}`}
+          className={`relative flex cursor-pointer items-center justify-center overflow-hidden border-2 border-white ${gameStyle ? 'h-10 w-10 rounded-lg' : 'h-7 w-7 rounded-full border-dashed border-[var(--text-muted)] transition-transform hover:scale-110'}`}
           title="Choose custom colour"
           style={{ backgroundColor: settings.colour }}
         >
-          {!gameStyle && (
-            <span className="text-lg font-bold leading-none text-[var(--text-primary)]">+</span>
-          )}
+          <span
+            className={`pointer-events-none relative z-10 font-bold leading-none ${
+              gameStyle
+                ? 'text-xl text-white drop-shadow-[0_1px_2px_rgba(0,0,0,0.8)]'
+                : 'text-lg text-[var(--text-primary)]'
+            }`}
+            aria-hidden="true"
+          >
+            +
+          </span>
 
           <input
             type="color"

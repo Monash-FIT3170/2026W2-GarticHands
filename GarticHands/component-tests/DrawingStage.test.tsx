@@ -52,6 +52,7 @@ describe('DrawingStage', () => {
     expect(
       screen.getByRole('button', { name: 'Select colour #FFFFFF' }),
     ).toBeInTheDocument()
+    expect(screen.getByText('+')).toBeInTheDocument()
   })
 
   test('labels the prompt in the game banner', () => {
