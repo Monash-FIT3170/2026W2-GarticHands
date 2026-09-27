@@ -145,6 +145,9 @@ Create a room. The creator becomes the host.
 
 Add a player to an existing room. Joining is allowed **even after the game has started**: the player is added with `joinedMidRound: true`, sits out the round currently in progress (they don't gate phase advancement and can't submit), and becomes a full participant when the next round starts. The client detects `room.status === 'started'` in the response and routes the late joiner to the in-game waiting view instead of the lobby.
 
+Rooms have a hard limit of 8 players, including the host. A full room rejects
+additional joins with **Response 409** `{ "success": false, "message": "Room is full (8 players maximum)." }`.
+
 **Body**
 
 ```json
@@ -154,6 +157,7 @@ Add a player to an existing room. Joining is allowed **even after the game has s
 **Response 200** `{ "success": true, "room": { ... } }`
 **Response 400** missing fields.
 **Response 404** room not found.
+**Response 409** room is full.
 
 If the room has no host — everyone left and someone rejoined within the
 empty-room grace window — the longest-standing player is promoted, so the lobby
