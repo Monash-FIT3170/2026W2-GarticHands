@@ -54,6 +54,15 @@ describe('DrawingStage', () => {
     ).toBeInTheDocument()
   })
 
+  test('labels the prompt in the game banner', () => {
+    render(
+      <DrawingStage mode="split" presentation="game" prompt="a flying cat" />,
+    )
+
+    expect(screen.getByText('Your prompt is:')).toBeInTheDocument()
+    expect(screen.getByText('a flying cat')).toBeInTheDocument()
+  })
+
   test('changes pencil and eraser icon colours with the active tool', () => {
     const { rerender } = render(
       <DrawingStage mode="split" presentation="game" tool="draw" />,

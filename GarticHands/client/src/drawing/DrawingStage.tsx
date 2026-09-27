@@ -498,6 +498,7 @@ export function DrawingStage({
     return (
       <div className="overflow-hidden rounded-2xl border-4 border-[var(--page-bg)] bg-[var(--card-bg)] shadow-md">
         <div className="bg-[var(--primary)] px-4 py-3 text-center text-xl font-extrabold text-white md:text-2xl">
+          <span>Your prompt is: </span>
           {prompt || 'Your prompt will appear here'}
         </div>
         {media}
