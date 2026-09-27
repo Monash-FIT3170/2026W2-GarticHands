@@ -54,6 +54,42 @@ describe('DrawingStage', () => {
     ).toBeInTheDocument()
   })
 
+  test('changes pencil and eraser icon colours with the active tool', () => {
+    const { rerender } = render(
+      <DrawingStage mode="split" presentation="game" tool="draw" />,
+    )
+
+    expect(
+      screen.getByRole('button', { name: 'Pencil tool' }).querySelector('path'),
+    ).toHaveAttribute('fill', 'white')
+    expect(
+      screen.getByRole('button', { name: 'Eraser tool' }).querySelectorAll('path')[0],
+    ).toHaveAttribute('fill', '#FF3C00')
+
+    rerender(<DrawingStage mode="split" presentation="game" tool="erase" />)
+
+    expect(
+      screen.getByRole('button', { name: 'Pencil tool' }).querySelector('path'),
+    ).toHaveAttribute('fill', '#FF3C00')
+    expect(
+      screen.getByRole('button', { name: 'Eraser tool' }).querySelectorAll('path')[0],
+    ).toHaveAttribute('fill', 'white')
+  })
+
+  test('keeps the color palette visible but disabled in eraser mode', () => {
+    render(<DrawingStage mode="split" presentation="game" tool="erase" />)
+
+    const colorButton = screen.getByRole('button', { name: 'Select colour #EC4899' })
+
+    expect(colorButton).toBeInTheDocument()
+    expect(colorButton).toBeDisabled()
+    expect(colorButton.parentElement?.parentElement).toHaveClass(
+      'pointer-events-none',
+      'opacity-40',
+    )
+    expect(screen.getByRole('button', { name: 'Select eraser size 18 pixels' })).toBeEnabled()
+  })
+
   test('renders the camera and overlay canvas in overlay mode', () => {
     render(<DrawingStage mode="overlay" />)
 
