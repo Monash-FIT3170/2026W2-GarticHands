@@ -17,6 +17,8 @@ interface CountdownTimerProps {
   onExpire?: () => void;
   /** Optional custom label suffix. Default: `s left`. */
   suffix?: string;
+  /** Optional class for per-screen timer styling. */
+  className?: string;
 }
 
 /**
@@ -31,6 +33,7 @@ export default function CountdownTimer({
   urgentAt = 10,
   onExpire,
   suffix = 's left',
+  className = '',
 }: CountdownTimerProps) {
   const [localLeft, setLocalLeft] = useState(seconds);
   const expiredRef = useRef(false);
@@ -64,10 +67,8 @@ export default function CountdownTimer({
   return (
     <span
       className={`text-sm ${
-        isUrgent
-          ? 'text-[var(--action)] font-bold'
-          : 'text-[var(--text-muted)]'
-      }`}
+        isUrgent ? 'text-[var(--action)] font-bold' : 'text-[var(--text-muted)]'
+      } ${className}`}
     >
       {timeLeft}
       {suffix}
