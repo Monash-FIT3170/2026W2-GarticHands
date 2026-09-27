@@ -127,6 +127,13 @@ type Room = {
 
 `client/src/types/room.ts` is the typed mirror of these shapes — change both together.
 
+## Room capacity
+
+Rooms are limited to 8 players total, including the host. The server enforces
+this in `POST /rooms/join` for both lobby and in-progress joins, returning
+`409` when full. The host and joined lobby pages display the same limit; these
+client values are presentation only and are not used for enforcement.
+
 ## Phase deadlines
 
 Every timed phase has a server-owned deadline. `prompt`, `draw`, and `guess` run for `PHASE_DURATIONS[phase]` seconds (60 by default, overridable per phase with the `PROMPT_SECONDS` / `DRAW_SECONDS` / `GUESS_SECONDS` env vars); `lobby` and `reveal` are untimed because the host paces them.
