@@ -212,7 +212,7 @@ describe('DrawPage', () => {
     render(<DrawPage />);
     await waitFor(() => screen.getByText('Round 2 of 4'));
 
-    fireEvent.click(screen.getByText('Submit'));
+    fireEvent.click(screen.getByText('Submit Drawing'));
 
     await waitFor(() => {
       expect(screen.getByText('Canvas is not ready yet.')).toBeInTheDocument();
@@ -224,7 +224,7 @@ describe('DrawPage', () => {
     render(<DrawPage />);
     await waitFor(() => screen.getByText('Round 2 of 4'));
 
-    fireEvent.click(screen.getByText('Submit'));
+    fireEvent.click(screen.getByText('Submit Drawing'));
 
     await waitFor(() => {
       expect(mockSubmitDrawing).toHaveBeenCalledWith('ABC123', 'Ash', 'data:image/png;base64,fake');
@@ -238,7 +238,7 @@ describe('DrawPage', () => {
     render(<DrawPage />);
     await waitFor(() => screen.getByText('Round 2 of 4'));
 
-    fireEvent.click(screen.getByText('Submit'));
+    fireEvent.click(screen.getByText('Submit Drawing'));
 
     await waitFor(() => {
       expect(mockSaveRecording).toHaveBeenCalledWith(
@@ -260,7 +260,7 @@ describe('DrawPage', () => {
     render(<DrawPage />);
     await waitFor(() => screen.getByText('Round 2 of 4'));
 
-    fireEvent.click(screen.getByText('Submit'));
+    fireEvent.click(screen.getByText('Submit Drawing'));
 
     await waitFor(() => {
       expect(mockNavigate).toHaveBeenCalledWith('/guess', {
@@ -278,12 +278,12 @@ describe('DrawPage', () => {
     render(<DrawPage />);
     await waitFor(() => screen.getByText('Round 2 of 4'));
 
-    fireEvent.click(screen.getByText('Submit'));
+    fireEvent.click(screen.getByText('Submit Drawing'));
 
     await waitFor(() => {
       expect(screen.getByText('Room is full.')).toBeInTheDocument();
     });
-    expect(screen.getByText('Submit')).not.toBeDisabled();
+    expect(screen.getByText('Submit Drawing')).not.toBeDisabled();
   });
 
   test('shows a waiting message with the correct pluralisation after submitting', async () => {
@@ -292,7 +292,7 @@ describe('DrawPage', () => {
     render(<DrawPage />);
     await waitFor(() => screen.getByText('Round 2 of 4'));
 
-    fireEvent.click(screen.getByText('Submit'));
+    fireEvent.click(screen.getByText('Submit Drawing'));
 
     await waitFor(() => {
       expect(screen.getByText('Waiting for 2 other players...')).toBeInTheDocument();
@@ -305,7 +305,7 @@ describe('DrawPage', () => {
     render(<DrawPage />);
     await waitFor(() => screen.getByText('Round 2 of 4'));
 
-    fireEvent.click(screen.getByText('Submit'));
+    fireEvent.click(screen.getByText('Submit Drawing'));
 
     await waitFor(() => {
       expect(screen.getByText('Starting guessing phase...')).toBeInTheDocument();
@@ -327,7 +327,7 @@ describe('DrawPage', () => {
     render(<DrawPage />);
     await waitFor(() => screen.getByText('Round 2 of 4'));
 
-    fireEvent.click(screen.getByText('Submit'));
+    fireEvent.click(screen.getByText('Submit Drawing'));
     await waitFor(() => expect(mockSubmitDrawing).toHaveBeenCalledTimes(1));
 
     fireEvent.click(screen.getByTestId('expire-timer'));

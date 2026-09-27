@@ -182,7 +182,7 @@ function DrawPageInner() {
                 disabled={submitted}
                 className={`whitespace-nowrap !rounded-lg !px-3 !py-2 text-sm font-bold text-white transition-colors ${
                   drawingEnabled
-                    ? 'bg-[var(--action)] hover:bg-[var(--action-strong)]'
+                    ? 'bg-red-600 hover:bg-red-700'
                     : 'bg-[var(--success)] hover:bg-[var(--success-hover)]'
                 } ${submitted ? 'cursor-not-allowed opacity-50' : ''}`}
               >
@@ -193,9 +193,9 @@ function DrawPageInner() {
                 size="sm"
                 onClick={() => void handleSubmit()}
                 disabled={submitted}
-                className="!rounded-lg !px-3 !py-2 text-sm"
+                className="!rounded-lg !border-2 !border-[var(--success)] !bg-white !px-3 !py-2 text-sm !text-[var(--success)] hover:!bg-white/90"
               >
-                Submit
+                Submit Drawing
               </Button>
             </div>
           }
