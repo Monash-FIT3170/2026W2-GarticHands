@@ -33,6 +33,8 @@ const PRESET_COLOURS = [
   '#43A047',
   '#1E88E5',
   '#8E24AA',
+  '#EC4899',
+  '#FFFFFF',
 ] as const;
 
 const THICKNESS_OPTIONS = [2, 4, 8, 12] as const;
@@ -68,7 +70,7 @@ function DrawingSettingsPicker({
 }: DrawingSettingsPickerProps) {
   return (
     <div
-      className={`${gameStyle ? 'flex flex-wrap items-center gap-4' : 'mt-3 flex flex-wrap items-end gap-6'} ${
+      className={`${gameStyle ? 'flex flex-wrap items-center gap-4 lg:flex-nowrap' : 'mt-3 flex flex-wrap items-end gap-6'} ${
         disabled ? 'opacity-50 pointer-events-none' : ''
       }`}
     >
@@ -85,7 +87,7 @@ function DrawingSettingsPicker({
               </p>
             )}
 
-            <div className={`flex items-center ${gameStyle ? 'gap-1.5' : 'gap-2'}`}>
+            <div className={`flex items-center ${gameStyle ? 'gap-1' : 'gap-2'}`}>
               {PRESET_COLOURS.map((colour) => {
                 const selected = settings.colour.toLowerCase() === colour.toLowerCase();
 
@@ -101,7 +103,7 @@ function DrawingSettingsPicker({
                     }
                     aria-label={`Select colour ${colour}`}
                     title={colour}
-                    className={`${gameStyle ? 'h-8 w-8 rounded-lg border-2' : 'h-7 w-7 rounded-full border-2'} transition-transform ${
+                    className={`${gameStyle ? 'h-7 w-7 rounded-lg border-2' : 'h-7 w-7 rounded-full border-2'} transition-transform ${
                       selected
                         ? `${gameStyle ? 'scale-110 border-white' : 'scale-110 border-[var(--text-primary)]'}`
                         : `${gameStyle ? 'border-transparent' : 'border-transparent hover:scale-110'}`
@@ -162,7 +164,7 @@ function DrawingSettingsPicker({
                     aria-label={`Select thickness ${thickness} pixels`}
                     aria-pressed={selected}
                     title={`${thickness}px`}
-                    className={`flex ${gameStyle ? 'h-10 w-10 rounded-xl border-2' : 'h-8 w-8 rounded-full'} items-center justify-center transition-all ${
+                    className={`flex ${gameStyle ? 'h-9 w-9 rounded-xl border-2' : 'h-8 w-8 rounded-full'} items-center justify-center transition-all ${
                       selected
                         ? `${gameStyle ? 'border-transparent bg-[var(--success)]' : 'bg-[var(--primary)]'}`
                         : `${gameStyle ? 'border-[var(--action)] bg-white' : 'bg-[var(--surface)] hover:bg-black/5'}`
