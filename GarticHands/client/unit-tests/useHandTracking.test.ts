@@ -31,10 +31,12 @@ let rafCallback: FrameRequestCallback | null = null;
 
 function stubAnimationFrame() {
   rafCallback = null;
+
   vi.stubGlobal('requestAnimationFrame', (cb: FrameRequestCallback) => {
     rafCallback = cb;
     return 1;
   });
+
   vi.stubGlobal('cancelAnimationFrame', vi.fn());
 }
 
@@ -120,6 +122,27 @@ async function startAndConnectStream(refs: ReturnType<typeof createRefs>) {
 
   return rendered;
 }
+
+beforeEach(() => {
+  vi.clearAllMocks();
+
+  detectForVideo.mockReturnValue({ landmarks: [] });
+  createFromOptions.mockResolvedValue({ detectForVideo, close });
+
+  stubAnimationFrame();
+
+  if (!navigator.mediaDevices) {
+    Object.defineProperty(navigator, 'mediaDevices', {
+      configurable: true,
+      value: {},
+    });
+  }
+
+  Object.defineProperty(navigator.mediaDevices, 'getUserMedia', {
+    configurable: true,
+    value: vi.fn(),
+  });
+});
 
 describe('useHandTracking', () => {
   it('falls back to the CPU delegate when the GPU delegate fails to create', async () => {
@@ -236,7 +259,9 @@ describe('useHandTracking', () => {
     // The first four missed frames are within the grace period.
     for (let i = 0; i < 4; i++) {
       stepFrame();
+
       expect(onFrame).not.toHaveBeenCalled();
+
       await waitFor(() => expect(rafCallback).not.toBeNull());
     }
 
