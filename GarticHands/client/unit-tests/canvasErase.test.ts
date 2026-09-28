@@ -23,7 +23,7 @@ describe('CanvasErase', () => {
   it('has the correct static contract', () => {
     const erase = new CanvasErase(createMockCtx());
     expect(erase.name).toBe('erase');
-    expect(erase.activatedBy).toBe(GestureType.OPEN_PALM);
+    expect(erase.activatedBy).toBe(GestureType.PINCH);
   });
 
   it('draws a stamp (arc + fill) on the first tick, not a line', () => {
