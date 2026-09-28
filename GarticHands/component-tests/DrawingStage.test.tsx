@@ -45,14 +45,11 @@ describe('DrawingStage', () => {
     expect(screen.getByTestId('camera-canvas')).toBeInTheDocument()
   })
 
-  test('includes pink and white in the preset colour buttons', () => {
+  test('includes pink in the preset colour buttons', () => {
     render(<DrawingStage mode="split" presentation="game" />)
 
     expect(
       screen.getByRole('button', { name: 'Select colour #EC4899' }),
-    ).toBeInTheDocument()
-    expect(
-      screen.getByRole('button', { name: 'Select colour #FFFFFF' }),
     ).toBeInTheDocument()
     expect(
       screen.getByRole('button', { name: 'Select colour #000000' }),

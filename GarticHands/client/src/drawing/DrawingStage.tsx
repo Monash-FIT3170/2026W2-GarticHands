@@ -34,7 +34,6 @@ const PRESET_COLOURS = [
   '#1E88E5',
   '#8E24AA',
   '#EC4899',
-  '#FFFFFF',
 ] as const;
 
 const THICKNESS_OPTIONS = [2, 4, 8, 12] as const;

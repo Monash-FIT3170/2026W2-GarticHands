@@ -182,7 +182,7 @@ function DrawPageInner() {
                 disabled={submitted}
                 className={`whitespace-nowrap !rounded-lg !px-3 !py-2 text-sm font-bold text-white transition-colors ${
                   drawingEnabled
-                    ? 'bg-red-600 hover:bg-red-700'
+                    ? 'bg-[var(--action)] hover:bg-[var(--action-strong)]'
                     : 'bg-[var(--success)] hover:bg-[var(--success-hover)]'
                 } ${submitted ? 'cursor-not-allowed opacity-50' : ''}`}
               >
