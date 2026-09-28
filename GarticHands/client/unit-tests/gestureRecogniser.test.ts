@@ -12,10 +12,7 @@ vi.mock('../src/drawing/gestures/detectors/detectHandOnScreen');
 vi.mock('../src/drawing/gestures/detectors/detectOpenPalm');
 
 function landmarksWithPinchRatio(ratio: number): HandLandmark[] {
-  const landmarks = Array.from(
-    { length: 21 },
-    () => ({ x: 0, y: 0, z: 0 }),
-  );
+  const landmarks = Array.from({ length: 21 }, () => ({ x: 0, y: 0, z: 0 }));
 
   landmarks[5] = { x: 0, y: 0, z: 0 };
   landmarks[17] = { x: 1, y: 0, z: 0 };
@@ -68,9 +65,7 @@ describe('detectGesture', () => {
     const openPalmLandmarks = landmarksWithPinchRatio(0.6);
     vi.mocked(detectOpenPalm).mockReturnValue(true);
 
-    expect(
-      detectGesture(openPalmLandmarks, pinchStabilizer),
-    ).toBe(GestureType.OPEN_PALM);
+    expect(detectGesture(openPalmLandmarks, pinchStabilizer)).toBe(GestureType.OPEN_PALM);
   });
 
   it('falls back to HAND_PRESENT when no specific gesture matches', () => {
@@ -79,8 +74,6 @@ describe('detectGesture', () => {
     const neutralLandmarks = landmarksWithPinchRatio(0.6);
     vi.mocked(detectOpenPalm).mockReturnValue(false);
 
-    expect(
-      detectGesture(neutralLandmarks, pinchStabilizer),
-    ).toBe(GestureType.HAND_PRESENT);
+    expect(detectGesture(neutralLandmarks, pinchStabilizer)).toBe(GestureType.HAND_PRESENT);
   });
 });

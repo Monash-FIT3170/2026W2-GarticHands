@@ -33,21 +33,11 @@ export default function LandingPage() {
         />
 
         <div className="flex gap-3 w-full">
-          <Button
-            variant="secondary"
-            onClick={joinRoom}
-            disabled={!canContinue}
-            className="flex-1"
-          >
+          <Button variant="secondary" onClick={joinRoom} disabled={!canContinue} className="flex-1">
             Join Room
           </Button>
 
-          <Button
-            variant="primary"
-            onClick={hostRoom}
-            disabled={!canContinue}
-            className="flex-1"
-          >
+          <Button variant="primary" onClick={hostRoom} disabled={!canContinue} className="flex-1">
             Host Game
           </Button>
         </div>

@@ -1,14 +1,7 @@
 import type { ButtonHTMLAttributes, ReactNode } from 'react';
 
 type ButtonVariant =
-  | 'primary'
-  | 'secondary'
-  | 'submit'
-  | 'start'
-  | 'outline'
-  | 'ghost'
-  | 'ready'
-  | 'leave';
+  'primary' | 'secondary' | 'submit' | 'start' | 'outline' | 'ghost' | 'ready' | 'leave';
 
 type ButtonSize = 'sm' | 'md' | 'lg' | 'full' | 'custom';
 

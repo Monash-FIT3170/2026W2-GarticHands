@@ -9,52 +9,51 @@
    ========================================================= */
 
 :root {
-  --page-bg: #6FADA0;
+  --page-bg: #6fada0;
 
-  --card-bg: #5E9990;
+  --card-bg: #5e9990;
   --hero-bg: #559490;
-  --card-border: #6FADA0;
+  --card-border: #6fada0;
   --lobby-section-bg: rgba(22, 89, 74, 0.2);
 
   --surface: #ffffff;
   --surface-soft: rgba(255, 255, 255, 0.07);
   --surface-border: rgba(255, 255, 255, 0.14);
 
-  --text-primary: #3D6B64;
-  --text-secondary: #3D7A72;
-  --text-muted: #C8DDD9;
+  --text-primary: #3d6b64;
+  --text-secondary: #3d7a72;
+  --text-muted: #c8ddd9;
 
-  --primary: #2E5534;
+  --primary: #2e5534;
   --primary-hover: #244529;
 
-  --accent: #78EF57;
-  --accent-hover: #67DD48;
-  --accent-soft: #9CC9C1;
+  --accent: #78ef57;
+  --accent-hover: #67dd48;
+  --accent-soft: #9cc9c1;
 
-  --action: #D4623E;
-  --action-strong: #E67B2E;
+  --action: #d4623e;
+  --action-strong: #e67b2e;
 
   --success: #16a34a;
   --success-hover: #15803d;
   --success-soft: #bbf7d0;
 
   --warning-soft: #fef08a;
-  --warning-text: #D4623E;
+  --warning-text: #d4623e;
 
-  --input-text: #D4623E;
+  --input-text: #d4623e;
   --input-placeholder: rgba(212, 98, 62, 0.5);
 
-  --icon: #3D7A72;
-  --icon-hover: #2A5E58;
+  --icon: #3d7a72;
+  --icon-hover: #2a5e58;
 
-  --disabled-bg: #9CC9C1;
-  --disabled-text: #47756E;
+  --disabled-bg: #9cc9c1;
+  --disabled-text: #47756e;
 
-  --avatar-bg: #2F4542;
-  --player-bg: #79A8A0;
-  --empty-avatar-bg: #8EBAB3;
+  --avatar-bg: #2f4542;
+  --player-bg: #79a8a0;
+  --empty-avatar-bg: #8ebab3;
 }
-
 
 /* =========================================================
    Deuteranopia
@@ -62,52 +61,51 @@
    ========================================================= */
 
 :root[data-color-vision='deuteranopia'] {
-  --page-bg: #5B8FA3;
+  --page-bg: #5b8fa3;
 
-  --card-bg: #426F82;
+  --card-bg: #426f82;
   --hero-bg: #376579;
-  --card-border: #5B8FA3;
-  --lobby-section-bg: rgba(20, 55, 75, 0.30);
+  --card-border: #5b8fa3;
+  --lobby-section-bg: rgba(20, 55, 75, 0.3);
 
   --surface: #ffffff;
   --surface-soft: rgba(255, 255, 255, 0.08);
   --surface-border: rgba(255, 255, 255, 0.18);
 
-  --text-primary: #173B4A;
-  --text-secondary: #24586A;
-  --text-muted: #D6E8ED;
+  --text-primary: #173b4a;
+  --text-secondary: #24586a;
+  --text-muted: #d6e8ed;
 
-  --primary: #124E78;
-  --primary-hover: #0B3A5B;
+  --primary: #124e78;
+  --primary-hover: #0b3a5b;
 
-  --accent: #00A6D6;
-  --accent-hover: #0088B3;
-  --accent-soft: #B8E6F2;
+  --accent: #00a6d6;
+  --accent-hover: #0088b3;
+  --accent-soft: #b8e6f2;
 
-  --action: #E69F00;
-  --action-strong: #F2B300;
+  --action: #e69f00;
+  --action-strong: #f2b300;
 
-  --success: #0072B2;
-  --success-hover: #005A8C;
-  --success-soft: #B9DDF0;
+  --success: #0072b2;
+  --success-hover: #005a8c;
+  --success-soft: #b9ddf0;
 
-  --warning-soft: #F6DFA6;
-  --warning-text: #A84A00;
+  --warning-soft: #f6dfa6;
+  --warning-text: #a84a00;
 
-  --input-text: #A84A00;
+  --input-text: #a84a00;
   --input-placeholder: rgba(168, 74, 0, 0.5);
 
-  --icon: #24586A;
-  --icon-hover: #124E78;
+  --icon: #24586a;
+  --icon-hover: #124e78;
 
-  --disabled-bg: #A9CDD2;
-  --disabled-text: #416D75;
+  --disabled-bg: #a9cdd2;
+  --disabled-text: #416d75;
 
-  --avatar-bg: #274A50;
-  --player-bg: #75A8AE;
-  --empty-avatar-bg: #9BC3C8;
+  --avatar-bg: #274a50;
+  --player-bg: #75a8ae;
+  --empty-avatar-bg: #9bc3c8;
 }
-
 
 /* =========================================================
    Protanopia
@@ -116,55 +114,54 @@
    ========================================================= */
 
 :root[data-color-vision='protanopia'] {
-  --page-bg: #B89B45;
+  --page-bg: #b89b45;
 
-  --card-bg: #987E35;
-  --hero-bg: #876E2D;
-  --card-border: #B89B45;
-  --lobby-section-bg: rgba(85, 65, 15, 0.30);
+  --card-bg: #987e35;
+  --hero-bg: #876e2d;
+  --card-border: #b89b45;
+  --lobby-section-bg: rgba(85, 65, 15, 0.3);
 
   --surface: #ffffff;
   --surface-soft: rgba(255, 255, 255, 0.08);
   --surface-border: rgba(255, 255, 255, 0.18);
 
-  --text-primary: #4A3D18;
+  --text-primary: #4a3d18;
   --text-secondary: #655522;
-  --text-muted: #F1E7C5;
+  --text-muted: #f1e7c5;
 
-  --primary: #008B6A;
-  --primary-hover: #006F55;
+  --primary: #008b6a;
+  --primary-hover: #006f55;
 
   /* Gold main accent */
-  --accent: #F0C419;
-  --accent-hover: #D4A900;
-  --accent-soft: #F8E7A3;
+  --accent: #f0c419;
+  --accent-hover: #d4a900;
+  --accent-soft: #f8e7a3;
 
   /* Orange for actions */
-  --action: #D66F28;
-  --action-strong: #E88B38;
+  --action: #d66f28;
+  --action-strong: #e88b38;
 
   /* Green/turquoise for success and buttons */
-  --success: #008B6A;
-  --success-hover: #006F55;
-  --success-soft: #B8E1D5;
+  --success: #008b6a;
+  --success-hover: #006f55;
+  --success-soft: #b8e1d5;
 
-  --warning-soft: #F8E7A3;
+  --warning-soft: #f8e7a3;
   --warning-text: #765700;
 
   --input-text: #765700;
   --input-placeholder: rgba(118, 87, 0, 0.5);
 
   --icon: #655522;
-  --icon-hover: #4A3D18;
+  --icon-hover: #4a3d18;
 
-  --disabled-bg: #C9BD91;
-  --disabled-text: #6E6445;
+  --disabled-bg: #c9bd91;
+  --disabled-text: #6e6445;
 
   --avatar-bg: #514821;
-  --player-bg: #B8A866;
-  --empty-avatar-bg: #C9BC8A;
+  --player-bg: #b8a866;
+  --empty-avatar-bg: #c9bc8a;
 }
-
 
 /* =========================================================
    Tritanopia
@@ -173,52 +170,51 @@
    ========================================================= */
 
 :root[data-color-vision='tritanopia'] {
-  --page-bg: #8A7FA3;
+  --page-bg: #8a7fa3;
 
-  --card-bg: #6E6287;
-  --hero-bg: #5F5378;
-  --card-border: #8A7FA3;
+  --card-bg: #6e6287;
+  --hero-bg: #5f5378;
+  --card-border: #8a7fa3;
   --lobby-section-bg: rgba(55, 35, 70, 0.28);
 
   --surface: #ffffff;
   --surface-soft: rgba(255, 255, 255, 0.08);
   --surface-border: rgba(255, 255, 255, 0.18);
 
-  --text-primary: #40304F;
+  --text-primary: #40304f;
   --text-secondary: #594166;
-  --text-muted: #E7DDF0;
+  --text-muted: #e7ddf0;
 
-  --primary: #703B78;
-  --primary-hover: #572B60;
+  --primary: #703b78;
+  --primary-hover: #572b60;
 
-  --accent: #D94F9D;
-  --accent-hover: #BD3B83;
-  --accent-soft: #F2C4DF;
+  --accent: #d94f9d;
+  --accent-hover: #bd3b83;
+  --accent-soft: #f2c4df;
 
-  --action: #C85A35;
-  --action-strong: #E67B2E;
+  --action: #c85a35;
+  --action-strong: #e67b2e;
 
-  --success: #D94F9D;
-  --success-hover: #C53B88;
-  --success-soft: #F2C4DF;
+  --success: #d94f9d;
+  --success-hover: #c53b88;
+  --success-soft: #f2c4df;
 
-  --warning-soft: #F4D6E7;
-  --warning-text: #9B3C72;
+  --warning-soft: #f4d6e7;
+  --warning-text: #9b3c72;
 
-  --input-text: #A94A78;
+  --input-text: #a94a78;
   --input-placeholder: rgba(169, 74, 120, 0.5);
 
   --icon: #594166;
-  --icon-hover: #703B78;
+  --icon-hover: #703b78;
 
-  --disabled-bg: #B7CFCC;
-  --disabled-text: #617D79;
+  --disabled-bg: #b7cfcc;
+  --disabled-text: #617d79;
 
-  --avatar-bg: #465B59;
-  --player-bg: #83AAA5;
-  --empty-avatar-bg: #A8C5C1;
+  --avatar-bg: #465b59;
+  --player-bg: #83aaa5;
+  --empty-avatar-bg: #a8c5c1;
 }
-
 
 /* =========================================================
    Global base styles
@@ -229,7 +225,6 @@
     font-family: 'Baloo 2', cursive;
   }
 }
-
 
 /* =========================================================
    Shared components
@@ -261,7 +256,6 @@
   }
 }
 
-
 /* =========================================================
    Tailwind utility overrides
    These allow existing page/component classes to respond
@@ -275,7 +269,6 @@
   background-color: var(--page-bg);
 }
 
-
 /* Card backgrounds */
 
 [data-color-vision] .bg-\[\#5E9990\] {
@@ -285,7 +278,6 @@
 [data-color-vision] .bg-\[\#559490\] {
   background-color: var(--hero-bg);
 }
-
 
 /* Primary dark green */
 
@@ -300,7 +292,6 @@
 [data-color-vision] .hover\:bg-\[\#244529\]:hover {
   background-color: var(--primary-hover);
 }
-
 
 /* Ready/start accent */
 
@@ -320,7 +311,6 @@
   border-color: var(--accent);
 }
 
-
 /* Green utility classes */
 
 [data-color-vision] .bg-green-200 {
@@ -334,7 +324,6 @@
 [data-color-vision] .hover\:bg-green-700:hover {
   background-color: var(--success-hover);
 }
-
 
 /* Coral/action colour */
 
@@ -354,7 +343,6 @@
   color: var(--action);
 }
 
-
 /* Teal text */
 
 [data-color-vision] .text-\[\#3D6B64\] {
@@ -369,7 +357,6 @@
   color: var(--icon-hover);
 }
 
-
 /* Teal backgrounds */
 
 [data-color-vision] .bg-\[\#79A8A0\] {
@@ -383,7 +370,6 @@
 [data-color-vision] .bg-\[\#2F4542\] {
   background-color: var(--avatar-bg);
 }
-
 
 /* Disabled states */
 
@@ -407,7 +393,6 @@
   color: var(--text-muted);
 }
 
-
 /* =========================================================
    Lobby section backgrounds
    ========================================================= */
@@ -415,7 +400,6 @@
 [data-color-vision] .color-vision-lobby-section {
   background-color: var(--lobby-section-bg) !important;
 }
-
 
 /* =========================================================
    Glass surfaces
@@ -428,7 +412,6 @@
 [data-color-vision] .border-white\/\[0\.14\] {
   border-color: var(--surface-border);
 }
-
 
 /* =========================================================
    Settings panel

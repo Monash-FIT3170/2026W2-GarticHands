@@ -94,9 +94,7 @@ export default function GuessingPage() {
 
         <h1 className="text-3xl">Guess this Drawing</h1>
 
-        <p className="text-sm text-[var(--text-muted)] mb-5">
-          Drawn by {drawnBy}
-        </p>
+        <p className="text-sm text-[var(--text-muted)] mb-5">Drawn by {drawnBy}</p>
 
         {drawing ? (
           <img
@@ -106,9 +104,7 @@ export default function GuessingPage() {
           />
         ) : (
           <div className="w-full h-48 bg-white/[0.14] rounded-lg mb-5 flex items-center justify-center text-sm text-[var(--text-muted)]">
-            {drawingLoaded
-              ? `${drawnBy} ran out of time — no drawing`
-              : 'Loading drawing...'}
+            {drawingLoaded ? `${drawnBy} ran out of time — no drawing` : 'Loading drawing...'}
           </div>
         )}
 
@@ -148,13 +144,8 @@ export default function GuessingPage() {
           </p>
         )}
 
-        {error && (
-          <p className="text-sm text-[var(--action)] mt-3">
-            {error}
-          </p>
-        )}
+        {error && <p className="text-sm text-[var(--action)] mt-3">{error}</p>}
       </Card>
     </div>
   );
 }
-

@@ -8,11 +8,7 @@ interface TopRightButtonsProps {
   onRules?: () => void;
 }
 
-export default function TopRightButtons({
-  onVolume,
-  onSettings,
-  onRules,
-}: TopRightButtonsProps) {
+export default function TopRightButtons({ onVolume, onSettings, onRules }: TopRightButtonsProps) {
   const base = 'hover:text-[var(--icon-hover)] transition-colors';
 
   return (

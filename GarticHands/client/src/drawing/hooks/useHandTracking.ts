@@ -141,9 +141,7 @@ export function useHandTracking({
         if (missedFrames > MAX_MISSED_FRAMES) {
           gestureBuffer.clear();
           pinchStabilizer.reset();
-          setGesture((prev) =>
-            prev !== GestureTypeEnum.NO_HAND ? GestureTypeEnum.NO_HAND : prev,
-          );
+          setGesture((prev) => (prev !== GestureTypeEnum.NO_HAND ? GestureTypeEnum.NO_HAND : prev));
           onFrameRef.current?.(null, GestureTypeEnum.NO_HAND);
         }
         // else: transient miss — skip this frame without touching gesture,

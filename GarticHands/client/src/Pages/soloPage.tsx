@@ -119,4 +119,3 @@ function SoloInner() {
     </div>
   );
 }
-

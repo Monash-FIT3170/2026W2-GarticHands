@@ -87,9 +87,7 @@ function createRefs() {
     lineWidth: 0,
   };
 
-  vi.mocked(canvas.getContext).mockReturnValue(
-    ctx as unknown as CanvasRenderingContext2D,
-  );
+  vi.mocked(canvas.getContext).mockReturnValue(ctx as unknown as CanvasRenderingContext2D);
 
   return {
     videoRef: { current: video },
@@ -221,10 +219,7 @@ describe('useHandTracking', () => {
 
     await waitFor(() => expect(onFrame).toHaveBeenCalled());
 
-    type OnFrameCall = [
-      landmarks: HandLandmark[] | null,
-      gesture: GestureType,
-    ];
+    type OnFrameCall = [landmarks: HandLandmark[] | null, gesture: GestureType];
 
     const [landmarks, gesture] = onFrame.mock.calls[0] as OnFrameCall;
 
@@ -268,9 +263,7 @@ describe('useHandTracking', () => {
     // The fifth consecutive missed frame exceeds MAX_MISSED_FRAMES.
     stepFrame();
 
-    await waitFor(() =>
-      expect(onFrame).toHaveBeenCalledWith(null, GestureType.NO_HAND),
-    );
+    await waitFor(() => expect(onFrame).toHaveBeenCalledWith(null, GestureType.NO_HAND));
   });
 
   it('stops media tracks and closes the landmarker on unmount', async () => {

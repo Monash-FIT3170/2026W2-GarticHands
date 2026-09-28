@@ -124,9 +124,7 @@ export default function HostingPage() {
 
           <section className="flex flex-col items-center">
             <div className="color-vision-lobby-section rounded-xl p-6 w-full flex flex-col items-center">
-              <h2 className="text-white text-2xl font-extrabold tracking-wide mb-5">
-                GAMEMODE
-              </h2>
+              <h2 className="text-white text-2xl font-extrabold tracking-wide mb-5">GAMEMODE</h2>
 
               <GamemodeSelect />
             </div>
@@ -170,12 +168,7 @@ export default function HostingPage() {
               {allReady ? 'Start Game' : 'Waiting for Players'}
             </Button>
 
-            <Button
-              variant="leave"
-              size="full"
-              onClick={() => void handleLeave()}
-              className="mt-3"
-            >
+            <Button variant="leave" size="full" onClick={() => void handleLeave()} className="mt-3">
               Leave Room
             </Button>
           </section>
@@ -191,11 +184,7 @@ function GamemodeSelect() {
   return (
     <div className="grid grid-cols-1 gap-4 w-full max-w-[200px]">
       <button className="bg-[var(--surface)] rounded-lg border-4 border-[var(--accent)] flex flex-col items-center justify-center shadow-sm">
-        <img
-          src="/gamemode_classic.png"
-          alt="Classic"
-          className="w-16 h-16 mb-2 object-contain"
-        />
+        <img src="/gamemode_classic.png" alt="Classic" className="w-16 h-16 mb-2 object-contain" />
         <p className="text-[var(--primary)] font-extrabold">Classic</p>
       </button>
     </div>

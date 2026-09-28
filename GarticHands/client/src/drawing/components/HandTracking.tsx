@@ -47,9 +47,7 @@ export default function HandTracking({ onFrame }: HandTrackingProps) {
       {/* Status overlay — pinned to bottom so it never crowds the drawing area. */}
       <div className="absolute left-2 bottom-2 flex gap-2 text-xs font-semibold">
         {error ? (
-          <span className="px-2 py-1 rounded-full bg-[var(--action)]/90 text-white">
-            {error}
-          </span>
+          <span className="px-2 py-1 rounded-full bg-[var(--action)]/90 text-white">{error}</span>
         ) : isLoading ? (
           <span className="px-2 py-1 rounded-full bg-[var(--surface)]/90 text-[var(--text-primary)]">
             Loading camera...
@@ -74,4 +72,3 @@ export default function HandTracking({ onFrame }: HandTrackingProps) {
     </div>
   );
 }
-

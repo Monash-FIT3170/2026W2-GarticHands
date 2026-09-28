@@ -105,11 +105,7 @@ export default function InputPage() {
           </p>
         )}
 
-        {error && (
-          <p className="text-sm text-[var(--action)] mt-3">
-            {error}
-          </p>
-        )}
+        {error && <p className="text-sm text-[var(--action)] mt-3">{error}</p>}
       </Card>
     </div>
   );

@@ -154,9 +154,7 @@ export default function JoinedPage() {
 
           <section className="flex flex-col items-center">
             <div className="color-vision-lobby-section rounded-xl p-6 w-full flex flex-col items-center">
-              <h2 className="text-white text-2xl font-extrabold tracking-wide mb-5">
-                GAMEMODE
-              </h2>
+              <h2 className="text-white text-2xl font-extrabold tracking-wide mb-5">GAMEMODE</h2>
 
               <div className="bg-[var(--surface)] rounded-lg border-4 border-[var(--accent)] flex flex-col items-center justify-center shadow-sm w-full max-w-[200px]">
                 <img

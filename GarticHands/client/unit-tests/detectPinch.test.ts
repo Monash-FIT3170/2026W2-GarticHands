@@ -1,9 +1,6 @@
 import { describe, it, expect } from 'vitest';
 
-import {
-  pinchRatio,
-  PinchStabilizer,
-} from '../src/drawing/gestures/detectors/detectPinch';
+import { pinchRatio, PinchStabilizer } from '../src/drawing/gestures/detectors/detectPinch';
 
 import type { HandLandmark } from '../src/drawing/Models/HandLandmark';
 

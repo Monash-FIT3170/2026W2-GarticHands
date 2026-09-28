@@ -30,9 +30,7 @@ function SettingsPanelContent({ onClose }: { onClose: () => void }) {
       }}
     >
       <div className="flex items-center justify-between mb-2">
-        <h2 className="text-sm font-extrabold uppercase tracking-[0.12em]">
-          Settings
-        </h2>
+        <h2 className="text-sm font-extrabold uppercase tracking-[0.12em]">Settings</h2>
 
         <button
           className="px-2 rounded font-bold hover:bg-black/10"
@@ -48,10 +46,7 @@ function SettingsPanelContent({ onClose }: { onClose: () => void }) {
 
         <div className="flex flex-col gap-1">
           {COLOR_VISION_MODES.map((mode) => (
-            <label
-              key={mode}
-              className="flex cursor-pointer items-center gap-2 font-semibold"
-            >
+            <label key={mode} className="flex cursor-pointer items-center gap-2 font-semibold">
               <input
                 type="radio"
                 name="color-vision-mode"
