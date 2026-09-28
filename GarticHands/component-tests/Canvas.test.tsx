@@ -1,9 +1,3 @@
-/**
- * Canvas.test.tsx
- *
- * Component tests for Canvas (client/src/drawing/components/Canvas).
- */
-
 import { render } from '@testing-library/react'
 import '@testing-library/jest-dom'
 import { createRef } from 'react'
@@ -18,7 +12,8 @@ vi.mock('../client/src/drawing/DrawingContext', () => ({
   }),
 }))
 
-// jsdom does not implement ResizeObserver.
+// jsdom does not implement ResizeObserver, canvas APIs, or layout.
+// Stub them so Canvas can be tested without a real browser.
 beforeAll(() => {
   class ResizeObserverMock {
     observe = vi.fn()
@@ -28,9 +23,26 @@ beforeAll(() => {
 
   vi.stubGlobal('ResizeObserver', ResizeObserverMock)
 
-  // jsdom does not implement canvas getContext or toDataURL.
-  // Stub the canvas APIs so Canvas can be tested without the real
-  // browser canvas implementation.
+  vi.spyOn(HTMLElement.prototype, 'getBoundingClientRect').mockImplementation(
+    function () {
+      const canvas = this.querySelector('canvas')
+      const width = canvas?.width ?? 640
+      const height = canvas?.height ?? 480
+
+      return {
+        width,
+        height,
+        top: 0,
+        left: 0,
+        right: width,
+        bottom: height,
+        x: 0,
+        y: 0,
+        toJSON: () => {},
+      }
+    },
+  )
+
   HTMLCanvasElement.prototype.getContext = vi.fn(() => ({
     canvas: {
       width: 640,
@@ -55,6 +67,7 @@ beforeAll(() => {
 })
 
 afterAll(() => {
+  vi.restoreAllMocks()
   vi.unstubAllGlobals()
 })
 
