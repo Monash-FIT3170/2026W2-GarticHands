@@ -71,7 +71,7 @@ describe('Badge', () => {
 
     const badge = screen.getByText('Waiting')
     expect(badge).toHaveClass(
-      'bg-[var(--warning-soft)]',
+      'bg-[var(--waiting-soft)]',
       'text-[var(--warning-text)]',
     )
   })

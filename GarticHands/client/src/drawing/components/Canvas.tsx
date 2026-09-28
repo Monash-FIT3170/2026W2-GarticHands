@@ -50,6 +50,7 @@ const Canvas = ({
   const wrapperRef = useRef<HTMLDivElement>(null);
   const drawCanvasRef = useRef<HTMLCanvasElement>(null);
   const overlayCanvasRef = useRef<HTMLCanvasElement>(null);
+  const toolRef = useRef(tool);
   const { registerDrawCanvasElement } = useDrawingContext();
 
   // Publish the draw-canvas DOM node so the recorder can sample it per-frame.
@@ -140,6 +141,10 @@ const Canvas = ({
     };
   }, [strokeColor, strokeWidth, eraserSize]);
 
+  useLayoutEffect(() => {
+    toolRef.current = tool;
+  }, [tool]);
+
   useImperativeHandle(
     ref,
     () => ({
@@ -151,7 +156,9 @@ const Canvas = ({
         // Only pinch performs an action. The latest selected tool determines
         // whether that pinch draws or erases.
         const next =
-          gesture === GestureType.PINCH ? (state.ops.find((op) => op.name === tool) ?? null) : null;
+          gesture === GestureType.PINCH
+            ? (state.ops.find((op) => op.name === toolRef.current) ?? null)
+            : null;
 
         // Gesture/tool transition — clear any in-progress state on the
         // outgoing op so a new action doesn't reconnect to the previous one.
@@ -162,7 +169,7 @@ const Canvas = ({
 
         if (landmarks) {
           const point = landmarkToCanvas(landmarks[INDEX_FINGERTIP], drawCanvas);
-          state.cursor.render(point, gesture, tool);
+          state.cursor.render(point, gesture, toolRef.current);
           next?.tick(point);
         } else {
           state.cursor.clear();
@@ -189,7 +196,7 @@ const Canvas = ({
         return composite.toDataURL('image/png');
       },
     }),
-    [tool],
+    [],
   );
 
   const wrapperClass =

@@ -58,7 +58,9 @@ describe('CanvasDraw', () => {
   });
 
   it('applies smoothing rather than drawing straight to the raw point', () => {
-    const ctx = createMockCtx();
+    const ctx = createMockCtx() as CanvasRenderingContext2D & {
+      lineTo: ReturnType<typeof vi.fn>;
+    };
     const draw = new CanvasDraw(ctx);
 
     draw.tick({ x: 0, y: 0 });

@@ -24,7 +24,7 @@ beforeAll(() => {
   vi.stubGlobal('ResizeObserver', ResizeObserverMock)
 
   vi.spyOn(HTMLElement.prototype, 'getBoundingClientRect').mockImplementation(
-    function () {
+    function (this: HTMLElement) {
       const canvas = this.querySelector('canvas')
       const width = canvas?.width ?? 640
       const height = canvas?.height ?? 480

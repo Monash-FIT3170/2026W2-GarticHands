@@ -39,6 +39,7 @@
   --success-soft: #bbf7d0;
 
   --warning-soft: #fef08a;
+  --waiting-soft: #ffedd5;
   --warning-text: #d4623e;
 
   --input-text: #d4623e;
@@ -91,6 +92,7 @@
   --success-soft: #b9ddf0;
 
   --warning-soft: #f6dfa6;
+  --waiting-soft: #fce7c5;
   --warning-text: #a84a00;
 
   --input-text: #a84a00;
@@ -147,6 +149,7 @@
   --success-soft: #b8e1d5;
 
   --warning-soft: #f8e7a3;
+  --waiting-soft: #faedc4;
   --warning-text: #765700;
 
   --input-text: #765700;
@@ -200,6 +203,7 @@
   --success-soft: #f2c4df;
 
   --warning-soft: #f4d6e7;
+  --waiting-soft: #f8dfeb;
   --warning-text: #9b3c72;
 
   --input-text: #a94a78;
@@ -397,7 +401,7 @@
    Lobby section backgrounds
    ========================================================= */
 
-[data-color-vision] .color-vision-lobby-section {
+.color-vision-lobby-section {
   background-color: var(--lobby-section-bg) !important;
 }
 
