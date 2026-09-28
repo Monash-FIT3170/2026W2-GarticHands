@@ -22,25 +22,25 @@ describe('CanvasLocation', () => {
     const ctx = createMockCtx();
     const location = new CanvasLocation(ctx);
 
-    location.render({ x: 1, y: 1 }, GestureType.HAND_PRESENT);
+    location.render({ x: 1, y: 1 }, GestureType.HAND_PRESENT, 'draw');
 
     expect(ctx.clearRect).toHaveBeenCalledWith(0, 0, 640, 480);
   });
 
-  it('draws the pencil glyph on PINCH', () => {
+  it('draws the pencil glyph on PINCH when using the draw tool', () => {
     const ctx = createMockCtx();
     const location = new CanvasLocation(ctx);
 
-    location.render({ x: 1, y: 1 }, GestureType.PINCH);
+    location.render({ x: 1, y: 1 }, GestureType.PINCH, 'draw');
 
     expect(ctx.fillText).toHaveBeenCalledWith('✏️', 1, 1);
   });
 
-  it('draws the sponge glyph on OPEN_PALM', () => {
+  it('draws the sponge glyph on PINCH when using the erase tool', () => {
     const ctx = createMockCtx();
     const location = new CanvasLocation(ctx);
 
-    location.render({ x: 1, y: 1 }, GestureType.OPEN_PALM);
+    location.render({ x: 1, y: 1 }, GestureType.PINCH, 'erase');
 
     expect(ctx.fillText).toHaveBeenCalledWith('🧽', 1, 1);
   });
@@ -49,7 +49,7 @@ describe('CanvasLocation', () => {
     const ctx = createMockCtx();
     const location = new CanvasLocation(ctx);
 
-    location.render({ x: 1, y: 1 }, GestureType.HAND_PRESENT);
+    location.render({ x: 1, y: 1 }, GestureType.HAND_PRESENT, 'draw');
 
     expect(ctx.arc).toHaveBeenCalledTimes(1);
     expect(ctx.fill).toHaveBeenCalledTimes(1);
@@ -60,7 +60,7 @@ describe('CanvasLocation', () => {
     const ctx = createMockCtx();
     const location = new CanvasLocation(ctx);
 
-    location.render({ x: 1, y: 1 }, GestureType.NO_HAND);
+    location.render({ x: 1, y: 1 }, GestureType.NO_HAND, 'draw');
 
     expect(ctx.arc).not.toHaveBeenCalled();
     expect(ctx.fillText).not.toHaveBeenCalled();
