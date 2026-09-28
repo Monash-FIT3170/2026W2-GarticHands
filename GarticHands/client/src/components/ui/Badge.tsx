@@ -9,7 +9,8 @@ interface BadgeProps {
 const lobbyClasses: Record<BadgeKind, string> = {
   host: 'text-xs font-bold px-3 py-1 rounded-full bg-[var(--warning-soft)] text-[var(--warning-text)]',
   ready: 'text-xs font-bold px-3 py-1 rounded-full bg-[var(--success-soft)] text-[var(--primary)]',
-  waiting: 'text-xs font-bold px-3 py-1 rounded-full bg-[var(--warning-soft)] text-[var(--warning-text)]',
+  waiting:
+    'text-xs font-bold px-3 py-1 rounded-full bg-[var(--warning-soft)] text-[var(--warning-text)]',
 };
 
 const simpleClass = 'text-xs font-bold px-3 py-0.5 rounded-full';

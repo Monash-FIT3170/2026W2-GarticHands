@@ -105,15 +105,9 @@ export default function GamePage() {
       <Card variant="glass" className="w-full !max-w-3xl">
         <RoundHeader round={round} totalRounds={maxRounds} />
 
-        <h1 className="text-3xl mb-4">
-          {roundInProgress ? 'Round in Progress' : 'Reveal'}
-        </h1>
+        <h1 className="text-3xl mb-4">{roundInProgress ? 'Round in Progress' : 'Reveal'}</h1>
 
-        {!room && (
-          <p className="text-sm text-[var(--text-muted)]">
-            Loading results...
-          </p>
-        )}
+        {!room && <p className="text-sm text-[var(--text-muted)]">Loading results...</p>}
 
         {roundInProgress && (
           <div className="bg-[var(--surface-soft)] border border-[var(--surface-border)] rounded-xl p-6 text-center">
@@ -128,11 +122,7 @@ export default function GamePage() {
         )}
 
         {room && !roundInProgress && (
-          <ViewTabs
-            view={view}
-            onChange={setView}
-            recordingsCount={recordings.length}
-          />
+          <ViewTabs view={view} onChange={setView} recordingsCount={recordings.length} />
         )}
 
         {!roundInProgress && view === 'cards' && <CardsView chains={chains} />}
@@ -141,15 +131,11 @@ export default function GamePage() {
           <SlideshowView chains={chains.filter((c) => c.drawing)} />
         )}
 
-        {!roundInProgress && view === 'recordings' && (
-          <RecordingsView recordings={recordings} />
-        )}
+        {!roundInProgress && view === 'recordings' && <RecordingsView recordings={recordings} />}
 
         <div className="flex flex-col items-end mt-6 gap-2">
           {roundInProgress ? (
-            <p className="text-sm text-[var(--text-muted)]">
-              Waiting for the round to finish...
-            </p>
+            <p className="text-sm text-[var(--text-muted)]">Waiting for the round to finish...</p>
           ) : isHost ? (
             isFinalRound ? (
               <Button
@@ -232,11 +218,7 @@ function ViewTabs({ view, onChange, recordingsCount }: ViewTabsProps) {
 
 function CardsView({ chains }: { chains: RevealChain[] }) {
   if (chains.length === 0) {
-    return (
-      <p className="text-sm text-[var(--text-muted)]">
-        No drawings to reveal.
-      </p>
-    );
+    return <p className="text-sm text-[var(--text-muted)]">No drawings to reveal.</p>;
   }
 
   return (
@@ -294,9 +276,7 @@ function SlideshowView({ chains }: { chains: RevealChain[] }) {
 
   if (chains.length === 0) {
     return (
-      <p className="text-sm text-[var(--text-muted)]">
-        No drawings were submitted this round.
-      </p>
+      <p className="text-sm text-[var(--text-muted)]">No drawings were submitted this round.</p>
     );
   }
 
@@ -360,10 +340,7 @@ function SlideshowView({ chains }: { chains: RevealChain[] }) {
 // ---------------------------------------------------------------------------
 
 function RecordingsView({ recordings }: { recordings: Recording[] }) {
-  const sorted = useMemo(
-    () => [...recordings].sort((a, b) => a.round - b.round),
-    [recordings],
-  );
+  const sorted = useMemo(() => [...recordings].sort((a, b) => a.round - b.round), [recordings]);
 
   const [index, setIndex] = useState(0);
   const videoRef = useRef<HTMLVideoElement | null>(null);
@@ -431,4 +408,3 @@ function RecordingsView({ recordings }: { recordings: Recording[] }) {
     </div>
   );
 }
-

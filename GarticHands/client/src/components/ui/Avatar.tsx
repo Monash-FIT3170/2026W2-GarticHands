@@ -1,11 +1,6 @@
 import PersonIcon from './icons/PersonIcon';
 
-type AvatarVariant =
-  | 'guest'
-  | 'host-large'
-  | 'host-row'
-  | 'player-row'
-  | 'empty-row';
+type AvatarVariant = 'guest' | 'host-large' | 'host-row' | 'player-row' | 'empty-row';
 
 interface AvatarProps {
   variant?: AvatarVariant;
@@ -13,8 +8,7 @@ interface AvatarProps {
 }
 
 const shellClasses: Record<AvatarVariant, string> = {
-  guest:
-    'bg-[var(--surface)] rounded-full w-24 h-24 flex items-center justify-center shadow-inner',
+  guest: 'bg-[var(--surface)] rounded-full w-24 h-24 flex items-center justify-center shadow-inner',
 
   'host-large':
     'absolute -top-14 left-1/2 -translate-x-1/2 w-24 h-24 rounded-full bg-[var(--avatar-bg)] flex items-center justify-center shadow-xl',
@@ -40,8 +34,7 @@ export default function Avatar({ variant = 'guest', letter }: AvatarProps) {
     );
   }
 
-  const iconSize =
-    variant === 'guest' ? 'w-14 h-14 text-[var(--action)]' : 'w-5 h-5';
+  const iconSize = variant === 'guest' ? 'w-14 h-14 text-[var(--action)]' : 'w-5 h-5';
 
   return (
     <div className={shellClasses[variant]}>

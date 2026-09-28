@@ -47,9 +47,7 @@ export default function PlayerList({
 }
 
 function LobbyRow({ player, isSelf }: { player: Player; isSelf: boolean }) {
-  const borderClass = isSelf
-    ? 'border-[var(--accent)]'
-    : 'border-transparent';
+  const borderClass = isSelf ? 'border-[var(--accent)]' : 'border-transparent';
 
   const rowClasses = `flex items-center gap-4 rounded-full px-4 py-3 border-4 shadow-sm bg-[var(--surface)] ${borderClass}`;
   const nameClasses = 'font-bold truncate text-[var(--action)]';
@@ -81,9 +79,7 @@ function EmptyLobbyRow() {
         <Avatar variant="empty-row" />
       </div>
 
-      <p className="flex-1 text-center text-[var(--text-muted)] font-bold">
-        Empty
-      </p>
+      <p className="flex-1 text-center text-[var(--text-muted)] font-bold">Empty</p>
 
       <div className="w-20 flex-shrink-0" />
     </div>
@@ -110,4 +106,3 @@ function badgeKind(player: Player): 'host' | 'ready' | 'waiting' {
   if (player.ready) return 'ready';
   return 'waiting';
 }
-
