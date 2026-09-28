@@ -28,6 +28,7 @@ vi.mock('@mediapipe/tasks-vision', () => ({
 
 // Mock the animation frame loop so tests control frame stepping
 let rafCallback: FrameRequestCallback | null = null;
+
 function stubAnimationFrame() {
   rafCallback = null;
   vi.stubGlobal('requestAnimationFrame', (cb: FrameRequestCallback) => {
@@ -36,6 +37,7 @@ function stubAnimationFrame() {
   });
   vi.stubGlobal('cancelAnimationFrame', vi.fn());
 }
+
 function stepFrame() {
   act(() => {
     const cb = rafCallback;
@@ -82,7 +84,10 @@ function createRefs() {
     strokeStyle: '',
     lineWidth: 0,
   };
-  vi.mocked(canvas.getContext).mockReturnValue(ctx as unknown as CanvasRenderingContext2D);
+
+  vi.mocked(canvas.getContext).mockReturnValue(
+    ctx as unknown as CanvasRenderingContext2D,
+  );
 
   return {
     videoRef: { current: video },
@@ -95,25 +100,16 @@ function createRefs() {
   };
 }
 
-beforeEach(() => {
-  vi.clearAllMocks();
-  detectForVideo.mockReturnValue({ landmarks: [] });
-  createFromOptions.mockResolvedValue({ detectForVideo, close });
-  stubAnimationFrame();
-  vi.stubGlobal('navigator', {
-    mediaDevices: {
-      getUserMedia: vi.fn(),
-    },
-  });
-});
-
 // Drives the hook's start() sequence up to (and including) the point where
 // getUserMedia resolves and the video's onloadedmetadata fires
 async function startAndConnectStream(refs: ReturnType<typeof createRefs>) {
   vi.mocked(navigator.mediaDevices.getUserMedia).mockResolvedValue(refs.stream);
 
   const rendered = renderHook(() =>
-    useHandTracking({ videoRef: refs.videoRef, canvasRef: refs.canvasRef }),
+    useHandTracking({
+      videoRef: refs.videoRef,
+      canvasRef: refs.canvasRef,
+    }),
   );
 
   await waitFor(() => expect(refs.video.onloadedmetadata).not.toBeNull());
@@ -139,6 +135,7 @@ describe('useHandTracking', () => {
     interface HandLandmarkerOptions {
       baseOptions: { delegate: string };
     }
+
     const firstCallOptions = createFromOptions.mock.calls[0][1] as HandLandmarkerOptions;
     const secondCallOptions = createFromOptions.mock.calls[1][1] as HandLandmarkerOptions;
 
@@ -150,10 +147,14 @@ describe('useHandTracking', () => {
     vi.mocked(navigator.mediaDevices.getUserMedia).mockRejectedValue(
       new Error('permission denied'),
     );
+
     const refs = createRefs();
 
     const { result } = renderHook(() =>
-      useHandTracking({ videoRef: refs.videoRef, canvasRef: refs.canvasRef }),
+      useHandTracking({
+        videoRef: refs.videoRef,
+        canvasRef: refs.canvasRef,
+      }),
     );
 
     await waitFor(() => expect(result.current.isLoading).toBe(false));
@@ -172,48 +173,79 @@ describe('useHandTracking', () => {
     detectForVideo.mockReturnValue({
       landmarks: [Array.from({ length: 21 }, () => ({ x: 0, y: 0, z: 0 }))],
     });
+
     const onFrame = vi.fn();
     const refs = createRefs();
+
     vi.mocked(navigator.mediaDevices.getUserMedia).mockResolvedValue(refs.stream);
 
     renderHook(() =>
-      useHandTracking({ videoRef: refs.videoRef, canvasRef: refs.canvasRef, onFrame }),
+      useHandTracking({
+        videoRef: refs.videoRef,
+        canvasRef: refs.canvasRef,
+        onFrame,
+      }),
     );
 
     await waitFor(() => expect(refs.video.onloadedmetadata).not.toBeNull());
+
     await act(async () => {
       await refs.video.onloadedmetadata?.(new Event('loadedmetadata'));
     });
+
     await waitFor(() => expect(rafCallback).not.toBeNull());
     stepFrame();
 
     await waitFor(() => expect(onFrame).toHaveBeenCalled());
 
-    type OnFrameCall = [landmarks: HandLandmark[] | null, gesture: GestureType];
+    type OnFrameCall = [
+      landmarks: HandLandmark[] | null,
+      gesture: GestureType,
+    ];
+
     const [landmarks, gesture] = onFrame.mock.calls[0] as OnFrameCall;
 
     expect(landmarks).not.toBeNull();
     expect(gesture).toBeDefined();
   });
 
-  it('invokes onFrame with null/NO_HAND and clears the gesture buffer when no hand is detected', async () => {
+  it('waits for five consecutive missed frames before reporting NO_HAND', async () => {
     detectForVideo.mockReturnValue({ landmarks: [] });
+
     const onFrame = vi.fn();
     const refs = createRefs();
+
     vi.mocked(navigator.mediaDevices.getUserMedia).mockResolvedValue(refs.stream);
 
     renderHook(() =>
-      useHandTracking({ videoRef: refs.videoRef, canvasRef: refs.canvasRef, onFrame }),
+      useHandTracking({
+        videoRef: refs.videoRef,
+        canvasRef: refs.canvasRef,
+        onFrame,
+      }),
     );
 
     await waitFor(() => expect(refs.video.onloadedmetadata).not.toBeNull());
+
     await act(async () => {
       await refs.video.onloadedmetadata?.(new Event('loadedmetadata'));
     });
+
     await waitFor(() => expect(rafCallback).not.toBeNull());
+
+    // The first four missed frames are within the grace period.
+    for (let i = 0; i < 4; i++) {
+      stepFrame();
+      expect(onFrame).not.toHaveBeenCalled();
+      await waitFor(() => expect(rafCallback).not.toBeNull());
+    }
+
+    // The fifth consecutive missed frame exceeds MAX_MISSED_FRAMES.
     stepFrame();
 
-    await waitFor(() => expect(onFrame).toHaveBeenCalledWith(null, 'NO_HAND'));
+    await waitFor(() =>
+      expect(onFrame).toHaveBeenCalledWith(null, GestureType.NO_HAND),
+    );
   });
 
   it('stops media tracks and closes the landmarker on unmount', async () => {
