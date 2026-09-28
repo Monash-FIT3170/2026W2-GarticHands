@@ -52,9 +52,6 @@ const Canvas = ({
   const overlayCanvasRef = useRef<HTMLCanvasElement>(null);
   const { registerDrawCanvasElement } = useDrawingContext();
 
-  const toolRef = useRef<DrawingTool>(tool);
-  toolRef.current = tool;
-
   // Publish the draw-canvas DOM node so the recorder can sample it per-frame.
   useLayoutEffect(() => {
     const canvas = drawCanvasRef.current;
@@ -155,7 +152,7 @@ const Canvas = ({
         // whether that pinch draws or erases.
         const next =
           gesture === GestureType.PINCH
-            ? state.ops.find((op) => op.name === toolRef.current) ?? null
+            ? state.ops.find((op) => op.name === tool) ?? null
             : null;
 
         // Gesture/tool transition — clear any in-progress state on the
@@ -170,7 +167,7 @@ const Canvas = ({
             landmarks[INDEX_FINGERTIP],
             drawCanvas,
           );
-          state.cursor.render(point, gesture, toolRef.current);
+          state.cursor.render(point, gesture, tool);
           next?.tick(point);
         } else {
           state.cursor.clear();
@@ -197,7 +194,7 @@ const Canvas = ({
         return composite.toDataURL('image/png');
       },
     }),
-    [],
+    [tool],
   );
 
   const wrapperClass =
