@@ -2,21 +2,6 @@
  * Canvas.test.tsx
  *
  * Component tests for Canvas (client/src/drawing/components/Canvas).
- *
- * Canvas exposes an imperative handle (CanvasHandle) with onFrame and
- * getImage, rather than reacting to props changes directly. It renders
- * two stacked canvas elements (a draw canvas and an overlay canvas) inside
- * a wrapper div, and registers the draw canvas element with the surrounding
- * drawing context on mount.
- *
- * These tests focus on Canvas own responsibilities: registering itself
- * with the drawing context, rendering both canvas elements with the correct
- * dimensions, applying the default or custom wrapper class, and exposing a
- * working getImage handle that returns null before mount data exists and a
- * data URL once it does. The gesture pipeline internals (CanvasDraw,
- * CanvasErase, CanvasLocation) are exercised indirectly via onFrame rather
- * than unit tested here, since this file is scoped to Canvas itself, not its
- * op classes.
  */
 
 import { render } from '@testing-library/react'
@@ -33,10 +18,19 @@ vi.mock('../client/src/drawing/DrawingContext', () => ({
   }),
 }))
 
-// jsdom does not implement canvas getContext or toDataURL.
-// Stub the canvas APIs so Canvas can be tested without the real
-// browser canvas implementation.
+// jsdom does not implement ResizeObserver.
 beforeAll(() => {
+  class ResizeObserverMock {
+    observe = vi.fn()
+    unobserve = vi.fn()
+    disconnect = vi.fn()
+  }
+
+  vi.stubGlobal('ResizeObserver', ResizeObserverMock)
+
+  // jsdom does not implement canvas getContext or toDataURL.
+  // Stub the canvas APIs so Canvas can be tested without the real
+  // browser canvas implementation.
   HTMLCanvasElement.prototype.getContext = vi.fn(() => ({
     canvas: {
       width: 640,
@@ -58,6 +52,10 @@ beforeAll(() => {
   HTMLCanvasElement.prototype.toDataURL = vi.fn(
     () => 'data:image/png;base64,fake',
   )
+})
+
+afterAll(() => {
+  vi.unstubAllGlobals()
 })
 
 describe('Canvas', () => {
@@ -100,7 +98,10 @@ describe('Canvas', () => {
   test('applies the default wrapper class when no className is given', () => {
     const { container } = render(<Canvas />)
 
-    expect(container.firstChild).toHaveClass('bg-white', 'rounded-xl')
+    expect(container.firstChild).toHaveClass(
+      'bg-[var(--surface)]',
+      'rounded-xl',
+    )
   })
 
   test('applies a custom wrapper class when className is given', () => {
@@ -112,7 +113,7 @@ describe('Canvas', () => {
       'opacity-0',
       'pointer-events-none',
     )
-    expect(container.firstChild).not.toHaveClass('bg-white')
+    expect(container.firstChild).not.toHaveClass('bg-[var(--surface)]')
   })
 
   test('exposes an imperative handle with onFrame and getImage', () => {
