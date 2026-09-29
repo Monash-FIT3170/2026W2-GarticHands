@@ -216,6 +216,25 @@ describe('JoiningPage', () => {
     expect(screen.getByText('Join Game')).not.toBeDisabled()
   })
 
+  test('shows the room-full message when the server rejects a ninth player', async () => {
+    mockJoinRoom.mockResolvedValue({
+      success: false,
+      message: 'Room is full (8 players maximum).',
+    })
+
+    render(<JoiningPage />)
+
+    fireEvent.change(screen.getByPlaceholderText('ABC123'), {
+      target: { value: 'ABC123' },
+    })
+    fireEvent.click(screen.getByText('Join Game'))
+
+    await waitFor(() => {
+      expect(screen.getByText('Room is full (8 players maximum).')).toBeInTheDocument()
+    })
+    expect(screen.getByText('Join Game')).not.toBeDisabled()
+  })
+
   test('falls back to a default error message when the failure has none', async () => {
     mockJoinRoom.mockResolvedValue({ success: false })
 

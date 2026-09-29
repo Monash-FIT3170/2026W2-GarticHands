@@ -1,4 +1,4 @@
-/**
+ /**
  * Badge.test.tsx
  *
  * Component tests for `<Badge />` (client/src/components/ui/Badge).
@@ -50,20 +50,29 @@ describe('Badge', () => {
     render(<Badge tone="lobby" kind="host" />)
 
     const badge = screen.getByText('Host')
-    expect(badge).toHaveClass('bg-yellow-200', 'text-[#D4623E]')
+    expect(badge).toHaveClass(
+      'bg-[var(--warning-soft)]',
+      'text-[var(--warning-text)]',
+    )
   })
 
   test('lobby tone renders the ready label with the ready colour classes', () => {
     render(<Badge tone="lobby" kind="ready" />)
 
     const badge = screen.getByText('Ready')
-    expect(badge).toHaveClass('bg-green-200', 'text-[#2E5534]')
+    expect(badge).toHaveClass(
+      'bg-[var(--success-soft)]',
+      'text-[var(--primary)]',
+    )
   })
 
   test('lobby tone renders the waiting label with the waiting colour classes', () => {
     render(<Badge tone="lobby" kind="waiting" />)
 
     const badge = screen.getByText('Waiting')
-    expect(badge).toHaveClass('bg-orange-100', 'text-[#D4623E]')
+    expect(badge).toHaveClass(
+      'bg-[var(--waiting-soft)]',
+      'text-[var(--warning-text)]',
+    )
   })
 })

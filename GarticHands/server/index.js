@@ -14,6 +14,7 @@ const io = new Server(server, {
 
 const PORT = process.env.PORT || 3000
 const MAX_ROUNDS = 4
+const MAX_PLAYERS = 8
 
 /** Env override — lets a demo or test run through a phase without waiting a full minute. */
 function phaseSeconds(envName, fallback) {
@@ -321,6 +322,13 @@ app.post('/rooms/join', (req, res) => {
   const room = rooms[roomCode.toUpperCase()]
   if (!room) {
     return res.status(404).json({ success: false, message: 'Room not found' })
+  }
+
+  if (room.players.length >= MAX_PLAYERS) {
+    return res.status(409).json({
+      success: false,
+      message: `Room is full (${MAX_PLAYERS} players maximum).`,
+    })
   }
 
   // Joining a game that already started is allowed: the player is flagged as a

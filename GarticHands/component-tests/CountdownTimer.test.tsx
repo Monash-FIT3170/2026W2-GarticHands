@@ -14,90 +14,81 @@
  * time deterministically instead of waiting on real `setInterval`/`setTimeout` calls.
  */
 
-import { render, screen } from '@testing-library/react'
-import '@testing-library/jest-dom'
-import { act } from 'react'
-import CountdownTimer from "../client/src/components/ui/CountdownTimer";
+import { render, screen } from '@testing-library/react';
+import '@testing-library/jest-dom';
+import { act } from 'react';
+import CountdownTimer from '../client/src/components/ui/CountdownTimer';
 
 describe('CountdownTimer', () => {
   // Swap in fake timers before each test so `vi.advanceTimersByTime()` works
   // instead of relying on real wall-clock time.
   beforeEach(() => {
-    vi.useFakeTimers()
-  })
+    vi.useFakeTimers();
+  });
 
   // Restore real timers after each test so fake time doesn't leak into other
   // test files / suites.
   afterEach(() => {
-    vi.useRealTimers()
-  })
+    vi.useRealTimers();
+  });
 
   test('starts with the supplied number of seconds', () => {
-    render(<CountdownTimer seconds={10} />)
+    render(<CountdownTimer seconds={10} />);
 
     // On first render, before any time has passed, it should show the full count.
-    expect(screen.getByText('10s left')).toBeInTheDocument()
-  })
+    expect(screen.getByText('10s left')).toBeInTheDocument();
+  });
 
   test('counts down once per second', () => {
-    render(<CountdownTimer seconds={10} />)
+    render(<CountdownTimer seconds={10} />);
 
     // Fast-forward 3 seconds of fake time in one go.
     // `act()` ensures React flushes the resulting state updates before we assert.
     act(() => {
-      vi.advanceTimersByTime(3000)
-    })
+      vi.advanceTimersByTime(3000);
+    });
 
     // 10s - 3s = 7s remaining.
-    expect(screen.getByText('7s left')).toBeInTheDocument()
-  })
+    expect(screen.getByText('7s left')).toBeInTheDocument();
+  });
 
   test('calls onExpire when the timer reaches zero', () => {
-    const onExpire = vi.fn() // mock callback to track how many times it's called
+    const onExpire = vi.fn(); // mock callback to track how many times it's called
 
-    render(
-      <CountdownTimer
-        seconds={3}
-        onExpire={onExpire}
-      />,
-    )
+    render(<CountdownTimer seconds={3} onExpire={onExpire} />);
 
     // Advance exactly to the moment the timer should hit 0.
     act(() => {
-      vi.advanceTimersByTime(3000)
-    })
+      vi.advanceTimersByTime(3000);
+    });
 
-    expect(screen.getByText('0s left')).toBeInTheDocument()
+    expect(screen.getByText('0s left')).toBeInTheDocument();
     // onExpire should fire exactly once, not repeatedly on every tick after 0.
-    expect(onExpire).toHaveBeenCalledTimes(1)
-  })
+    expect(onExpire).toHaveBeenCalledTimes(1);
+  });
 
   test('does not count down while paused', () => {
-    render(
-      <CountdownTimer
-        seconds={10}
-        paused
-      />,
-    )
+    render(<CountdownTimer seconds={10} paused />);
 
     // Even though 5 seconds of fake time pass, the paused timer shouldn't move.
     act(() => {
-      vi.advanceTimersByTime(5000)
-    })
+      vi.advanceTimersByTime(5000);
+    });
 
-    expect(screen.getByText('10s left')).toBeInTheDocument()
-  })
+    expect(screen.getByText('10s left')).toBeInTheDocument();
+  });
 
   test('uses the urgent styling below the configured threshold', () => {
-    render(
-      <CountdownTimer
-        seconds={5}
-        urgentAt={10}
-      />,
-    )
+    render(<CountdownTimer seconds={5} urgentAt={10} />);
 
-    // seconds (5) is below urgentAt (10), so the "urgent" red styling should apply
+    // seconds (5) is below urgentAt (10), so the urgent theme color applies
     // immediately on render, without needing to advance any time.
-    expect(screen.getByText('5s left')).toHaveClass('text-red-400')
-  })
-})
+    expect(screen.getByText('5s left')).toHaveClass('text-[var(--action)]');
+  });
+
+  test('accepts a screen-specific text style', () => {
+    render(<CountdownTimer seconds={30} className="!text-[var(--action)]" />);
+
+    expect(screen.getByText('30s left')).toHaveClass('!text-[var(--action)]');
+  });
+});

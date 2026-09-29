@@ -3,7 +3,7 @@ import type { Point } from '../../Models/Point';
 import { GestureType } from '../../gestures/GestureTypes';
 
 /**
- * Erases pixels along the open-palm cursor path.
+ * Erases pixels along the pinch cursor path.
  *
  * Improvements over a single-circle "stamp":
  *  - Interpolates between frames so fast hand movement still produces a
@@ -13,7 +13,7 @@ import { GestureType } from '../../gestures/GestureTypes';
  */
 export class CanvasErase implements CanvasOp {
   readonly name = 'erase';
-  readonly activatedBy = GestureType.OPEN_PALM;
+  readonly activatedBy = GestureType.PINCH;
 
   private prev: Point | null = null;
 

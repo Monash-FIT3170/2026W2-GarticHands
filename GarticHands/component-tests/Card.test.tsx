@@ -4,8 +4,8 @@
  * Component tests for `<Card />` (client/src/components/ui/Card).
  *
  * `Card` is a generic surface/container with three visual variants:
- *  - 'lobby': large dark-teal card used on the hosting page.
- *  - 'hero':  rounded teal card used on the landing page.
+ *  - 'lobby': large card used on the hosting page.
+ *  - 'hero':  rounded card used on the landing page.
  *  - 'glass': translucent card used on input/draw/guess pages (default).
  *
  * It renders whatever `children` it's given inside a div styled per the
@@ -30,16 +30,19 @@ describe('Card', () => {
   test('defaults to the glass variant when no variant is given', () => {
     const { container } = render(<Card>Default</Card>)
 
-    expect(container.firstChild).toHaveClass('bg-white/[0.07]', 'rounded-2xl')
+    expect(container.firstChild).toHaveClass(
+      'bg-[var(--surface-soft)]',
+      'rounded-2xl',
+    )
   })
 
   test('applies the lobby variant classes', () => {
     const { container } = render(<Card variant="lobby">Lobby</Card>)
 
     expect(container.firstChild).toHaveClass(
-      'bg-[#5E9990]',
+      'bg-[var(--card-bg)]',
       'rounded-xl',
-      'border-[#6FADA0]',
+      'border-[var(--card-border)]',
     )
   })
 
@@ -47,7 +50,7 @@ describe('Card', () => {
     const { container } = render(<Card variant="hero">Hero</Card>)
 
     expect(container.firstChild).toHaveClass(
-      'bg-[#559490]',
+      'bg-[var(--hero-bg)]',
       'rounded-3xl',
       'items-center',
     )
@@ -56,7 +59,10 @@ describe('Card', () => {
   test('applies the glass variant classes explicitly', () => {
     const { container } = render(<Card variant="glass">Glass</Card>)
 
-    expect(container.firstChild).toHaveClass('bg-white/[0.07]', 'border-white/[0.14]')
+    expect(container.firstChild).toHaveClass(
+      'bg-[var(--surface-soft)]',
+      'border-[var(--surface-border)]',
+    )
   })
 
   test('merges an extra className onto the computed variant classes', () => {
@@ -67,7 +73,8 @@ describe('Card', () => {
     )
 
     expect(container.firstChild).toHaveClass('mt-6')
+
     // Variant classes should still be present alongside the custom one.
-    expect(container.firstChild).toHaveClass('bg-[#5E9990]')
+    expect(container.firstChild).toHaveClass('bg-[var(--card-bg)]')
   })
 })
