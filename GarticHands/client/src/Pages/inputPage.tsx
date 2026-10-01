@@ -395,6 +395,228 @@ export default function InputPage() {
           </svg>
         </div>
 
+        {/* Farm scenery canvas */}
+        <div className="w-full max-w-xl h-36 rounded-3xl overflow-hidden border border-white/20 shadow-xl mb-5">
+          <svg
+            viewBox="0 0 700 180"
+            className="w-full h-full"
+            preserveAspectRatio="xMidYMid slice"
+            aria-label="Sunny farm landscape with a barn, windmill, hills and trees"
+            role="img"
+          >
+            {/* Sky */}
+            <rect width="700" height="180" fill="#9edcf2" />
+
+            {/* Sun */}
+            <circle
+              cx="590"
+              cy="42"
+              r="25"
+              fill="#ffd95a"
+            />
+
+            <circle
+              cx="590"
+              cy="42"
+              r="34"
+              fill="none"
+              stroke="#ffe98a"
+              strokeWidth="4"
+              strokeDasharray="3 8"
+              opacity="0.8"
+            />
+
+            {/* Clouds */}
+            <g fill="rgba(255,255,255,0.88)">
+              <circle cx="110" cy="42" r="18" />
+              <circle cx="132" cy="38" r="24" />
+              <circle cx="158" cy="44" r="17" />
+              <rect x="108" y="42" width="55" height="20" rx="10" />
+
+              <circle cx="410" cy="30" r="15" />
+              <circle cx="430" cy="27" r="21" />
+              <circle cx="454" cy="34" r="16" />
+              <rect x="409" y="34" width="50" height="18" rx="9" />
+            </g>
+
+            {/* Back hills */}
+            <path
+              d="M0 110
+                 C90 65 155 82 225 112
+                 C310 145 380 78 470 91
+                 C565 104 620 68 700 88
+                 L700 180 L0 180 Z"
+              fill="#7fbe72"
+            />
+
+            {/* Front hill */}
+            <path
+              d="M0 132
+                 C95 101 155 123 245 140
+                 C340 158 418 105 510 120
+                 C595 134 648 111 700 122
+                 L700 180 L0 180 Z"
+              fill="#5eaa62"
+            />
+
+            {/* Barn */}
+            <g>
+              <rect
+                x="250"
+                y="83"
+                width="105"
+                height="70"
+                rx="2"
+                fill="#d95b45"
+              />
+
+              <path
+                d="M238 85 L302 48 L367 85 Z"
+                fill="#a94335"
+              />
+
+              <path
+                d="M270 84 L302 60 L335 84"
+                fill="none"
+                stroke="#f6d9a8"
+                strokeWidth="7"
+              />
+
+              <rect
+                x="288"
+                y="112"
+                width="28"
+                height="41"
+                fill="#f3c76b"
+              />
+
+              <rect
+                x="327"
+                y="101"
+                width="15"
+                height="18"
+                rx="2"
+                fill="#8bc6d8"
+              />
+
+              <rect
+                x="260"
+                y="101"
+                width="15"
+                height="18"
+                rx="2"
+                fill="#8bc6d8"
+              />
+            </g>
+
+            {/* Windmill */}
+            <g>
+              <path
+                d="M520 66 L533 66 L540 143 L514 143 Z"
+                fill="#f1e3c5"
+              />
+
+              <circle
+                cx="526"
+                cy="66"
+                r="7"
+                fill="var(--action)"
+              />
+
+              <path
+                d="M526 66 L495 45"
+                stroke="#f4eee0"
+                strokeWidth="7"
+                strokeLinecap="round"
+              />
+
+              <path
+                d="M526 66 L555 43"
+                stroke="#f4eee0"
+                strokeWidth="7"
+                strokeLinecap="round"
+              />
+
+              <path
+                d="M526 66 L558 84"
+                stroke="#f4eee0"
+                strokeWidth="7"
+                strokeLinecap="round"
+              />
+
+              <path
+                d="M526 66 L498 87"
+                stroke="#f4eee0"
+                strokeWidth="7"
+                strokeLinecap="round"
+              />
+            </g>
+
+            {/* Tree */}
+            <g>
+              <rect
+                x="105"
+                y="111"
+                width="14"
+                height="42"
+                rx="5"
+                fill="#87583d"
+              />
+
+              <circle cx="112" cy="94" r="28" fill="#4f9657" />
+              <circle cx="91" cy="105" r="20" fill="#5faa61" />
+              <circle cx="134" cy="105" r="20" fill="#5faa61" />
+            </g>
+
+            {/* Fence */}
+            <g
+              stroke="#ead0a0"
+              strokeWidth="6"
+              strokeLinecap="round"
+            >
+              <path d="M410 138 L410 166" />
+              <path d="M450 138 L450 166" />
+              <path d="M490 138 L490 166" />
+              <path d="M410 146 L490 146" />
+              <path d="M410 158 L490 158" />
+            </g>
+
+            {/* Foreground grass */}
+            <path
+              d="M0 169
+                 C60 160 120 174 180 166
+                 C250 158 300 174 365 166
+                 C430 158 490 173 555 165
+                 C620 157 665 170 700 164
+                 L700 180 L0 180 Z"
+              fill="#4d9558"
+            />
+
+            {/* Small grass details */}
+            <g
+              stroke="#397c49"
+              strokeWidth="3"
+              strokeLinecap="round"
+            >
+              <path d="M50 170 L46 161 M50 170 L55 160" />
+              <path d="M195 170 L191 160 M195 170 L201 162" />
+              <path d="M380 170 L376 160 M380 170 L386 161" />
+              <path d="M620 170 L616 160 M620 170 L626 162" />
+            </g>
+
+            {/* Birds */}
+            <g
+              fill="none"
+              stroke="#557b82"
+              strokeWidth="3"
+              strokeLinecap="round"
+            >
+              <path d="M185 55 Q191 49 197 55 Q203 49 209 55" />
+              <path d="M345 62 Q351 56 357 62 Q363 56 369 62" />
+            </g>
+          </svg>
+        </div>
+
         {/* Prompt card */}
         <div className="w-full bg-[var(--surface-soft)] border border-white/20 backdrop-blur-md rounded-3xl shadow-2xl px-8 py-8">
           <div className="text-center mb-6">
