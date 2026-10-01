@@ -10,6 +10,7 @@
 
 :root {
   --page-bg: #6fada0;
+  --page-gradient: linear-gradient(135deg, #6fada0 0%, #3d7a72 100%);
 
   --card-bg: #5e9990;
   --hero-bg: #559490;
@@ -63,6 +64,7 @@
 
 :root[data-color-vision='deuteranopia'] {
   --page-bg: #5b8fa3;
+  --page-gradient: linear-gradient(135deg, #5b8fa3 0%, #124e78 100%);
 
   --card-bg: #426f82;
   --hero-bg: #376579;
@@ -117,6 +119,7 @@
 
 :root[data-color-vision='protanopia'] {
   --page-bg: #b89b45;
+  --page-gradient: linear-gradient(135deg, #b89b45 0%, #d66f28 100%);
 
   --card-bg: #987e35;
   --hero-bg: #876e2d;
@@ -174,6 +177,7 @@
 
 :root[data-color-vision='tritanopia'] {
   --page-bg: #8a7fa3;
+  --page-gradient: linear-gradient(135deg, #8a7fa3 0%, #703b78 100%);
 
   --card-bg: #6e6287;
   --hero-bg: #5f5378;
@@ -237,7 +241,7 @@
 @layer components {
   .background {
     @apply min-h-screen flex flex-col items-center justify-center px-4 py-10 text-white;
-    background-color: var(--page-bg);
+    background: var(--page-gradient);
   }
 
   .rounds {
@@ -270,7 +274,7 @@
 /* Page backgrounds */
 
 [data-color-vision] .bg-\[\#6FADA0\] {
-  background-color: var(--page-bg);
+  background: var(--page-gradient);
 }
 
 /* Card backgrounds */
