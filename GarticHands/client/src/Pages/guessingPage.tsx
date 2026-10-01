@@ -4,6 +4,7 @@ import { Button, RoundHeader, CountdownTimer } from '../components/ui';
 import { getRoom, submitGuess, PhaseConflictStatus } from '../api/room';
 import { usePhaseAdvance } from '../hooks/usePhaseAdvance';
 import type { Player, DrawLocationState } from '../types/room';
+import BackgroundRays from '../components/ui/BackgroundRays';
 
 const MaxChars = 120;
 /** Shown until the room's server-owned deadline arrives. Real limit: `PHASE_DURATIONS` in `server/index.js`. */
@@ -97,6 +98,7 @@ export default function GuessingPage() {
       className="min-h-screen relative overflow-hidden px-6 py-6 lg:px-10 xl:px-16"
       style={{ background: 'var(--page-gradient)' }}
     >
+      <BackgroundRays />
       {/* Left background doodles */}
       <div className="hidden lg:block absolute left-[3%] top-[18%] pointer-events-none opacity-70">
         <svg
