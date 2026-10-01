@@ -38,6 +38,19 @@ export default function Page({
       className={`min-h-screen ${background} ${layout} relative ${padding} ${className}`}
       style={{ background: 'var(--page-gradient)' }}
     >
+      {/* Decorative background rays */}
+      <div className="background-rays">
+        <div className="background-ray background-ray-top-1" />
+        <div className="background-ray background-ray-top-2" />
+        <div className="background-ray background-ray-top-3" />
+        <div className="background-ray background-ray-top-4" />
+
+        <div className="background-ray background-ray-bottom-1" />
+        <div className="background-ray background-ray-bottom-2" />
+        <div className="background-ray background-ray-bottom-3" />
+        <div className="background-ray background-ray-bottom-4" />
+      </div>
+
       {topRight && (
         <TopRightButtons
           onSettings={() => setSettingsOpen((open) => !open)}
