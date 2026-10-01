@@ -1,6 +1,7 @@
 import { useState, type ReactNode } from 'react';
 import TopRightButtons from './TopRightButtons';
 import SettingsPanel from './SettingsPanel';
+import RulesPanel from './RulesPanel';
 import Logo from './Logo';
 
 interface PageProps {
@@ -25,6 +26,7 @@ export default function Page({
   children,
 }: PageProps) {
   const [settingsOpen, setSettingsOpen] = useState(false);
+  const [rulesOpen, setRulesOpen] = useState(false);
 
   const layout =
     variant === 'centered'
@@ -36,9 +38,27 @@ export default function Page({
       className={`min-h-screen ${background} ${layout} relative ${padding} ${className}`}
       style={{ background: 'var(--page-gradient)' }}
     >
-      {topRight && <TopRightButtons onSettings={() => setSettingsOpen((open) => !open)} />}
-      {topRight && <SettingsPanel open={settingsOpen} onClose={() => setSettingsOpen(false)} />}
+      {topRight && (
+        <TopRightButtons
+          onSettings={() => setSettingsOpen((open) => !open)}
+          onRules={() => setRulesOpen(true)}
+        />
+      )}
+
+      {topRight && (
+        <SettingsPanel
+          open={settingsOpen}
+          onClose={() => setSettingsOpen(false)}
+        />
+      )}
+
+      <RulesPanel
+        open={rulesOpen}
+        onClose={() => setRulesOpen(false)}
+      />
+
       {logo && <Logo compact={compactLogo} />}
+
       {children}
     </div>
   );
