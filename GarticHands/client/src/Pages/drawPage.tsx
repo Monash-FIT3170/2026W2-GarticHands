@@ -14,6 +14,7 @@ import { getRoom, submitDrawing, PhaseConflictStatus } from '../api/room';
 import { usePhaseAdvance } from '../hooks/usePhaseAdvance';
 import { useRecordings } from '../state/RecordingsContext';
 import type { DrawLocationState } from '../types/room';
+import BackgroundRays from '../components/ui/BackgroundRays';
 
 /** Shown until the room's server-owned deadline arrives. Real limit: `PHASE_DURATIONS` in `server/index.js`. */
 const TotalTime = 60;
@@ -139,7 +140,12 @@ function DrawPageInner() {
 
   return (
     <div className="background !justify-start">
-      <Card variant="lobby" className="!max-w-5xl !rounded-[22px] !p-4 md:!p-6">
+      <BackgroundRays />
+
+      <Card
+        variant="lobby"
+        className="relative z-10 !max-w-5xl !rounded-[22px] !p-4 md:!p-6"
+      >
         <div className="mb-3 flex flex-col items-stretch justify-between gap-3 md:flex-row md:items-center">
           <div className="flex justify-center md:justify-start">
             <RoundHeader round={room?.round ?? 1} totalRounds={room?.maxRounds ?? 4} />
