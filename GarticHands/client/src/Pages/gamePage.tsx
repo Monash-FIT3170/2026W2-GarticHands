@@ -5,6 +5,7 @@ import { getRoom, restartRoom, endRoom } from '../api/room';
 import { useRecordings, type Recording } from '../state/RecordingsContext';
 import { buildRevealChains, type RevealChain } from '../utils/revealChains';
 import type { Player, Room, DrawLocationState } from '../types/room';
+import BackgroundRays from '../components/ui/BackgroundRays';
 
 type EndView = 'cards' | 'slideshow' | 'recordings';
 
@@ -102,6 +103,7 @@ export default function GamePage() {
 
   return (
     <div className="background !justify-start">
+      <BackgroundRays />
       <Card variant="glass" className="w-full !max-w-3xl">
         <RoundHeader round={round} totalRounds={maxRounds} />
 

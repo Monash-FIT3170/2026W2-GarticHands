@@ -4,6 +4,7 @@ import { Button, RoundHeader, CountdownTimer } from '../components/ui';
 import { submitPrompt, PhaseConflictStatus } from '../api/room';
 import { usePhaseAdvance } from '../hooks/usePhaseAdvance';
 import type { DrawLocationState } from '../types/room';
+import BackgroundRays from '../components/ui/BackgroundRays';
 
 const MaxChars = 120;
 /** Shown until the room's server-owned deadline arrives. Real limit: `PHASE_DURATIONS` in `server/index.js`. */
@@ -60,6 +61,7 @@ export default function InputPage() {
 
   return (
     <div className="background">
+      <BackgroundRays />
       <div className="w-full max-w-2xl flex flex-col items-center">
         <div className="mb-2">
           <RoundHeader
