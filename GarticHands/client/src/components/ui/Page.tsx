@@ -32,7 +32,10 @@ export default function Page({
       : 'flex flex-col items-center';
 
   return (
-    <div className={`min-h-screen ${background} ${layout} relative ${padding} ${className}`}>
+    <div
+      className={`min-h-screen ${background} ${layout} relative ${padding} ${className}`}
+      style={{ background: 'var(--page-gradient)' }}
+    >
       {topRight && <TopRightButtons onSettings={() => setSettingsOpen((open) => !open)} />}
       {topRight && <SettingsPanel open={settingsOpen} onClose={() => setSettingsOpen(false)} />}
       {logo && <Logo compact={compactLogo} />}
