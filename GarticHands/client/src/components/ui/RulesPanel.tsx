@@ -29,7 +29,7 @@ export default function RulesPanel({ open, onClose }: RulesPanelProps) {
         <div className="flex items-center justify-between mb-5">
           <h2
             id="rules-title"
-            className="text-2xl font-extrabold text-[var(--text-primary)]"
+            className="text-2xl font-extrabold text-white"
           >
             How to Play
           </h2>
@@ -38,7 +38,7 @@ export default function RulesPanel({ open, onClose }: RulesPanelProps) {
             type="button"
             onClick={onClose}
             aria-label="Close rules"
-            className="w-9 h-9 flex items-center justify-center rounded-full bg-black/10 text-[var(--text-primary)] hover:bg-black/20 transition-colors text-xl font-bold"
+            className="w-9 h-9 flex items-center justify-center rounded-full bg-white/10 text-white hover:bg-white/20 transition-colors text-xl font-bold"
           >
             ×
           </button>
@@ -54,7 +54,7 @@ export default function RulesPanel({ open, onClose }: RulesPanelProps) {
                 {index + 1}
               </span>
 
-              <span>{rule}</span>
+              <span className="text-white">{rule}</span>
             </li>
           ))}
         </ol>
