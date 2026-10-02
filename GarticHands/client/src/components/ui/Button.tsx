@@ -56,8 +56,8 @@ function variantClasses(
       }
 
       return active
-        ? 'bg-[var(--accent)] text-[var(--primary)] hover:bg-[var(--accent-hover)] rounded-lg font-extrabold transition-colors'
-        : 'bg-[var(--player-bg)] text-[var(--text-muted)] rounded-lg font-extrabold cursor-pointer';
+        ? 'bg-[var(--accent)] text-[var(--primary)] border-4 border-[var(--accent)] hover:bg-[var(--accent-hover)] rounded-lg font-extrabold transition-colors'
+        : 'bg-[var(--player-bg)] text-[var(--text-muted)] border-4 border-[var(--accent)] rounded-lg font-extrabold cursor-pointer transition-colors';
 
     case 'leave':
       return 'bg-transparent text-white/80 border-2 border-white/40 hover:bg-white/10 hover:text-white rounded-lg font-extrabold transition-colors disabled:opacity-50 disabled:cursor-not-allowed';
