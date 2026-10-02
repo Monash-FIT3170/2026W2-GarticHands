@@ -22,7 +22,6 @@ export default function RatingRevealPage() {
 
   const [drawing, setDrawing] = useState('');
   const [rating, setRating] = useState<number | null>(null);
-  const [targetName, setTargetName] = useState('');
   const [round, setRound] = useState(1);
   const [maxRounds, setMaxRounds] = useState(4);
   const [isHost, setIsHost] = useState(false);
@@ -34,11 +33,12 @@ export default function RatingRevealPage() {
       return;
     }
 
+    let cancelled = false;
+
     async function loadRoom() {
       const data = await getRoom(roomCode);
 
-      if (!data.success || !data.room) {
-        setError('Unable to load the rating results.');
+      if (cancelled || !data.success || !data.room) {
         return;
       }
 
@@ -47,26 +47,40 @@ export default function RatingRevealPage() {
       setRound(room.round ?? 1);
       setMaxRounds(room.maxRounds ?? 4);
 
-      const me = room.players.find((player) => player.name === playerName);
+      const me = room.players.find(
+        (player) => player.name === playerName,
+      );
+
       setIsHost(me?.isHost ?? false);
 
-      // Find the drawing assigned to this player.
-      // ratingTargets maps the rater -> drawing owner.
-      const myTarget = room.ratingTargets?.[playerName];
+      // Show the current player's drawing and the score it received.
+      setDrawing(room.drawings?.[playerName] || '');
 
-      if (myTarget) {
-        setTargetName(myTarget);
-        setDrawing(room.drawings?.[myTarget] || '');
+      const receivedRating = room.ratings?.[playerName];
 
-        const receivedRating = room.ratings?.[myTarget];
+      if (typeof receivedRating === 'number') {
+        setRating(receivedRating);
+      }
 
-        if (typeof receivedRating === 'number') {
-          setRating(receivedRating);
-        }
+      // Once the host moves the room to the leaderboard,
+      // automatically move non-host players too.
+      if (room.phase === 'leaderboard') {
+        void navigate('/leaderboard', {
+          state: { roomCode, playerName },
+        });
       }
     }
 
     void loadRoom();
+
+    const interval = window.setInterval(() => {
+      void loadRoom();
+    }, 1000);
+
+    return () => {
+      cancelled = true;
+      window.clearInterval(interval);
+    };
   }, [roomCode, playerName, navigate]);
 
   async function handleContinue() {
@@ -115,7 +129,7 @@ export default function RatingRevealPage() {
               {drawing ? (
                 <img
                   src={drawing}
-                  alt={`Drawing by ${targetName}`}
+                  alt={`Your drawing`}
                   className="max-h-[500px] max-w-full object-contain"
                 />
               ) : (
@@ -126,7 +140,7 @@ export default function RatingRevealPage() {
             </div>
 
             <p className="mt-5 text-center text-sm font-bold text-white/60">
-              {targetName ? `${targetName}'s drawing` : 'Your drawing'}
+              Your drawing
             </p>
 
             <div className="mt-3 rounded-2xl bg-white px-8 py-4 text-center">
