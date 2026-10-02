@@ -1,7 +1,7 @@
 import { useState, useEffect, useCallback } from 'react';
 import { useParams, useLocation, useNavigate } from 'react-router-dom';
 import { getRoom, updateReady, startRoom } from '../api/room';
-import { Page, Card, Button, useToast } from '../components/ui';
+import { Page, Card, Button } from '../components/ui';
 import PlayerList from '../components/PlayerList';
 import { useLeaveRoom } from '../hooks/useLeaveRoom';
 import { usePlayerDepartures } from '../hooks/usePlayerDepartures';
@@ -17,17 +17,25 @@ export default function JoinedPage() {
   const playerName = state?.playerName;
   const navigate = useNavigate();
 
-  const [players, setPlayers] = useState<Player[]>(state?.room?.players ?? []);
+  const [players, setPlayers] = useState<Player[]>(
+    state?.room?.players ?? [],
+  );
+
   const [gameMode, setGameMode] = useState<GameMode>(
     state?.room?.mode ?? 'classic',
   );
+
   const [ready, setReady] = useState(false);
   const [starting, setStarting] = useState(false);
-  const { toast, show } = useToast('pill');
+  const [popup, setPopup] = useState('');
 
   const me = players.find((p) => p.name === playerName);
   const isHost = me?.isHost ?? false;
-  const readyCount = players.filter((p) => p.ready || p.isHost).length;
+
+  const readyCount = players.filter(
+    (p) => p.ready || p.isHost,
+  ).length;
+
   const allReady =
     players.length > 0 &&
     players.every((p) => p.ready || p.isHost);
@@ -36,8 +44,8 @@ export default function JoinedPage() {
     if (!roomCode) return;
 
     navigator.clipboard.writeText(roomCode).catch(() => {});
-    show('Room code copied!');
-  }, [roomCode, show]);
+    setPopup('Room code copied');
+  }, [roomCode]);
 
   useEffect(() => {
     if (!roomCode) return;
@@ -45,15 +53,12 @@ export default function JoinedPage() {
     let alreadyStarted = false;
 
     async function loadRoom() {
-      // Passing the name doubles as this player's presence heartbeat.
-      const data = await getRoom(roomCode as string, playerName);
+      const data = await getRoom(roomCode, playerName);
+
       if (!data.success || !data.room) return;
 
-      // Keep the displayed mode synced with the server.
       setGameMode(data.room.mode ?? 'classic');
 
-      // Dropped by the server (network died long enough to look like leaving) —
-      // the room carries on without us, so stop pretending we're still in it.
       const stillIn = data.room.players.some(
         (p: Player) => p.name === playerName,
       );
@@ -68,25 +73,28 @@ export default function JoinedPage() {
       if (data.room.status === 'started' && !alreadyStarted) {
         alreadyStarted = true;
 
-        // A mid-round joiner shouldn't be swept into the prompt page — the
-        // game page keeps them posted until the next round starts.
         const midRoundJoiner = data.room.players.find(
           (p: Player) => p.name === playerName,
         )?.joinedMidRound;
 
         if (midRoundJoiner) {
           void navigate('/game', {
-            state: { roomCode, playerName, joinedLate: true },
+            state: {
+              roomCode,
+              playerName,
+              joinedLate: true,
+            },
           });
           return;
         }
 
         setStarting(true);
-        show('Starting game...');
 
         setTimeout(() => {
-          void navigate('/input', { state: { roomCode, playerName } });
-        }, 2000);
+          void navigate('/input', {
+            state: { roomCode, playerName },
+          });
+        }, 500);
 
         return;
       }
@@ -109,10 +117,10 @@ export default function JoinedPage() {
     }, 1000);
 
     return () => clearInterval(interval);
-  }, [roomCode, playerName, navigate, show]);
+  }, [roomCode, playerName, navigate]);
 
   usePlayerDepartures(players, (names) =>
-    show(`${names.join(', ')} left the room`),
+    setPopup(`${names.join(', ')} left the room`),
   );
 
   const leaveRoom = useLeaveRoom(roomCode, playerName);
@@ -126,7 +134,11 @@ export default function JoinedPage() {
     if (!roomCode || !playerName) return;
 
     const next = !ready;
-    const data = await updateReady(roomCode, playerName, next);
+    const data = await updateReady(
+      roomCode,
+      playerName,
+      next,
+    );
 
     if (data.success && data.room) {
       setReady(next);
@@ -138,14 +150,16 @@ export default function JoinedPage() {
     if (!roomCode || !allReady || starting) return;
 
     if (gameMode === 'classic' && players.length < 3) {
-      show(
-        'Classic Mode needs at least 3 players. Switch to Leaderboard to play with 2 players.',
+      setPopup(
+        'Classic Mode needs at least 3 players. Switch to Leaderboard Mode to play with 2 players.',
       );
       return;
     }
 
     if (gameMode === 'leaderboard' && players.length < 2) {
-      show('Leaderboard Mode needs at least 2 players.');
+      setPopup(
+        'Leaderboard Mode needs at least 2 players.',
+      );
       return;
     }
 
@@ -155,12 +169,10 @@ export default function JoinedPage() {
 
     if (!data.success) {
       setStarting(false);
-      show(data.message ?? 'Unable to start the game');
-      return;
+      setPopup(
+        data.message ?? 'Unable to start the game.',
+      );
     }
-
-    show('Starting game...');
-    // Polling loop will navigate to /input.
   }
 
   const isLeaderboard = gameMode === 'leaderboard';
@@ -168,14 +180,14 @@ export default function JoinedPage() {
   return (
     <Page variant="centered" logo>
       <Card variant="lobby">
-        <div className="grid grid-cols-1 md:grid-cols-[1.4fr_1fr] gap-8">
+        <div className="grid grid-cols-1 gap-8 md:grid-cols-[1.4fr_1fr]">
           <section className="color-vision-lobby-section rounded-xl p-6">
-            <div className="flex items-center justify-between mb-5">
-              <h2 className="text-white text-2xl font-extrabold tracking-wide">
+            <div className="mb-5 flex items-center justify-between">
+              <h2 className="text-2xl font-extrabold tracking-wide text-white">
                 PLAYERS {players.length}/{MAX_PLAYERS}
               </h2>
 
-              <p className="text-white/80 text-sm font-semibold">
+              <p className="text-sm font-semibold text-white/80">
                 {readyCount}/{players.length} ready
               </p>
             </div>
@@ -189,42 +201,52 @@ export default function JoinedPage() {
           </section>
 
           <section className="flex flex-col items-center">
-            <div className="color-vision-lobby-section rounded-xl p-6 w-full flex flex-col items-center">
-              <h2 className="text-white text-2xl font-extrabold tracking-wide mb-5">
+            <div className="color-vision-lobby-section flex w-full flex-col items-center rounded-xl p-6">
+              <h2 className="mb-5 text-2xl font-extrabold tracking-wide text-white">
                 GAMEMODE
               </h2>
 
-              <div className="bg-[var(--surface)] rounded-lg border-4 border-[var(--accent)] flex flex-col items-center justify-center shadow-sm w-full max-w-[200px]">
+              <div className="flex w-full max-w-[200px] flex-col items-center justify-center rounded-lg border-4 border-[var(--accent)] bg-[var(--surface)] shadow-sm">
                 <img
                   src={
                     isLeaderboard
                       ? '/leaderboard.png'
                       : '/gamemode_classic.png'
                   }
-                  alt={isLeaderboard ? 'Leaderboard' : 'Classic'}
-                  className="w-16 h-16 mb-2 object-contain"
+                  alt={
+                    isLeaderboard
+                      ? 'Leaderboard'
+                      : 'Classic'
+                  }
+                  className="mb-2 h-16 w-16 object-contain"
                 />
 
-                <p className="text-[var(--primary)] font-extrabold">
-                  {isLeaderboard ? 'Leaderboard' : 'Classic'}
+                <p className="font-extrabold text-[var(--primary)]">
+                  {isLeaderboard
+                    ? 'Leaderboard'
+                    : 'Classic'}
                 </p>
               </div>
             </div>
 
-            <div className="mt-6 w-full flex flex-col items-center gap-2">
-              <p className="text-white/60 text-xs font-semibold uppercase tracking-widest">
+            <div className="mt-6 flex w-full flex-col items-center gap-2">
+              <p className="text-xs font-semibold uppercase tracking-widest text-white/60">
                 Room Code
               </p>
 
-              <p className="text-white font-mono font-extrabold text-4xl tracking-[0.3em]">
+              <p className="font-mono text-4xl font-extrabold tracking-[0.3em] text-white">
                 {roomCode}
               </p>
 
-              <Button variant="outline" size="full" onClick={copyCode}>
+              <Button
+                variant="outline"
+                size="full"
+                onClick={copyCode}
+              >
                 <span className="flex items-center justify-center gap-2">
                   <svg
                     xmlns="http://www.w3.org/2000/svg"
-                    className="w-5 h-5"
+                    className="h-5 w-5"
                     viewBox="0 0 24 24"
                     fill="none"
                     stroke="currentColor"
@@ -232,7 +254,13 @@ export default function JoinedPage() {
                     strokeLinecap="round"
                     strokeLinejoin="round"
                   >
-                    <rect x="9" y="9" width="13" height="13" rx="2" />
+                    <rect
+                      x="9"
+                      y="9"
+                      width="13"
+                      height="13"
+                      rx="2"
+                    />
                     <path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v5" />
                   </svg>
                   Copy Room Code
@@ -248,7 +276,9 @@ export default function JoinedPage() {
                 disabled={!allReady || starting}
                 className="mt-4"
               >
-                {allReady ? 'Start Game' : 'Waiting for Players'}
+                {allReady
+                  ? 'Start Game'
+                  : 'Waiting for Players'}
               </Button>
             ) : (
               <Button
@@ -276,7 +306,43 @@ export default function JoinedPage() {
         </div>
       </Card>
 
-      {toast}
+      {popup && (
+        <Popup
+          message={popup}
+          onClose={() => setPopup('')}
+        />
+      )}
     </Page>
+  );
+}
+
+function Popup({
+  message,
+  onClose,
+}: {
+  message: string;
+  onClose: () => void;
+}) {
+  return (
+    <div className="fixed inset-0 z-[100] flex items-center justify-center bg-black/50 px-4">
+      <div className="w-full max-w-md rounded-2xl border-2 border-[var(--accent)] bg-[var(--surface)] p-6 text-center shadow-2xl">
+        <h2 className="text-xl font-extrabold text-[var(--primary)]">
+          Notice
+        </h2>
+
+        <p className="mt-3 text-sm font-semibold text-[var(--text-muted)]">
+          {message}
+        </p>
+
+        <Button
+          variant="start"
+          size="full"
+          onClick={onClose}
+          className="mt-6"
+        >
+          OK
+        </Button>
+      </div>
+    </div>
   );
 }

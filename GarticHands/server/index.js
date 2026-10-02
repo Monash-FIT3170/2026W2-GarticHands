@@ -1072,29 +1072,26 @@ app.post('/rooms/:roomCode/ratings', (req, res) => {
       v >= 0 &&
       v <= 100,
     (room, player) => {
-      room.ratingTargets = room.ratingTargets || {}
-      room.ratings = room.ratings || {}
-      room.scores = room.scores || {}
+    room.ratingTargets = room.ratingTargets || {}
+    room.ratings = room.ratings || {}
+    room.scores = {}
 
-      const previousRating = room.ratings[player.name]
+    room.ratings[player.name] = numericRating
 
-      room.ratings[player.name] = numericRating
+    // Recalculate scores from all submitted ratings.
+    for (const raterName of Object.keys(room.ratings)) {
+      const targetName = room.ratingTargets[raterName]
+      const playerRating = room.ratings[raterName]
 
-      /*
-       * If a client resubmits, replace the previous contribution instead
-       * of adding the score twice.
-       */
-      if (previousRating !== undefined) {
-        room.scores[target] =
-          (room.scores[target] || 0) -
-          previousRating +
-          numericRating
-      } else {
-        room.scores[target] =
-          (room.scores[target] || 0) +
-          numericRating
+      if (
+        targetName &&
+        typeof playerRating === 'number'
+      ) {
+        room.scores[targetName] =
+          (room.scores[targetName] || 0) + playerRating
       }
-    },
+    }
+},
   )
 
   if (result.error) {
