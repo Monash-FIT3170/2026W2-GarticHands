@@ -23,31 +23,46 @@ function phaseSeconds(envName, fallback) {
 }
 
 /**
- * Server-authoritative time limit, in seconds, for each timed phase. The server
- * owns the clock so every player counts down to the same instant and a slow or
- * disconnected player can't stall the round. `lobby` and `reveal` are absent on
- * purpose — the host paces those.
+ * Server-authoritative time limit, in seconds, for each timed phase.
+ * Untimed phases are host-paced.
  */
 const PHASE_DURATIONS = {
   prompt: phaseSeconds('PROMPT_SECONDS', 60),
   draw: phaseSeconds('DRAW_SECONDS', 60),
   guess: phaseSeconds('GUESS_SECONDS', 60),
+  rating: phaseSeconds('RATING_SECONDS', 60),
 }
 
 /**
- * Extra time the server waits past `phaseEndsAt` before forcing the advance, so
- * a client that auto-submits exactly on the deadline still wins the race.
+ * Extra time the server waits past phaseEndsAt before forcing the advance,
+ * so a client that auto-submits exactly on the deadline still wins the race.
  */
 const PHASE_GRACE_MS = 1500
 
-const NEXT_PHASE = { prompt: 'draw', draw: 'guess', guess: 'reveal' }
-const PHASE_BUCKET = { prompt: 'prompts', draw: 'drawings', guess: 'guesses' }
+/**
+ * Classic:
+ * prompt -> draw -> guess -> reveal
+ *
+ * Leaderboard:
+ * prompt -> draw -> rating -> ratingReveal -> leaderboard
+ */
+const NEXT_PHASE = {
+  prompt: 'draw',
+  draw: 'guess',
+  guess: 'reveal',
+  rating: 'ratingReveal',
+}
+
+const PHASE_BUCKET = {
+  prompt: 'prompts',
+  draw: 'drawings',
+  guess: 'guesses',
+  rating: 'ratings',
+}
 
 /**
- * Handed to players who run out of time in the `prompt` phase so the drawing
- * phase always has something to draw. Deliberately duplicated rather than shared
- * with `client/src/data/prompts.ts` — the server is plain CommonJS and must not
- * import client code.
+ * Handed to players who run out of time in the prompt phase so the drawing
+ * phase always has something to draw.
  */
 const FALLBACK_PROMPTS = [
   'a cat wearing a crown',
@@ -60,15 +75,11 @@ const FALLBACK_PROMPTS = [
   'a castle floating on a cloud',
 ]
 
-/** roomCode → Timeout. Kept out of the room object so rooms stay JSON-serialisable. */
+/** roomCode -> Timeout. Kept out of the room object so rooms stay JSON-serialisable. */
 const phaseTimers = {}
 
 /**
- * A player whose client hasn't polled in this long is treated as gone. Generous
- * on purpose: leaving normally goes through `DELETE /rooms/:code/players/:name`,
- * so this only has to catch crashes, closed laptops, and dead networks. Browsers
- * also throttle timers in hidden tabs, and a backgrounded player is not a
- * departed one. Shorten it with `PLAYER_TIMEOUT_SECONDS` to exercise the sweep.
+ * A player whose client hasn't polled in this long is treated as gone.
  */
 const PLAYER_TIMEOUT_MS = (() => {
   const parsed = Number(process.env.PLAYER_TIMEOUT_SECONDS)
@@ -82,12 +93,13 @@ const PRESENCE_SWEEP_MS = 3000
 const EMPTY_ROOM_GRACE_MS = 60000
 
 app.use(cors())
-// PNG data URLs from the drawing canvas can be a few hundred KB; default is 100KB.
+
+// PNG data URLs from the drawing canvas can be a few hundred KB.
 app.use(express.json({ limit: '10mb' }))
 
 const rooms = {}
 
-/** roomCode → epoch ms the room lost its last player. Kept off the room object. */
+/** roomCode -> epoch ms the room lost its last player. */
 const emptySince = {}
 
 function generateRoomCode() {
@@ -107,9 +119,10 @@ function makePlayer(name, isHost, joinedMidRound = false) {
 }
 
 /**
- * The players a phase is allowed to wait on: everyone currently in the room who
- * owes content this round. A player flagged `joinedMidRound` (late join) sits
- * the round out, so they neither block the advance nor get backfilled content.
+ * The players a phase is allowed to wait on.
+ *
+ * Players who joined during an active round sit that round out and become
+ * participants when the next round starts.
  */
 function activePlayers(room) {
   return room.players.filter((p) => !p.joinedMidRound)
@@ -117,6 +130,7 @@ function activePlayers(room) {
 
 function clearPhaseTimer(roomCode) {
   const timer = phaseTimers[roomCode]
+
   if (timer) {
     clearTimeout(timer)
     delete phaseTimers[roomCode]
@@ -124,122 +138,227 @@ function clearPhaseTimer(roomCode) {
 }
 
 /**
- * Move a room into `phase`, stamp its deadline, and arm the forced advance.
- * Every phase transition must go through here — otherwise the room is left with
- * a stale `phaseEndsAt` or an orphaned timer firing into the next phase.
+ * Move a room into a phase, stamp its deadline and arm the forced advance.
+ *
+ * Every phase transition goes through this function.
  */
 function setPhase(room, phase) {
   clearPhaseTimer(room.code)
+
   room.phase = phase
 
   const duration = PHASE_DURATIONS[phase]
+
   if (!duration) {
     room.phaseEndsAt = null
     return
   }
 
   room.phaseEndsAt = Date.now() + duration * 1000
+
   phaseTimers[room.code] = setTimeout(
     () => expirePhase(room.code, phase),
     duration * 1000 + PHASE_GRACE_MS,
   )
 }
 
-/** What a player who never submitted gets recorded as when the deadline passes. */
+/**
+ * What a player who never submitted gets recorded as when the deadline passes.
+ */
 function defaultSubmission(phase) {
   if (phase === 'prompt') {
-    return FALLBACK_PROMPTS[Math.floor(Math.random() * FALLBACK_PROMPTS.length)]
+    return FALLBACK_PROMPTS[
+      Math.floor(Math.random() * FALLBACK_PROMPTS.length)
+    ]
   }
-  // Draw and guess degrade to "nothing submitted" — the reveal screen renders
-  // an empty drawing/guess rather than blocking the round.
+
+  if (phase === 'rating') {
+    return 0
+  }
+
+  // Draw and guess degrade to "nothing submitted".
   return ''
 }
 
 /**
- * Deadline handler: record a default for every player who never submitted, then
- * advance. Re-reads the room from `rooms` and re-checks the phase so a timer
- * that fires after an early advance (or after the room was reset) is a no-op.
- * Only active players are backfilled — anyone who left had their content
- * deleted by `removePlayer` and is no longer in the roster.
+ * Create the rating assignment for the current round.
+ *
+ * Every active player rates exactly one other active player's drawing.
+ * Every active player receives exactly one rating.
+ *
+ * The offset changes each round so players are not repeatedly assigned
+ * the same target where possible.
+ */
+function createRatingTargets(room) {
+  const players = activePlayers(room)
+
+  room.ratingTargets = {}
+
+  if (players.length < 2) {
+    return
+  }
+
+  /*
+   * Offset is always between 1 and players.length - 1.
+   *
+   * This gives:
+   * 3 players:
+   * round 1 -> next player
+   * round 2 -> player after next
+   *
+   * and works for both even and odd player counts.
+   */
+  const offset =
+    ((room.round - 1) % (players.length - 1)) + 1
+
+  players.forEach((player, index) => {
+    const targetIndex = (index + offset) % players.length
+    room.ratingTargets[player.name] = players[targetIndex].name
+  })
+}
+
+/**
+ * Move from drawing to the Leaderboard rating phase.
+ *
+ * Rating assignments are created here, rather than earlier in the round,
+ * so they are based on the players who actually made it to the rating phase.
+ */
+function startRatingPhase(room) {
+  createRatingTargets(room)
+  setPhase(room, 'rating')
+}
+
+/**
+ * Deadline handler.
+ *
+ * Timed phases are automatically completed with default submissions.
  */
 function expirePhase(roomCode, expectedPhase) {
   delete phaseTimers[roomCode]
 
   const room = rooms[roomCode]
-  if (!room || room.phase !== expectedPhase) return
+
+  if (!room || room.phase !== expectedPhase) {
+    return
+  }
 
   const bucket = PHASE_BUCKET[expectedPhase]
+
+  if (!bucket) {
+    return
+  }
+
   room[bucket] = room[bucket] || {}
+
   for (const player of activePlayers(room)) {
     const submission = room[bucket][player.name]
+
     if (submission === undefined || submission === null) {
       room[bucket][player.name] = defaultSubmission(expectedPhase)
     }
   }
 
-  setPhase(room, NEXT_PHASE[expectedPhase])
-  io.to(room.code).emit('phase-timeout', { code: room.code, phase: expectedPhase })
+  if (room.mode === 'leaderboard' && expectedPhase === 'draw') {
+    startRatingPhase(room)
+  } else {
+    setPhase(room, NEXT_PHASE[expectedPhase])
+  }
+
+  io.to(room.code).emit('phase-timeout', {
+    code: room.code,
+    phase: expectedPhase,
+  })
+
   io.to(room.code).emit('room-update', room)
 }
 
 /**
- * Hand the room to the longest-standing remaining player. Without this a lobby
- * whose host walked away has nobody who can press Start, and a finished round
- * has nobody who can start the next one.
+ * Hand the room to the longest-standing remaining player.
  */
 function promoteHost(room) {
-  if (room.players.length === 0) return
-  const next = room.players.reduce((a, b) => (a.joinedAt <= b.joinedAt ? a : b))
+  if (room.players.length === 0) {
+    return
+  }
+
+  const next = room.players.reduce((a, b) =>
+    a.joinedAt <= b.joinedAt ? a : b,
+  )
+
   next.isHost = true
   next.status = 'host'
   next.ready = true
 }
 
 /**
- * Drop a player and everything keyed by their name, promoting a new host if they
- * were holding that role. Returns whether the room actually changed.
+ * Drop a player and everything keyed by their name.
  */
 function removePlayer(room, playerName) {
   const index = room.players.findIndex((p) => p.name === playerName)
-  if (index === -1) return false
+
+  if (index === -1) {
+    return false
+  }
 
   const [gone] = room.players.splice(index, 1)
+
   delete room.prompts[playerName]
   delete room.drawings[playerName]
   delete room.guesses[playerName]
-  if (room.guessTargets) delete room.guessTargets[playerName]
+  delete room.ratings[playerName]
 
-  if (gone.isHost) promoteHost(room)
+  if (room.guessTargets) {
+    delete room.guessTargets[playerName]
+  }
+
+  if (room.ratingTargets) {
+    delete room.ratingTargets[playerName]
+  }
+
+  if (gone.isHost) {
+    promoteHost(room)
+  }
+
   return true
 }
 
 /**
- * Advance the phase if every *remaining* active player has submitted. Called
- * after each submission and again after anyone leaves — otherwise the room sits
- * forever waiting on a contribution from someone who is no longer in it. The
- * advance goes through `setPhase`, which re-stamps `phaseEndsAt` and re-arms
- * (or, for untimed phases, clears) the deadline timer.
+ * Advance a timed submission phase when every remaining active player
+ * has submitted.
  */
 function advanceIfPhaseComplete(room) {
   const bucket = PHASE_BUCKET[room.phase]
-  if (!bucket) return false
+
+  if (!bucket) {
+    return false
+  }
 
   const active = activePlayers(room)
-  if (active.length === 0) return false
+
+  if (active.length === 0) {
+    return false
+  }
 
   const everyoneSubmitted = active.every(
-    (p) => room[bucket][p.name] !== undefined && room[bucket][p.name] !== null,
+    (p) =>
+      room[bucket][p.name] !== undefined &&
+      room[bucket][p.name] !== null,
   )
-  if (!everyoneSubmitted) return false
 
-  setPhase(room, NEXT_PHASE[room.phase])
+  if (!everyoneSubmitted) {
+    return false
+  }
+
+  if (room.mode === 'leaderboard' && room.phase === 'draw') {
+    startRatingPhase(room)
+  } else {
+    setPhase(room, NEXT_PHASE[room.phase])
+  }
+
   return true
 }
 
 /**
- * Shared tail for every departure, however it was detected. An emptied room is
- * marked for cleanup; otherwise the round is unblocked and the survivors are
- * told who is left.
+ * Shared tail for every departure.
  */
 function afterPlayersLeft(room) {
   if (room.players.length === 0) {
@@ -248,15 +367,14 @@ function afterPlayersLeft(room) {
   }
 
   delete emptySince[room.code]
+
   advanceIfPhaseComplete(room)
+
   io.to(room.code).emit('room-update', room)
 }
 
 /**
- * Presence sweep — the safety net behind the explicit leave endpoint. Removes
- * players who stopped polling and forgets rooms that nobody came back to. A
- * dropped room's phase timer is cleared with it so nothing fires into a room
- * that no longer exists.
+ * Presence sweep.
  */
 setInterval(() => {
   const now = Date.now()
@@ -264,17 +382,25 @@ setInterval(() => {
   for (const code of Object.keys(rooms)) {
     const room = rooms[code]
 
-    const stale = room.players.filter((p) => now - p.lastSeen > PLAYER_TIMEOUT_MS)
+    const stale = room.players.filter(
+      (p) => now - p.lastSeen > PLAYER_TIMEOUT_MS,
+    )
+
     if (stale.length > 0) {
-      for (const p of stale) removePlayer(room, p.name)
+      for (const p of stale) {
+        removePlayer(room, p.name)
+      }
+
       io.to(room.code).emit('players-left', {
         code: room.code,
         names: stale.map((p) => p.name),
       })
+
       afterPlayersLeft(room)
     }
 
     const emptiedAt = emptySince[code]
+
     if (emptiedAt && now - emptiedAt > EMPTY_ROOM_GRACE_MS) {
       clearPhaseTimer(code)
       delete rooms[code]
@@ -287,26 +413,59 @@ app.get('/', (_req, res) => {
   res.json({ message: 'Gartic Hands server is running' })
 })
 
+/**
+ * Create a room.
+ *
+ * `mode` is optional so existing clients still create Classic rooms.
+ *
+ * `maxRounds` is also optional for future round-selector work, but currently
+ * defaults to the existing MAX_ROUNDS value. We deliberately do not change
+ * the current round-selector implementation here.
+ */
 app.post('/rooms/create', (req, res) => {
-  const { hostName } = req.body
+  const { hostName, mode, maxRounds } = req.body
+
   const roomCode = generateRoomCode()
+
+  const selectedMode =
+    mode === 'leaderboard' ? 'leaderboard' : 'classic'
+
+  const selectedMaxRounds =
+    Number.isInteger(maxRounds) && maxRounds > 0
+      ? maxRounds
+      : MAX_ROUNDS
 
   rooms[roomCode] = {
     code: roomCode,
     players: [makePlayer(hostName || 'Host', true)],
     status: 'waiting',
+    mode: selectedMode,
     phase: 'lobby',
     phaseEndsAt: null,
+
     round: 1,
-    maxRounds: MAX_ROUNDS,
+    maxRounds: selectedMaxRounds,
+
     prompts: {},
     drawings: {},
+
+    // Classic
     guesses: {},
     guessTargets: {},
+
+    // Leaderboard
+    ratings: {},
+    ratingTargets: {},
+    scores: {},
+
     createdAt: Date.now(),
   }
 
-  res.json({ success: true, roomCode, room: rooms[roomCode] })
+  res.json({
+    success: true,
+    roomCode,
+    room: rooms[roomCode],
+  })
 })
 
 app.post('/rooms/join', (req, res) => {
@@ -320,8 +479,12 @@ app.post('/rooms/join', (req, res) => {
   }
 
   const room = rooms[roomCode.toUpperCase()]
+
   if (!room) {
-    return res.status(404).json({ success: false, message: 'Room not found' })
+    return res.status(404).json({
+      success: false,
+      message: 'Room not found',
+    })
   }
 
   if (room.players.length >= MAX_PLAYERS) {
@@ -331,63 +494,92 @@ app.post('/rooms/join', (req, res) => {
     })
   }
 
-  // Joining a game that already started is allowed: the player is flagged as a
-  // mid-round joiner so the current round can finish without waiting on them.
-  // The flag is cleared when the next round starts (/start, /restart, /end).
-  room.players.push(makePlayer(playerName, false, room.status === 'started'))
+  room.players.push(
+    makePlayer(
+      playerName,
+      false,
+      room.status === 'started',
+    ),
+  )
+
   delete emptySince[room.code]
 
-  // A room can be rejoined after it emptied (within the grace window), at which
-  // point nobody holds the host role — and a hostless lobby is deadlocked,
-  // because only the host sees the Start button. Nothing else re-establishes a
-  // host on join, so do it here whenever the role is vacant.
-  if (!room.players.some((p) => p.isHost)) promoteHost(room)
+  if (!room.players.some((p) => p.isHost)) {
+    promoteHost(room)
+  }
 
   io.to(room.code).emit('room-update', room)
-  res.json({ success: true, room })
+
+  res.json({
+    success: true,
+    room,
+  })
 })
 
 app.get('/rooms/:roomCode', (req, res) => {
   const roomCode = req.params.roomCode.toUpperCase()
   const room = rooms[roomCode]
+
   if (!room) {
-    return res.status(404).json({ success: false, message: 'Room not found' })
+    return res.status(404).json({
+      success: false,
+      message: 'Room not found',
+    })
   }
 
-  // Doubles as the presence heartbeat. Every in-game page already polls this
-  // once per second, so identifying the caller costs no extra request — and a
-  // player who stops polling is exactly the player who has gone.
   const { playerName } = req.query
+
   if (playerName) {
-    const player = room.players.find((p) => p.name === playerName)
-    if (player) player.lastSeen = Date.now()
+    const player = room.players.find(
+      (p) => p.name === playerName,
+    )
+
+    if (player) {
+      player.lastSeen = Date.now()
+    }
   }
 
-  // `serverTime` lets the client rebase `phaseEndsAt` onto its own clock using
-  // only server-side timestamps, so a skewed browser clock can't shift the
-  // countdown. See `client/src/hooks/usePhaseAdvance.ts`.
-  res.json({ success: true, room, serverTime: Date.now() })
+  res.json({
+    success: true,
+    room,
+    serverTime: Date.now(),
+  })
 })
 
 /**
- * Leave a room. The client calls this from the "Leave Room" button and again,
- * best-effort, when the tab is closing.
+ * Leave a room.
  */
 app.delete('/rooms/:roomCode/players/:playerName', (req, res) => {
   const roomCode = req.params.roomCode.toUpperCase()
   const room = rooms[roomCode]
+
   if (!room) {
-    return res.status(404).json({ success: false, message: 'Room not found' })
+    return res.status(404).json({
+      success: false,
+      message: 'Room not found',
+    })
   }
 
   const { playerName } = req.params
+
   if (!removePlayer(room, playerName)) {
-    return res.status(404).json({ success: false, message: 'Player not found' })
+    return res.status(404).json({
+      success: false,
+      message: 'Player not found',
+    })
   }
 
-  io.to(room.code).emit('players-left', { code: room.code, names: [playerName] })
+  io.to(room.code).emit('players-left', {
+    code: room.code,
+    names: [playerName],
+  })
+
   afterPlayersLeft(room)
-  res.json({ success: true, room })
+
+  res.json({
+    success: true,
+    room,
+  })
 })
 
 app.patch('/rooms/:roomCode/ready', (req, res) => {
@@ -395,13 +587,23 @@ app.patch('/rooms/:roomCode/ready', (req, res) => {
   const { playerName, ready: newReady } = req.body
 
   const room = rooms[roomCode]
+
   if (!room) {
-    return res.status(404).json({ success: false, message: 'Room not found' })
+    return res.status(404).json({
+      success: false,
+      message: 'Room not found',
+    })
   }
 
-  const player = room.players.find((p) => p.name === playerName)
+  const player = room.players.find(
+    (p) => p.name === playerName,
+  )
+
   if (!player) {
-    return res.status(404).json({ success: false, message: 'Player not found' })
+    return res.status(404).json({
+      success: false,
+      message: 'Player not found',
+    })
   }
 
   player.lastSeen = Date.now()
@@ -412,104 +614,272 @@ app.patch('/rooms/:roomCode/ready', (req, res) => {
   }
 
   io.to(room.code).emit('room-update', room)
-  res.json({ success: true, room })
+
+  res.json({
+    success: true,
+    room,
+  })
 })
 
+/**
+ * Start a game.
+ *
+ * Classic requires at least 3 players.
+ * Leaderboard requires at least 2 players.
+ */
 app.patch('/rooms/:roomCode/start', (req, res) => {
   const roomCode = req.params.roomCode.toUpperCase()
   const room = rooms[roomCode]
+
   if (!room) {
-    return res.status(404).json({ success: false, message: 'Room not found' })
+    return res.status(404).json({
+      success: false,
+      message: 'Room not found',
+    })
   }
 
-  room.status = 'started'
-  room.round = 1
-  room.prompts = {}
-  room.drawings = {}
-  room.guesses = {}
-  room.guessTargets = {}
-  // Everyone present when the game starts is a full participant.
-  for (const p of room.players) {
-    p.joinedMidRound = false
-  }
-  setPhase(room, 'prompt')
-  io.to(room.code).emit('game-start', room)
-  io.to(room.code).emit('room-update', room)
-  res.json({ success: true, room })
-})
+  const playerCount = room.players.length
 
-app.patch('/rooms/:roomCode/restart', (req, res) => {
-  const roomCode = req.params.roomCode.toUpperCase()
-  const room = rooms[roomCode]
-  if (!room) {
-    return res.status(404).json({ success: false, message: 'Room not found' })
-  }
-
-  if ((room.round || 1) >= MAX_ROUNDS) {
+  if (room.mode === 'classic' && playerCount < 3) {
     return res.status(409).json({
       success: false,
-      message: `Cannot start round ${(room.round || 1) + 1} — max rounds is ${MAX_ROUNDS}. Use /end to return to the lobby.`,
-      maxRounds: MAX_ROUNDS,
+      message: 'Classic Mode needs at least 3 players to start.',
+      code: 'CLASSIC_MIN_PLAYERS',
+      minPlayers: 3,
+    })
+  }
+
+  if (room.mode === 'leaderboard' && playerCount < 2) {
+    return res.status(409).json({
+      success: false,
+      message: 'Leaderboard Mode needs at least 2 players to start.',
+      code: 'LEADERBOARD_MIN_PLAYERS',
+      minPlayers: 2,
     })
   }
 
   room.status = 'started'
+  room.round = 1
+
   room.prompts = {}
   room.drawings = {}
+
+  // Classic
   room.guesses = {}
   room.guessTargets = {}
+
+  // Leaderboard
+  room.ratings = {}
+  room.ratingTargets = {}
+  room.scores = {}
+
+  for (const p of room.players) {
+    p.joinedMidRound = false
+  }
+
+  setPhase(room, 'prompt')
+
+  io.to(room.code).emit('game-start', room)
+  io.to(room.code).emit('room-update', room)
+
+  res.json({
+    success: true,
+    room,
+  })
+})
+
+/**
+ * Start the next round.
+ *
+ * We deliberately use room.maxRounds instead of the hard-coded MAX_ROUNDS
+ * here so future round-selector changes automatically work with Leaderboard.
+ */
+app.patch('/rooms/:roomCode/restart', (req, res) => {
+  const roomCode = req.params.roomCode.toUpperCase()
+  const room = rooms[roomCode]
+
+  if (!room) {
+    return res.status(404).json({
+      success: false,
+      message: 'Room not found',
+    })
+  }
+
+  if ((room.round || 1) >= room.maxRounds) {
+    return res.status(409).json({
+      success: false,
+      message: `Cannot start round ${(room.round || 1) + 1} — max rounds is ${room.maxRounds}. Use /end to return to the lobby.`,
+      maxRounds: room.maxRounds,
+    })
+  }
+
+  room.status = 'started'
+
+  room.prompts = {}
+  room.drawings = {}
+
+  // Classic
+  room.guesses = {}
+  room.guessTargets = {}
+
+  // Leaderboard
+  room.ratings = {}
+  room.ratingTargets = {}
+
   room.round = (room.round || 1) + 1
+
   // A new round starts — mid-round joiners become full participants.
   for (const p of room.players) {
     p.joinedMidRound = false
   }
+
   setPhase(room, 'prompt')
+
   io.to(room.code).emit('room-update', room)
-  res.json({ success: true, room, maxRounds: MAX_ROUNDS })
+
+  res.json({
+    success: true,
+    room,
+    maxRounds: room.maxRounds,
+  })
 })
 
+/**
+ * End the current game and return to the lobby.
+ *
+ * Scores are cleared because this starts a fresh game.
+ */
 app.patch('/rooms/:roomCode/end', (req, res) => {
   const roomCode = req.params.roomCode.toUpperCase()
   const room = rooms[roomCode]
+
   if (!room) {
-    return res.status(404).json({ success: false, message: 'Room not found' })
+    return res.status(404).json({
+      success: false,
+      message: 'Room not found',
+    })
   }
 
   room.status = 'waiting'
   room.round = 1
+
   room.prompts = {}
   room.drawings = {}
+
+  // Classic
   room.guesses = {}
   room.guessTargets = {}
+
+  // Leaderboard
+  room.ratings = {}
+  room.ratingTargets = {}
+  room.scores = {}
+
   setPhase(room, 'lobby')
+
   for (const p of room.players) {
     p.joinedMidRound = false
+
     if (!p.isHost) {
       p.ready = false
       p.status = 'waiting'
     }
   }
+
   io.to(room.code).emit('room-update', room)
-  res.json({ success: true, room })
+
+  res.json({
+    success: true,
+    room,
+  })
 })
 
 /**
- * Shared body of the three submit endpoints. `onAccepted`, when given, runs
- * after the submission is stored but before the phase-completion check and the
- * broadcast, so anything it records travels with the same `room-update`.
+ * Move a Leaderboard room from the rating reveal to its leaderboard page.
+ *
+ * The rating reveal is deliberately untimed so players can see their results
+ * before the host moves everyone to the leaderboard.
  */
-function submitForPhase(roomCode, playerName, value, expectedPhase, validate, onAccepted) {
+app.patch('/rooms/:roomCode/rating-reveal', (req, res) => {
+  const roomCode = req.params.roomCode.toUpperCase()
   const room = rooms[roomCode]
-  if (!room) return { error: { status: 404, body: { success: false, message: 'Room not found' } } }
 
-  const player = room.players.find((p) => p.name === playerName)
-  if (!player) return { error: { status: 404, body: { success: false, message: 'Player not found' } } }
+  if (!room) {
+    return res.status(404).json({
+      success: false,
+      message: 'Room not found',
+    })
+  }
+
+  if (
+    room.mode !== 'leaderboard' ||
+    room.phase !== 'ratingReveal'
+  ) {
+    return res.status(409).json({
+      success: false,
+      message: `Cannot show leaderboard during '${room.phase}' phase`,
+    })
+  }
+
+  setPhase(room, 'leaderboard')
+
+  io.to(room.code).emit('room-update', room)
+
+  res.json({
+    success: true,
+    room,
+  })
+})
+
+/**
+ * Shared body of submission endpoints.
+ */
+function submitForPhase(
+  roomCode,
+  playerName,
+  value,
+  expectedPhase,
+  validate,
+  onAccepted,
+) {
+  const room = rooms[roomCode]
+
+  if (!room) {
+    return {
+      error: {
+        status: 404,
+        body: {
+          success: false,
+          message: 'Room not found',
+        },
+      },
+    }
+  }
+
+  const player = room.players.find(
+    (p) => p.name === playerName,
+  )
+
+  if (!player) {
+    return {
+      error: {
+        status: 404,
+        body: {
+          success: false,
+          message: 'Player not found',
+        },
+      },
+    }
+  }
 
   if (room.phase !== expectedPhase) {
     return {
       error: {
         status: 409,
-        body: { success: false, message: `Cannot submit during '${room.phase}' phase` },
+        body: {
+          success: false,
+          message: `Cannot submit during '${room.phase}' phase`,
+        },
       },
     }
   }
@@ -520,36 +890,49 @@ function submitForPhase(roomCode, playerName, value, expectedPhase, validate, on
         status: 409,
         body: {
           success: false,
-          message: 'You joined mid-round — you can play from the next round',
+          message:
+            'You joined mid-round — you can play from the next round',
         },
       },
     }
   }
 
   if (validate && !validate(value)) {
-    return { error: { status: 400, body: { success: false, message: 'Invalid submission' } } }
+    return {
+      error: {
+        status: 400,
+        body: {
+          success: false,
+          message: 'Invalid submission',
+        },
+      },
+    }
   }
 
   const bucket = PHASE_BUCKET[expectedPhase]
+
   room[bucket] = room[bucket] || {}
   room[bucket][playerName] = value
+
   player.lastSeen = Date.now()
 
-  if (onAccepted) onAccepted(room, player)
+  if (onAccepted) {
+    onAccepted(room, player)
+  }
 
-  // Everyone active beat the clock — advance early; `advanceIfPhaseComplete`
-  // counts only active players (mid-round joiners don't owe content this
-  // round) and `setPhase` inside re-arms the next deadline (or clears it when
-  // the next phase is untimed).
   advanceIfPhaseComplete(room)
 
   io.to(room.code).emit('room-update', room)
-  return { room }
+
+  return {
+    room,
+  }
 }
 
 app.post('/rooms/:roomCode/prompts', (req, res) => {
   const roomCode = req.params.roomCode.toUpperCase()
   const { playerName, prompt } = req.body
+
   const trimmed = (prompt || '').trim()
 
   const result = submitForPhase(
@@ -557,11 +940,21 @@ app.post('/rooms/:roomCode/prompts', (req, res) => {
     playerName,
     trimmed,
     'prompt',
-    (v) => typeof v === 'string' && v.length > 0,
+    (v) =>
+      typeof v === 'string' &&
+      v.length > 0,
   )
 
-  if (result.error) return res.status(result.error.status).json(result.error.body)
-  res.json({ success: true, room: result.room })
+  if (result.error) {
+    return res
+      .status(result.error.status)
+      .json(result.error.body)
+  }
+
+  res.json({
+    success: true,
+    room: result.room,
+  })
 })
 
 app.post('/rooms/:roomCode/drawings', (req, res) => {
@@ -573,16 +966,33 @@ app.post('/rooms/:roomCode/drawings', (req, res) => {
     playerName,
     dataUrl || '',
     'draw',
-    (v) => typeof v === 'string' && v.startsWith('data:image/'),
+    (v) =>
+      typeof v === 'string' &&
+      v.startsWith('data:image/'),
   )
 
-  if (result.error) return res.status(result.error.status).json(result.error.body)
-  res.json({ success: true, room: result.room })
+  if (result.error) {
+    return res
+      .status(result.error.status)
+      .json(result.error.body)
+  }
+
+  res.json({
+    success: true,
+    room: result.room,
+  })
 })
 
+/**
+ * Classic guess submission.
+ *
+ * This is intentionally unchanged in behaviour so Classic Mode continues
+ * using guessingPage.tsx.
+ */
 app.post('/rooms/:roomCode/guesses', (req, res) => {
   const roomCode = req.params.roomCode.toUpperCase()
   const { playerName, guess, of } = req.body
+
   const trimmed = (guess || '').trim()
 
   const result = submitForPhase(
@@ -592,9 +1002,6 @@ app.post('/rooms/:roomCode/guesses', (req, res) => {
     'guess',
     (v) => typeof v === 'string',
     (room) => {
-      // Record whose drawing this guess was about. The reveal pairs guesses
-      // with drawings through this map rather than roster index math, which
-      // would shift every pairing whenever someone left mid-round.
       if (typeof of === 'string' && of.length > 0) {
         room.guessTargets = room.guessTargets || {}
         room.guessTargets[playerName] = of
@@ -602,34 +1009,152 @@ app.post('/rooms/:roomCode/guesses', (req, res) => {
     },
   )
 
-  if (result.error) return res.status(result.error.status).json(result.error.body)
-  res.json({ success: true, room: result.room })
+  if (result.error) {
+    return res
+      .status(result.error.status)
+      .json(result.error.body)
+  }
+
+  res.json({
+    success: true,
+    room: result.room,
+  })
+})
+
+/**
+ * Leaderboard rating submission.
+ *
+ * Each player may only rate the drawing assigned to them by the server.
+ */
+app.post('/rooms/:roomCode/ratings', (req, res) => {
+  const roomCode = req.params.roomCode.toUpperCase()
+  const { playerName, rating } = req.body
+
+  const numericRating = Number(rating)
+
+  const room = rooms[roomCode]
+
+  if (!room) {
+    return res.status(404).json({
+      success: false,
+      message: 'Room not found',
+    })
+  }
+
+  if (room.mode !== 'leaderboard') {
+    return res.status(409).json({
+      success: false,
+      message: 'Ratings are only available in Leaderboard Mode.',
+    })
+  }
+
+  const target = room.ratingTargets?.[playerName]
+
+  if (!target) {
+    return res.status(409).json({
+      success: false,
+      message: 'No drawing has been assigned to this player.',
+    })
+  }
+
+  /*
+   * submitForPhase validates the player, phase and mid-round status.
+   * The target itself is stored by the server and is never accepted from
+   * the client, preventing a client from rating a different drawing.
+   */
+  const result = submitForPhase(
+    roomCode,
+    playerName,
+    numericRating,
+    'rating',
+    (v) =>
+      Number.isInteger(v) &&
+      v >= 0 &&
+      v <= 100,
+    (room, player) => {
+      room.ratingTargets = room.ratingTargets || {}
+      room.ratings = room.ratings || {}
+      room.scores = room.scores || {}
+
+      const previousRating = room.ratings[player.name]
+
+      room.ratings[player.name] = numericRating
+
+      /*
+       * If a client resubmits, replace the previous contribution instead
+       * of adding the score twice.
+       */
+      if (previousRating !== undefined) {
+        room.scores[target] =
+          (room.scores[target] || 0) -
+          previousRating +
+          numericRating
+      } else {
+        room.scores[target] =
+          (room.scores[target] || 0) +
+          numericRating
+      }
+    },
+  )
+
+  if (result.error) {
+    return res
+      .status(result.error.status)
+      .json(result.error.body)
+  }
+
+  /*
+   * The shared phase-completion helper moves us to ratingReveal once
+   * everyone has submitted.
+   */
+  res.json({
+    success: true,
+    room: result.room,
+  })
 })
 
 io.on('connection', (socket) => {
   console.log('Socket connected:', socket.id)
 
   socket.on('room-subscribe', (roomCode) => {
-    if (!roomCode) return
+    if (!roomCode) {
+      return
+    }
+
     const code = roomCode.toUpperCase()
+
     socket.join(code)
+
     const room = rooms[code]
-    if (room) socket.emit('room-update', room)
+
+    if (room) {
+      socket.emit('room-update', room)
+    }
   })
 
   socket.on('hand-tracking-data', (data) => {
     if (data && data.roomCode) {
-      socket.to(data.roomCode.toUpperCase()).emit('hand-tracking-update', data)
+      socket
+        .to(data.roomCode.toUpperCase())
+        .emit('hand-tracking-update', data)
     } else {
-      socket.broadcast.emit('hand-tracking-update', data)
+      socket.broadcast.emit(
+        'hand-tracking-update',
+        data,
+      )
     }
   })
 
   socket.on('drawing-event', (data) => {
     if (data && data.roomCode) {
-      socket.to(data.roomCode.toUpperCase()).emit('drawing-update', data)
+      socket
+        .to(data.roomCode.toUpperCase())
+        .emit('drawing-update', data)
     } else {
-      socket.broadcast.emit('drawing-update', data)
+      socket.broadcast.emit(
+        'drawing-update',
+        data,
+      )
     }
   })
 
@@ -639,5 +1164,7 @@ io.on('connection', (socket) => {
 })
 
 server.listen(PORT, () => {
-  console.log(`Gartic Hands server listening on http://localhost:${PORT}`)
+  console.log(
+    `Gartic Hands server listening on http://localhost:${PORT}`,
+  )
 })
