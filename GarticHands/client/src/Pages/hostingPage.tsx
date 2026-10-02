@@ -1,11 +1,11 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useState, useCallback } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
 import { createRoom, getRoom, startRoom } from '../api/room';
-import { Page, Card, Button, useToast } from '../components/ui';
+import { Page, Card, Button } from '../components/ui';
 import PlayerList from '../components/PlayerList';
 import { useLeaveRoom } from '../hooks/useLeaveRoom';
 import { usePlayerDepartures } from '../hooks/usePlayerDepartures';
-import type { Player, DrawLocationState } from '../types/room';
+import type { GameMode, Player, DrawLocationState } from '../types/room';
 
 const MAX_PLAYERS_DISPLAY = 8;
 const MAX_PLAYERS = 8;
@@ -13,12 +13,17 @@ const MAX_PLAYERS = 8;
 export default function HostingPage() {
   const [roomCode, setRoomCode] = useState('');
   const [players, setPlayers] = useState<Player[]>([]);
-  const { toast, show } = useToast('pill');
+  const [popup, setPopup] = useState('');
 
   const navigate = useNavigate();
   const location = useLocation();
-  const state = location.state as DrawLocationState | null;
+
+  const state = location.state as (DrawLocationState & {
+    mode?: GameMode;
+  }) | null;
+
   const hostName = state?.playerName;
+  const gameMode = state?.mode ?? 'classic';
 
   useEffect(() => {
     async function setupRoom() {
@@ -27,7 +32,7 @@ export default function HostingPage() {
         return;
       }
 
-      const data = await createRoom(hostName);
+      const data = await createRoom(hostName, gameMode);
 
       if (data.success && data.roomCode && data.room) {
         setRoomCode(data.roomCode);
@@ -36,80 +41,106 @@ export default function HostingPage() {
     }
 
     void setupRoom();
-  }, [hostName, navigate]);
+  }, [hostName, gameMode, navigate]);
 
   useEffect(() => {
     if (!roomCode || !hostName) return;
 
-    async function loadRoom() {
-      // Passing the name doubles as this player's presence heartbeat.
-      const data = await getRoom(roomCode, hostName);
-      if (!data.success || !data.room) return;
+    let cancelled = false;
 
-      // Dropped by the server (network died long enough to look like leaving) —
-      // the room carries on without us, so stop pretending we're still in it.
-      const stillIn = data.room.players.some((p: Player) => p.name === hostName);
+    async function pollRoom() {
+      try {
+        const data = await getRoom(roomCode, hostName);
 
-      if (!stillIn) {
-        void navigate('/');
-        return;
+        if (!cancelled && data.success && data.room) {
+          setPlayers(data.room.players);
+        }
+      } catch {
+        // Retry on the next poll.
       }
-
-      setPlayers(data.room.players);
     }
 
-    void loadRoom();
+    void pollRoom();
 
-    const interval = setInterval(() => {
-      void loadRoom();
+    const interval = window.setInterval(() => {
+      void pollRoom();
     }, 1000);
 
-    return () => clearInterval(interval);
-  }, [roomCode, hostName, navigate]);
+    return () => {
+      cancelled = true;
+      window.clearInterval(interval);
+    };
+  }, [roomCode, hostName]);
 
-  usePlayerDepartures(players, (names) => show(`${names.join(', ')} left the room`));
+  usePlayerDepartures(players, (names) => {
+    setPopup(`${names.join(', ')} left the room`);
+  });
 
   const leaveRoom = useLeaveRoom(roomCode || undefined, hostName);
 
-  const readyCount = players.filter((p) => p.ready || p.isHost).length;
-  const allReady = players.length > 0 && players.every((p) => p.ready || p.isHost);
+  const readyCount = players.filter(
+    (player) => player.ready || player.isHost,
+  ).length;
+
+  const allReady =
+    players.length > 0 &&
+    players.every((player) => player.ready || player.isHost);
+
+  const copyCode = useCallback(() => {
+    if (!roomCode) return;
+
+    navigator.clipboard.writeText(roomCode).catch(() => {});
+    setPopup('Room code copied');
+  }, [roomCode]);
 
   async function handleLeave() {
     await leaveRoom();
     void navigate('/');
   }
 
-  function copyCode() {
-    if (!roomCode) return;
-
-    navigator.clipboard.writeText(roomCode).catch(() => {});
-    show('Invite code copied!');
-  }
-
   async function handleStart() {
     if (!allReady || !hostName) return;
 
-    await startRoom(roomCode);
-    show('Starting game...');
+    if (gameMode === 'classic' && players.length < 3) {
+      setPopup(
+        'Classic Mode needs at least 3 players. Switch to Leaderboard Mode to play with 2 players.',
+      );
+      return;
+    }
 
-    setTimeout(() => {
-      void navigate('/input', {
-        state: { roomCode, playerName: hostName },
-      });
-    }, 1200);
+    if (gameMode === 'leaderboard' && players.length < 2) {
+      setPopup('Leaderboard Mode needs at least 2 players.');
+      return;
+    }
+
+    const data = await startRoom(roomCode);
+
+    if (!data.success) {
+      setPopup(data.message ?? 'Unable to start the game.');
+      return;
+    }
+
+    void navigate('/input', {
+      state: {
+        roomCode,
+        playerName: hostName,
+      },
+    });
   }
+
+  const isLeaderboard = gameMode === 'leaderboard';
 
   return (
     <Page variant="centered" logo>
       <Card variant="lobby">
-        <div className="grid grid-cols-1 md:grid-cols-[1.4fr_1fr] gap-8">
+        <div className="grid grid-cols-1 gap-8 md:grid-cols-[1.4fr_1fr]">
           <section className="color-vision-lobby-section rounded-xl p-6">
-            <div className="flex items-center justify-between mb-5">
-              <h2 className="text-white text-2xl font-extrabold tracking-wide">
+            <div className="mb-5 flex items-center justify-between">
+              <h2 className="text-2xl font-extrabold tracking-wide text-white">
                 PLAYERS {players.length}/{MAX_PLAYERS}
               </h2>
 
-              <p className="text-white/80 text-sm font-semibold">
+              <p className="text-sm font-semibold text-white/80">
                 {readyCount}/{players.length} ready
               </p>
             </div>
@@ -123,26 +154,46 @@ export default function HostingPage() {
           </section>
 
           <section className="flex flex-col items-center">
-            <div className="color-vision-lobby-section rounded-xl p-6 w-full flex flex-col items-center">
-              <h2 className="text-white text-2xl font-extrabold tracking-wide mb-5">GAMEMODE</h2>
+            <div className="color-vision-lobby-section flex w-full flex-col items-center rounded-xl p-6">
+              <h2 className="mb-5 text-2xl font-extrabold tracking-wide text-white">
+                GAMEMODE
+              </h2>
 
-              <GamemodeSelect />
+              <div className="flex w-full max-w-[200px] flex-col items-center justify-center rounded-lg border-4 border-[var(--accent)] bg-[var(--surface)] shadow-sm">
+                {isLeaderboard ? (
+                  <LeaderboardIcon />
+                ) : (
+                  <img
+                    src="/gamemode_classic.png"
+                    alt="Classic"
+                    className="mb-2 h-16 w-16 object-contain"
+                  />
+                )}
+
+                <p className="font-extrabold text-[var(--primary)]">
+                  {isLeaderboard ? 'Leaderboard' : 'Classic'}
+                </p>
+              </div>
             </div>
 
-            <div className="mt-6 w-full flex flex-col items-center gap-2">
-              <p className="text-white/60 text-xs font-semibold uppercase tracking-widest">
+            <div className="mt-6 flex w-full flex-col items-center gap-2">
+              <p className="text-xs font-semibold uppercase tracking-widest text-white/60">
                 Room Code
               </p>
 
-              <p className="text-white font-mono font-extrabold text-4xl tracking-[0.3em]">
-                {roomCode}
+              <p className="font-mono text-4xl font-extrabold tracking-[0.3em] text-white">
+                {roomCode || '------'}
               </p>
 
-              <Button variant="outline" size="full" onClick={copyCode}>
+              <Button
+                variant="outline"
+                size="full"
+                onClick={copyCode}
+              >
                 <span className="flex items-center justify-center gap-2">
                   <svg
                     xmlns="http://www.w3.org/2000/svg"
-                    className="w-5 h-5"
+                    className="h-5 w-5"
                     viewBox="0 0 24 24"
                     fill="none"
                     stroke="currentColor"
@@ -150,8 +201,14 @@ export default function HostingPage() {
                     strokeLinecap="round"
                     strokeLinejoin="round"
                   >
-                    <rect x="9" y="9" width="13" height="13" rx="2" ry="2" />
-                    <path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1" />
+                    <rect
+                      x="9"
+                      y="9"
+                      width="13"
+                      height="13"
+                      rx="2"
+                    />
+                    <path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v5" />
                   </svg>
                   Copy Room Code
                 </span>
@@ -162,31 +219,121 @@ export default function HostingPage() {
               variant="start"
               size="full"
               onClick={() => void handleStart()}
-              disabled={!allReady}
+              disabled={!allReady || players.length > MAX_PLAYERS}
               className="mt-4"
             >
               {allReady ? 'Start Game' : 'Waiting for Players'}
             </Button>
 
-            <Button variant="leave" size="full" onClick={() => void handleLeave()} className="mt-3">
+            <Button
+              variant="leave"
+              size="full"
+              onClick={() => void handleLeave()}
+              className="mt-3"
+            >
               Leave Room
             </Button>
           </section>
         </div>
       </Card>
 
-      {toast}
+      {popup && (
+        <Popup
+          message={popup}
+          onClose={() => setPopup('')}
+        />
+      )}
     </Page>
   );
 }
 
-function GamemodeSelect() {
+function Popup({
+  message,
+  onClose,
+}: {
+  message: string;
+  onClose: () => void;
+}) {
   return (
-    <div className="grid grid-cols-1 gap-4 w-full max-w-[200px]">
-      <button className="bg-[var(--surface)] rounded-lg border-4 border-[var(--accent)] flex flex-col items-center justify-center shadow-sm">
-        <img src="/gamemode_classic.png" alt="Classic" className="w-16 h-16 mb-2 object-contain" />
-        <p className="text-[var(--primary)] font-extrabold">Classic</p>
-      </button>
+    <div className="fixed inset-0 z-[100] flex items-center justify-center bg-black/50 px-4">
+      <div className="w-full max-w-md rounded-2xl border-2 border-[var(--accent)] bg-[var(--surface)] p-6 text-center shadow-2xl">
+        <h2 className="text-xl font-extrabold text-[var(--primary)]">
+          Notice
+        </h2>
+
+        <p className="mt-3 text-sm font-semibold text-black">
+          {message}
+        </p>
+
+        <Button
+          variant="start"
+          size="full"
+          onClick={onClose}
+          className="mt-6"
+        >
+          OK
+        </Button>
+      </div>
     </div>
+  );
+}
+
+function LeaderboardIcon() {
+  return (
+    <svg
+      viewBox="0 0 100 100"
+      className="h-16 w-16 mb-2"
+      aria-hidden="true"
+    >
+      <rect
+        x="18"
+        y="48"
+        width="18"
+        height="34"
+        rx="4"
+        fill="var(--accent-soft)"
+        stroke="var(--primary)"
+        strokeWidth="3"
+      />
+
+      <rect
+        x="41"
+        y="32"
+        width="18"
+        height="50"
+        rx="4"
+        fill="var(--accent)"
+        stroke="var(--primary)"
+        strokeWidth="3"
+      />
+
+      <rect
+        x="64"
+        y="20"
+        width="18"
+        height="62"
+        rx="4"
+        fill="var(--action)"
+        stroke="var(--primary)"
+        strokeWidth="3"
+      />
+
+      <path
+        d="M24 40 L31 33 L39 38 L51 24 L59 29 L72 15"
+        fill="none"
+        stroke="var(--primary)"
+        strokeWidth="5"
+        strokeLinecap="round"
+        strokeLinejoin="round"
+      />
+
+      <path
+        d="M72 15 L70 24 M72 15 L63 17"
+        fill="none"
+        stroke="var(--primary)"
+        strokeWidth="5"
+        strokeLinecap="round"
+      />
+    </svg>
   );
 }

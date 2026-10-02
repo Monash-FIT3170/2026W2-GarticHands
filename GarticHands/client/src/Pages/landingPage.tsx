@@ -2,7 +2,7 @@ import { useState, type ReactNode } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Page, Avatar } from '../components/ui';
 
-type GameMode = 'classic' | 'playground' | 'solo' | 'ai';
+type GameMode = 'classic' | 'leaderboard' | 'playground' | 'solo' | 'ai';
 
 export default function LandingPage() {
   const navigate = useNavigate();
@@ -14,9 +14,9 @@ export default function LandingPage() {
   function handleModeSelect(mode: GameMode) {
     if (mode === 'ai') return;
 
-    if (mode === 'classic') {
+    if (mode === 'classic' || mode === 'leaderboard') {
       setExpandedMode((current) =>
-        current === 'classic' ? null : 'classic',
+        current === mode ? null : mode,
       );
       return;
     }
@@ -31,19 +31,25 @@ export default function LandingPage() {
     }
   }
 
-  function joinRoom() {
+  function joinRoom(mode: 'classic' | 'leaderboard') {
     if (!canContinue) return;
 
     void navigate('/join', {
-      state: { playerName: playerName.trim() },
+      state: {
+        playerName: playerName.trim(),
+        mode,
+      },
     });
   }
 
-  function hostRoom() {
+  function hostRoom(mode: 'classic' | 'leaderboard') {
     if (!canContinue) return;
 
     void navigate('/host', {
-      state: { playerName: playerName.trim() },
+      state: {
+        playerName: playerName.trim(),
+        mode,
+      },
     });
   }
 
@@ -139,7 +145,7 @@ export default function LandingPage() {
                     type="button"
                     onClick={(event) => {
                       event.stopPropagation();
-                      joinRoom();
+                      joinRoom('classic');
                     }}
                     disabled={!canContinue}
                     className="
@@ -165,7 +171,70 @@ export default function LandingPage() {
                     type="button"
                     onClick={(event) => {
                       event.stopPropagation();
-                      hostRoom();
+                      hostRoom('classic');
+                    }}
+                    disabled={!canContinue}
+                    className="
+                      flex-1
+                      bg-[var(--accent)]
+                      text-[var(--primary)]
+                      rounded-xl
+                      px-4 py-3
+                      font-extrabold
+                      transition-all
+                      hover:-translate-y-0.5
+                      hover:shadow-lg
+                      hover:bg-[var(--accent-hover)]
+                      disabled:opacity-40
+                      disabled:cursor-not-allowed
+                    "
+                  >
+                    Host Game
+                  </button>
+                </div>
+              </GameModeCard>
+
+              <GameModeCard
+                mode="leaderboard"
+                title="Leaderboard"
+                description="Compete across multiple rounds. Rate another player's drawing each round and build the highest total score."
+                icon={<LeaderboardIcon />}
+                expanded={expandedMode === 'leaderboard'}
+                disabled={!canContinue}
+                onClick={() => handleModeSelect('leaderboard')}
+              >
+                <div className="flex flex-col sm:flex-row gap-3 w-full">
+                  <button
+                    type="button"
+                    onClick={(event) => {
+                      event.stopPropagation();
+                      joinRoom('leaderboard');
+                    }}
+                    disabled={!canContinue}
+                    className="
+                      flex-1
+                      bg-white
+                      text-[var(--text-primary)]
+                      border-2 border-[var(--accent-soft)]
+                      rounded-xl
+                      px-4 py-3
+                      font-extrabold
+                      transition-all
+                      hover:-translate-y-0.5
+                      hover:shadow-lg
+                      hover:border-[var(--accent)]
+                      disabled:opacity-40
+                      disabled:cursor-not-allowed
+                    "
+                  >
+                    Join Room
+                  </button>
+
+                  <button
+                    type="button"
+                    onClick={(event) => {
+                      event.stopPropagation();
+                      hostRoom('leaderboard');
                     }}
                     disabled={!canContinue}
                     className="
@@ -248,6 +317,8 @@ function GameModeCard({
   children,
 }: GameModeCardProps) {
   const isClassic = mode === 'classic';
+  const isLeaderboard = mode === 'leaderboard';
+  const hasRoomControls = isClassic || isLeaderboard;
 
   return (
     <div
@@ -296,7 +367,7 @@ function GameModeCard({
                 ring-2 ring-[var(--accent)]/20
                 cursor-pointer
               `
-              : disabled && isClassic
+              : disabled && hasRoomControls
                 ? `
                   bg-white
                   border-4 border-[var(--accent)]
@@ -368,8 +439,8 @@ function GameModeCard({
         </p>
       </div>
 
-      {/* Classic controls */}
-      {isClassic && expanded && (
+      {/* Room controls */}
+      {hasRoomControls && expanded && (
         <div className="w-full mt-4">
           {children}
         </div>
@@ -378,7 +449,7 @@ function GameModeCard({
       {/* Hint */}
       {!expanded && !comingSoon && (
         <div className="mt-auto pt-3 text-[var(--text-secondary)]/60 text-xs font-bold uppercase tracking-widest transition-opacity group-hover:opacity-0">
-          {isClassic ? 'Click to choose' : 'Click to play'}
+          {hasRoomControls ? 'Click to choose' : 'Click to play'}
         </div>
       )}
     </div>
@@ -430,6 +501,66 @@ function ClassicIcon() {
         cy="34"
         r="5"
         fill="var(--accent)"
+      />
+    </svg>
+  );
+}
+
+function LeaderboardIcon() {
+  return (
+    <svg
+      viewBox="0 0 100 100"
+      className="w-12 h-12"
+      aria-hidden="true"
+    >
+      <rect
+        x="18"
+        y="48"
+        width="18"
+        height="34"
+        rx="4"
+        fill="var(--accent-soft)"
+        stroke="var(--primary)"
+        strokeWidth="3"
+      />
+
+      <rect
+        x="41"
+        y="32"
+        width="18"
+        height="50"
+        rx="4"
+        fill="var(--accent)"
+        stroke="var(--primary)"
+        strokeWidth="3"
+      />
+
+      <rect
+        x="64"
+        y="20"
+        width="18"
+        height="62"
+        rx="4"
+        fill="var(--action)"
+        stroke="var(--primary)"
+        strokeWidth="3"
+      />
+
+      <path
+        d="M24 40 L31 33 L39 38 L51 24 L59 29 L72 15"
+        fill="none"
+        stroke="var(--primary)"
+        strokeWidth="5"
+        strokeLinecap="round"
+        strokeLinejoin="round"
+      />
+
+      <path
+        d="M72 15 L70 24 M72 15 L63 17"
+        fill="none"
+        stroke="var(--primary)"
+        strokeWidth="5"
+        strokeLinecap="round"
       />
     </svg>
   );
@@ -626,4 +757,3 @@ function AiIcon() {
     </svg>
   );
 }
-
