@@ -87,7 +87,9 @@ export default function LeaderboardPage() {
     const data = await restartRoom(roomCode);
 
     if (!data.success) {
-      setError(data.message || 'Unable to start the next round.');
+      setError(
+        data.message || 'Unable to start the next round.',
+      );
       return;
     }
 
@@ -102,7 +104,9 @@ export default function LeaderboardPage() {
     const data = await endRoom(roomCode);
 
     if (!data.success) {
-      setError(data.message || 'Unable to end the game.');
+      setError(
+        data.message || 'Unable to end the game.',
+      );
       return;
     }
 
@@ -110,7 +114,9 @@ export default function LeaderboardPage() {
   }
 
   const sortedPlayers = [...players].sort(
-    (a, b) => (scores[b.name] ?? 0) - (scores[a.name] ?? 0),
+    (a, b) =>
+      (scores[b.name] ?? 0) -
+      (scores[a.name] ?? 0),
   );
 
   const isFinalRound = round >= maxRounds;
@@ -145,13 +151,16 @@ export default function LeaderboardPage() {
             <div className="mt-6 w-full max-w-2xl overflow-hidden rounded-xl bg-white">
               {sortedPlayers.map((player, index) => {
                 const score = scores[player.name] ?? 0;
-                const isCurrentPlayer = player.name === playerName;
+                const isCurrentPlayer =
+                  player.name === playerName;
 
                 return (
                   <div
                     key={player.name}
                     className={`flex items-center justify-between border-b border-gray-200 px-5 py-4 last:border-b-0 ${
-                      isCurrentPlayer ? 'bg-gray-50' : ''
+                      isCurrentPlayer
+                        ? 'bg-gray-50'
+                        : ''
                     }`}
                   >
                     <div className="flex items-center gap-4">
@@ -171,6 +180,7 @@ export default function LeaderboardPage() {
                       <p className="text-2xl font-extrabold text-[var(--action)]">
                         {score}
                       </p>
+
                       <p className="text-xs font-semibold text-gray-400">
                         points
                       </p>
@@ -181,12 +191,14 @@ export default function LeaderboardPage() {
             </div>
 
             {isHost && (
-              <div className="mt-6 flex w-full max-w-sm flex-col gap-3">
+              <div className="mt-6 flex w-full max-w-sm translate-x-0 flex-col gap-3 md:translate-x-6">
                 {!isFinalRound && (
                   <Button
                     variant="start"
                     size="full"
-                    onClick={() => void handleNextRound()}
+                    onClick={() =>
+                      void handleNextRound()
+                    }
                   >
                     Start Round {round + 1}
                   </Button>
@@ -195,7 +207,9 @@ export default function LeaderboardPage() {
                 <Button
                   variant="leave"
                   size="full"
-                  onClick={() => void handleEndGame()}
+                  onClick={() =>
+                    void handleEndGame()
+                  }
                 >
                   End Game
                 </Button>
