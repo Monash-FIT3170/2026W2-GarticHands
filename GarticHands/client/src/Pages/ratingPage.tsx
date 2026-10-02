@@ -65,21 +65,21 @@ export default function RatingPage() {
   }, [roomCode, playerName, navigate]);
 
   const { waitingFor, room, secondsLeft } = usePhaseAdvance({
-    roomCode,
-    playerName,
+    roomCode: roomCode ?? '',
+    playerName: playerName ?? '',
     enabled: submitted,
     whenPhase: 'ratingReveal',
     to: '/rating-reveal',
     countBucket: 'ratings',
   });
 
-  async function handleSubmit() {
+  async function handleSubmit(value = rating) {
     if (submitted || !roomCode || !playerName) return;
 
-    const numericRating = Number(rating);
+    const numericRating = Number(value);
 
     if (
-      rating.trim() === '' ||
+      value.trim() === '' ||
       !Number.isInteger(numericRating) ||
       numericRating < 0 ||
       numericRating > 100
@@ -114,8 +114,7 @@ export default function RatingPage() {
 
   function handleExpire() {
     if (!submitted) {
-      setRating((current) => current || '0');
-      void handleSubmit();
+      void handleSubmit(rating || '0');
     }
   }
 
