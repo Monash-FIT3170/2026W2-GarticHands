@@ -59,7 +59,7 @@ export default function ExitGameButton() {
         variant="leave"
         size="custom"
         onClick={() => setConfirming(true)}
-        className="fixed bottom-2 right-2 z-40 px-4 py-2 text-sm !text-black !border-black"
+        className="fixed bottom-4 right-4 z-40 px-6 py-3 text-2xl !text-black !border-black"
       >
         Exit Game
       </Button>
