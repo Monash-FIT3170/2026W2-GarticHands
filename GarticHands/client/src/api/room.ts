@@ -135,6 +135,38 @@ export async function submitGuess(
   return withStatus(res);
 }
 
+/**
+ * Move a Leaderboard room from the rating reveal into the leaderboard phase.
+ * This is host-paced because the leaderboard phase has no automatic timer.
+ */
+export async function advanceRatingReveal(roomCode: string) {
+  const res = await fetch(`${API_URL}/rooms/${roomCode}/rating-reveal`, {
+    method: 'PATCH',
+    headers: { 'Content-Type': 'application/json' },
+  });
+
+  return (await res.json()) as RoomResponse;
+}
+
+/**
+ * Submit a rating for the drawing assigned to this player.
+ * The server determines the rating target, so the client cannot rate
+ * a different player's drawing.
+ */
+export async function submitRating(
+  roomCode: string,
+  playerName: string,
+  rating: number,
+) {
+  const res = await fetch(`${API_URL}/rooms/${roomCode}/ratings`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ playerName, rating }),
+  });
+
+  return withStatus(res);
+}
+
 export async function restartRoom(roomCode: string) {
   const res = await fetch(`${API_URL}/rooms/${roomCode}/restart`, {
     method: 'PATCH',
