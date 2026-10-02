@@ -5,7 +5,7 @@ import { Page, Card, Button, useToast } from '../components/ui';
 import PlayerList from '../components/PlayerList';
 import { useLeaveRoom } from '../hooks/useLeaveRoom';
 import { usePlayerDepartures } from '../hooks/usePlayerDepartures';
-import type { Player, DrawLocationState } from '../types/room';
+import type { Player, DrawLocationState, GameMode } from '../types/room';
 
 const MAX_PLAYERS_DISPLAY = 8;
 const MAX_PLAYERS = 8;
@@ -17,8 +17,9 @@ export default function HostingPage() {
 
   const navigate = useNavigate();
   const location = useLocation();
-  const state = location.state as DrawLocationState | null;
+  const state = location.state as (DrawLocationState & { mode?: GameMode }) | null;
   const hostName = state?.playerName;
+  const gameMode = state?.mode ?? 'classic';
 
   useEffect(() => {
     async function setupRoom() {
@@ -27,7 +28,7 @@ export default function HostingPage() {
         return;
       }
 
-      const data = await createRoom(hostName);
+      const data = await createRoom(hostName, gameMode);
 
       if (data.success && data.roomCode && data.room) {
         setRoomCode(data.roomCode);
@@ -36,7 +37,7 @@ export default function HostingPage() {
     }
 
     void setupRoom();
-  }, [hostName, navigate]);
+  }, [hostName, gameMode, navigate]);
 
   useEffect(() => {
     if (!roomCode || !hostName) return;
@@ -124,9 +125,11 @@ export default function HostingPage() {
 
           <section className="flex flex-col items-center">
             <div className="color-vision-lobby-section rounded-xl p-6 w-full flex flex-col items-center">
-              <h2 className="text-white text-2xl font-extrabold tracking-wide mb-5">GAMEMODE</h2>
+              <h2 className="text-white text-2xl font-extrabold tracking-wide mb-5">
+                GAMEMODE
+              </h2>
 
-              <GamemodeSelect />
+              <GamemodeSelect mode={gameMode} />
             </div>
 
             <div className="mt-6 w-full flex flex-col items-center gap-2">
@@ -150,7 +153,7 @@ export default function HostingPage() {
                     strokeLinecap="round"
                     strokeLinejoin="round"
                   >
-                    <rect x="9" y="9" width="13" height="13" rx="2" ry="2" />
+                    <rect x="9" y="9" width="13" height="13" rx="2" />
                     <path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1" />
                   </svg>
                   Copy Room Code
@@ -168,7 +171,12 @@ export default function HostingPage() {
               {allReady ? 'Start Game' : 'Waiting for Players'}
             </Button>
 
-            <Button variant="leave" size="full" onClick={() => void handleLeave()} className="mt-3">
+            <Button
+              variant="leave"
+              size="full"
+              onClick={() => void handleLeave()}
+              className="mt-3"
+            >
               Leave Room
             </Button>
           </section>
@@ -180,12 +188,27 @@ export default function HostingPage() {
   );
 }
 
-function GamemodeSelect() {
+interface GamemodeSelectProps {
+  mode: GameMode;
+}
+
+function GamemodeSelect({ mode }: GamemodeSelectProps) {
+  const isLeaderboard = mode === 'leaderboard';
+
   return (
     <div className="grid grid-cols-1 gap-4 w-full max-w-[200px]">
-      <button className="bg-[var(--surface)] rounded-lg border-4 border-[var(--accent)] flex flex-col items-center justify-center shadow-sm">
-        <img src="/gamemode_classic.png" alt="Classic" className="w-16 h-16 mb-2 object-contain" />
-        <p className="text-[var(--primary)] font-extrabold">Classic</p>
+      <button
+        type="button"
+        className="bg-[var(--surface)] rounded-lg border-4 border-[var(--accent)] flex flex-col items-center justify-center shadow-sm"
+      >
+        <img
+          src={isLeaderboard ? '/gamemode_leaderboard.png' : '/gamemode_classic.png'}
+          alt={isLeaderboard ? 'Leaderboard' : 'Classic'}
+          className="w-16 h-16 mb-2 object-contain"
+        />
+        <p className="text-[var(--primary)] font-extrabold">
+          {isLeaderboard ? 'Leaderboard' : 'Classic'}
+        </p>
       </button>
     </div>
   );
