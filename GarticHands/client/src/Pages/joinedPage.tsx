@@ -5,7 +5,7 @@ import { Page, Card, Button, useToast } from '../components/ui';
 import PlayerList from '../components/PlayerList';
 import { useLeaveRoom } from '../hooks/useLeaveRoom';
 import { usePlayerDepartures } from '../hooks/usePlayerDepartures';
-import type { Player, DrawLocationState } from '../types/room';
+import type { GameMode, Player, DrawLocationState } from '../types/room';
 
 const MAX_PLAYERS_DISPLAY = 8;
 const MAX_PLAYERS = 8;
@@ -18,6 +18,9 @@ export default function JoinedPage() {
   const navigate = useNavigate();
 
   const [players, setPlayers] = useState<Player[]>(state?.room?.players ?? []);
+  const [gameMode, setGameMode] = useState<GameMode>(
+    state?.room?.mode ?? 'classic',
+  );
   const [ready, setReady] = useState(false);
   const [starting, setStarting] = useState(false);
   const { toast, show } = useToast('pill');
@@ -25,7 +28,9 @@ export default function JoinedPage() {
   const me = players.find((p) => p.name === playerName);
   const isHost = me?.isHost ?? false;
   const readyCount = players.filter((p) => p.ready || p.isHost).length;
-  const allReady = players.length > 0 && players.every((p) => p.ready || p.isHost);
+  const allReady =
+    players.length > 0 &&
+    players.every((p) => p.ready || p.isHost);
 
   const copyCode = useCallback(() => {
     if (!roomCode) return;
@@ -44,9 +49,14 @@ export default function JoinedPage() {
       const data = await getRoom(roomCode as string, playerName);
       if (!data.success || !data.room) return;
 
+      // Keep the displayed mode synced with the server.
+      setGameMode(data.room.mode ?? 'classic');
+
       // Dropped by the server (network died long enough to look like leaving) —
       // the room carries on without us, so stop pretending we're still in it.
-      const stillIn = data.room.players.some((p: Player) => p.name === playerName);
+      const stillIn = data.room.players.some(
+        (p: Player) => p.name === playerName,
+      );
 
       if (!stillIn && !alreadyStarted) {
         void navigate('/');
@@ -83,7 +93,9 @@ export default function JoinedPage() {
 
       if (alreadyStarted) return;
 
-      const meFresh = data.room.players.find((p: Player) => p.name === playerName);
+      const meFresh = data.room.players.find(
+        (p: Player) => p.name === playerName,
+      );
 
       if (meFresh) {
         setReady(meFresh.ready);
@@ -99,7 +111,9 @@ export default function JoinedPage() {
     return () => clearInterval(interval);
   }, [roomCode, playerName, navigate, show]);
 
-  usePlayerDepartures(players, (names) => show(`${names.join(', ')} left the room`));
+  usePlayerDepartures(players, (names) =>
+    show(`${names.join(', ')} left the room`),
+  );
 
   const leaveRoom = useLeaveRoom(roomCode, playerName);
 
@@ -123,11 +137,33 @@ export default function JoinedPage() {
   async function handleStart() {
     if (!roomCode || !allReady || starting) return;
 
+    if (gameMode === 'classic' && players.length < 3) {
+      show(
+        'Classic Mode needs at least 3 players. Switch to Leaderboard to play with 2 players.',
+      );
+      return;
+    }
+
+    if (gameMode === 'leaderboard' && players.length < 2) {
+      show('Leaderboard Mode needs at least 2 players.');
+      return;
+    }
+
     setStarting(true);
-    await startRoom(roomCode);
+
+    const data = await startRoom(roomCode);
+
+    if (!data.success) {
+      setStarting(false);
+      show(data.message ?? 'Unable to start the game');
+      return;
+    }
+
     show('Starting game...');
     // Polling loop will navigate to /input.
   }
+
+  const isLeaderboard = gameMode === 'leaderboard';
 
   return (
     <Page variant="centered" logo>
@@ -154,16 +190,24 @@ export default function JoinedPage() {
 
           <section className="flex flex-col items-center">
             <div className="color-vision-lobby-section rounded-xl p-6 w-full flex flex-col items-center">
-              <h2 className="text-white text-2xl font-extrabold tracking-wide mb-5">GAMEMODE</h2>
+              <h2 className="text-white text-2xl font-extrabold tracking-wide mb-5">
+                GAMEMODE
+              </h2>
 
               <div className="bg-[var(--surface)] rounded-lg border-4 border-[var(--accent)] flex flex-col items-center justify-center shadow-sm w-full max-w-[200px]">
                 <img
-                  src="/gamemode_classic.png"
-                  alt="Classic"
+                  src={
+                    isLeaderboard
+                      ? '/leaderboard.png'
+                      : '/gamemode_classic.png'
+                  }
+                  alt={isLeaderboard ? 'Leaderboard' : 'Classic'}
                   className="w-16 h-16 mb-2 object-contain"
                 />
 
-                <p className="text-[var(--primary)] font-extrabold">Classic</p>
+                <p className="text-[var(--primary)] font-extrabold">
+                  {isLeaderboard ? 'Leaderboard' : 'Classic'}
+                </p>
               </div>
             </div>
 
@@ -188,7 +232,7 @@ export default function JoinedPage() {
                     strokeLinecap="round"
                     strokeLinejoin="round"
                   >
-                    <rect x="9" y="9" width="13" height="13" rx="2" ry="2" />
+                    <rect x="9" y="9" width="13" height="13" rx="2" />
                     <path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v5" />
                   </svg>
                   Copy Room Code
