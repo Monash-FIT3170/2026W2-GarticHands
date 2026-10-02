@@ -5,7 +5,7 @@ import { Page, Card, Button, useToast } from '../components/ui';
 import PlayerList from '../components/PlayerList';
 import { useLeaveRoom } from '../hooks/useLeaveRoom';
 import { usePlayerDepartures } from '../hooks/usePlayerDepartures';
-import type { Player, DrawLocationState, GameMode } from '../types/room';
+import type { GameMode, Player, DrawLocationState } from '../types/room';
 
 const MAX_PLAYERS_DISPLAY = 8;
 const MAX_PLAYERS = 8;
@@ -17,7 +17,11 @@ export default function HostingPage() {
 
   const navigate = useNavigate();
   const location = useLocation();
-  const state = location.state as (DrawLocationState & { mode?: GameMode }) | null;
+
+  const state = location.state as (DrawLocationState & {
+    mode?: GameMode;
+  }) | null;
+
   const hostName = state?.playerName;
   const gameMode = state?.mode ?? 'classic';
 
@@ -42,38 +46,45 @@ export default function HostingPage() {
   useEffect(() => {
     if (!roomCode || !hostName) return;
 
-    async function loadRoom() {
-      // Passing the name doubles as this player's presence heartbeat.
-      const data = await getRoom(roomCode, hostName);
-      if (!data.success || !data.room) return;
+    let cancelled = false;
 
-      // Dropped by the server (network died long enough to look like leaving) —
-      // the room carries on without us, so stop pretending we're still in it.
-      const stillIn = data.room.players.some((p: Player) => p.name === hostName);
+    async function pollRoom() {
+      try {
+        const data = await getRoom(roomCode);
 
-      if (!stillIn) {
-        void navigate('/');
-        return;
+        if (!cancelled && data.success && data.room) {
+          setPlayers(data.room.players);
+        }
+      } catch {
+        // Ignore polling errors and retry on the next interval.
       }
-
-      setPlayers(data.room.players);
     }
 
-    void loadRoom();
+    void pollRoom();
 
-    const interval = setInterval(() => {
-      void loadRoom();
-    }, 1000);
+    const interval = window.setInterval(() => {
+      void pollRoom();
+    }, 2000);
 
-    return () => clearInterval(interval);
+    return () => {
+      cancelled = true;
+      window.clearInterval(interval);
+    };
   }, [roomCode, hostName, navigate]);
 
-  usePlayerDepartures(players, (names) => show(`${names.join(', ')} left the room`));
+  usePlayerDepartures(players, (names) => {
+    show(`${names.join(', ')} left the room`);
+  });
 
   const leaveRoom = useLeaveRoom(roomCode || undefined, hostName);
 
-  const readyCount = players.filter((p) => p.ready || p.isHost).length;
-  const allReady = players.length > 0 && players.every((p) => p.ready || p.isHost);
+  const readyCount = players.filter(
+    (player) => player.ready || player.isHost,
+  ).length;
+
+  const allReady =
+    players.length > 0 &&
+    players.every((player) => player.ready || player.isHost);
 
   async function handleLeave() {
     await leaveRoom();
@@ -83,133 +94,164 @@ export default function HostingPage() {
   function copyCode() {
     if (!roomCode) return;
 
-    navigator.clipboard.writeText(roomCode).catch(() => {});
-    show('Invite code copied!');
+    void navigator.clipboard.writeText(roomCode);
+    show('Room code copied');
   }
 
   async function handleStart() {
     if (!allReady || !hostName) return;
 
-    await startRoom(roomCode);
+    if (gameMode === 'classic' && players.length < 3) {
+      show(
+        'Classic Mode needs at least 3 players. Switch to Leaderboard to play with 2 players.',
+      );
+      return;
+    }
+
+    if (gameMode === 'leaderboard' && players.length < 2) {
+      show('Leaderboard Mode needs at least 2 players.');
+      return;
+    }
+
+    const data = await startRoom(roomCode);
+
+    if (!data.success) {
+      show(data.message ?? 'Unable to start the game');
+      return;
+    }
+
     show('Starting game...');
 
     setTimeout(() => {
       void navigate('/input', {
-        state: { roomCode, playerName: hostName },
+        state: {
+          roomCode,
+          playerName: hostName,
+        },
       });
     }, 1200);
   }
 
   return (
-    <Page variant="centered" logo>
-      <Card variant="lobby">
-        <div className="grid grid-cols-1 md:grid-cols-[1.4fr_1fr] gap-8">
-          <section className="color-vision-lobby-section rounded-xl p-6">
-            <div className="flex items-center justify-between mb-5">
-              <h2 className="text-white text-2xl font-extrabold tracking-wide">
-                PLAYERS {players.length}/{MAX_PLAYERS}
-              </h2>
+    <Page className="min-h-screen">
+      <div className="mx-auto flex min-h-screen w-full max-w-5xl flex-col px-6 py-10">
+        <div className="mb-8 flex items-center justify-between">
+          <div>
+            <h1 className="text-3xl font-bold text-white">
+              Host Game
+            </h1>
+            <p className="mt-1 text-white/60">
+              Share the room code with your friends.
+            </p>
+          </div>
 
-              <p className="text-white/80 text-sm font-semibold">
-                {readyCount}/{players.length} ready
-              </p>
-            </div>
+          <Button
+            variant="secondary"
+            onClick={() => void handleLeave()}
+          >
+            Leave
+          </Button>
+        </div>
 
-            <PlayerList
-              players={players}
-              selfName={hostName}
-              variant="lobby"
-              padTo={MAX_PLAYERS_DISPLAY}
-            />
-          </section>
+        <div className="grid flex-1 gap-6 md:grid-cols-[1fr_1.4fr]">
+          <Card className="flex flex-col items-center justify-center p-8 text-center">
+            <p className="mb-3 text-sm font-medium uppercase tracking-wider text-white/50">
+              Room Code
+            </p>
 
-          <section className="flex flex-col items-center">
-            <div className="color-vision-lobby-section rounded-xl p-6 w-full flex flex-col items-center">
-              <h2 className="text-white text-2xl font-extrabold tracking-wide mb-5">
-                GAMEMODE
-              </h2>
+            <button
+              type="button"
+              onClick={copyCode}
+              className="rounded-xl bg-white/10 px-8 py-5 text-5xl font-bold tracking-[0.2em] text-white transition hover:bg-white/15"
+            >
+              {roomCode || '------'}
+            </button>
 
+            <p className="mt-4 text-sm text-white/50">
+              Click the code to copy it
+            </p>
+
+            <div className="mt-8">
               <GamemodeSelect mode={gameMode} />
             </div>
+          </Card>
 
-            <div className="mt-6 w-full flex flex-col items-center gap-2">
-              <p className="text-white/60 text-xs font-semibold uppercase tracking-widest">
-                Room Code
-              </p>
+          <Card className="flex flex-col p-6">
+            <div className="mb-5 flex items-center justify-between">
+              <div>
+                <h2 className="text-xl font-semibold text-white">
+                  Players
+                </h2>
+                <p className="text-sm text-white/50">
+                  {players.length}/{MAX_PLAYERS_DISPLAY} players
+                </p>
+              </div>
 
-              <p className="text-white font-mono font-extrabold text-4xl tracking-[0.3em]">
-                {roomCode}
-              </p>
-
-              <Button variant="outline" size="full" onClick={copyCode}>
-                <span className="flex items-center justify-center gap-2">
-                  <svg
-                    xmlns="http://www.w3.org/2000/svg"
-                    className="w-5 h-5"
-                    viewBox="0 0 24 24"
-                    fill="none"
-                    stroke="currentColor"
-                    strokeWidth="2"
-                    strokeLinecap="round"
-                    strokeLinejoin="round"
-                  >
-                    <rect x="9" y="9" width="13" height="13" rx="2" />
-                    <path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1" />
-                  </svg>
-                  Copy Room Code
-                </span>
-              </Button>
+              <div className="text-sm text-white/60">
+                {readyCount}/{players.length} ready
+              </div>
             </div>
 
-            <Button
-              variant="start"
-              size="full"
-              onClick={() => void handleStart()}
-              disabled={!allReady}
-              className="mt-4"
-            >
-              {allReady ? 'Start Game' : 'Waiting for Players'}
-            </Button>
+            <div className="flex-1">
+              <PlayerList players={players} />
+            </div>
 
-            <Button
-              variant="leave"
-              size="full"
-              onClick={() => void handleLeave()}
-              className="mt-3"
-            >
-              Leave Room
-            </Button>
-          </section>
+            <div className="mt-6">
+              <Button
+                className="w-full"
+                disabled={
+                  !allReady ||
+                  players.length > MAX_PLAYERS ||
+                  !hostName
+                }
+                onClick={() => void handleStart()}
+              >
+                Start Game
+              </Button>
+
+              {!allReady && players.length > 0 && (
+                <p className="mt-3 text-center text-sm text-white/50">
+                  Waiting for all players to be ready...
+                </p>
+              )}
+            </div>
+          </Card>
         </div>
-      </Card>
 
-      {toast}
+        {toast && (
+          <div className="fixed bottom-6 left-1/2 z-50 -translate-x-1/2">
+            {toast}
+          </div>
+        )}
+      </div>
     </Page>
   );
 }
 
-interface GamemodeSelectProps {
-  mode: GameMode;
-}
-
-function GamemodeSelect({ mode }: GamemodeSelectProps) {
+function GamemodeSelect({ mode }: { mode: GameMode }) {
   const isLeaderboard = mode === 'leaderboard';
 
   return (
-    <div className="grid grid-cols-1 gap-4 w-full max-w-[200px]">
-      <button
-        type="button"
-        className="bg-[var(--surface)] rounded-lg border-4 border-[var(--accent)] flex flex-col items-center justify-center shadow-sm"
-      >
+    <div className="flex flex-col items-center">
+      <p className="mb-3 text-sm font-medium uppercase tracking-wider text-white/50">
+        Game Mode
+      </p>
+
+      <div className="flex items-center gap-3 rounded-xl bg-white/5 px-5 py-4">
         <img
-          src={isLeaderboard ? '/gamemode_leaderboard.png' : '/gamemode_classic.png'}
+          src={
+            isLeaderboard
+              ? '/leaderboard.png'
+              : '/gamemode_classic.png'
+          }
           alt={isLeaderboard ? 'Leaderboard' : 'Classic'}
-          className="w-16 h-16 mb-2 object-contain"
+          className="h-12 w-12 object-contain"
         />
-        <p className="text-[var(--primary)] font-extrabold">
+
+        <p className="text-lg font-semibold text-white">
           {isLeaderboard ? 'Leaderboard' : 'Classic'}
         </p>
-      </button>
+      </div>
     </div>
   );
 }
