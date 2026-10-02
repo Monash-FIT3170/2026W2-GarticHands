@@ -3,18 +3,10 @@ import { pinchLandmarks } from './helpers/gestures'
 import { reachDrawPageSolo, sendHandFrame } from './helpers/game'
 import { RoomApi } from './helpers/api'
 
-/**
- * User Story 13: As a player, I want to be able to see my drawing come to
- * life as I am in the middle of drawing it.
- *
- * Injects deterministic pinch frames, samples canvas pixels to confirm a
- * stroke appears live (before Submit Drawing), then submits and asserts the
- * server stored a matching (non-blank) drawing.
- */
 test('a live stroke appears while drawing and is preserved on submit', async ({ page, request }) => {
     const roomCode = await reachDrawPageSolo(page, 'LiveDrawTester')
+    await page.getByRole('button', { name: 'Start Drawing' }).click()
 
-    // Default draw mode is 'split': [camera-overlay canvas, primary draw canvas, cursor canvas].
     const canvas = page.locator('canvas').nth(1)
 
     async function countPaintedPixels() {
@@ -32,9 +24,9 @@ test('a live stroke appears while drawing and is preserved on submit', async ({ 
     for (let i = 0; i <= 10; i++) {
         const t = i / 10
         await sendHandFrame(page, pinchLandmarks(0.25 + t * 0.5, 0.3 + t * 0.4), 'PINCH')
+        await page.waitForTimeout(16)
     }
 
-    // Stroke is visible live, before submitting.
     const paintedBeforeSubmit = await countPaintedPixels()
     expect(paintedBeforeSubmit).toBeGreaterThan(0)
 
@@ -51,6 +43,5 @@ test('a live stroke appears while drawing and is preserved on submit', async ({ 
     const { room } = await api.getRoom(roomCode)
     const submittedDrawing = room.drawings['LiveDrawTester']
     expect(submittedDrawing.startsWith('data:image/')).toBe(true)
-    // A blank 640x480 PNG is a few hundred bytes; a stroke pushes this well past that.
     expect(submittedDrawing.length).toBeGreaterThan(1000)
 })

@@ -1,4 +1,5 @@
 import { test, expect } from '@playwright/test'
+import { API_URL, RoomApi } from './helpers/api'
 
 /**
  * User Story 3: As a player, I want to be able to use an invite code to join
@@ -44,4 +45,34 @@ test('a player can join a room using the host-provided invite code', async ({ br
 
     await hostContext.close()
     await playerContext.close()
+})
+
+test('a ninth player is rejected without mutating an eight-player room', async ({ request }) => {
+    const api = new RoomApi(request)
+    const created = await api.createRoom('HostPlayer')
+
+    for (let playerNumber = 1; playerNumber <= 7; playerNumber++) {
+        const result = await api.joinRoom(created.roomCode, `Player${playerNumber}`)
+        expect(result.success).toBe(true)
+    }
+
+    const beforeOverflow = await api.getRoom(created.roomCode)
+    expect(beforeOverflow.room.players).toHaveLength(8)
+
+    const overflowResponse = await request.post(`${API_URL}/rooms/join`, {
+        data: {
+            roomCode: created.roomCode,
+            playerName: 'Player8',
+        },
+    })
+
+    expect(overflowResponse.status()).toBe(409)
+    await expect(overflowResponse.json()).resolves.toMatchObject({
+        success: false,
+        message: 'Room is full (8 players maximum).',
+    })
+
+    const afterOverflow = await api.getRoom(created.roomCode)
+    expect(afterOverflow.room.players).toHaveLength(8)
+    expect(afterOverflow.room.players.map((player) => player.name)).not.toContain('Player8')
 })

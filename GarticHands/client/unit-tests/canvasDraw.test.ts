@@ -57,19 +57,26 @@ describe('CanvasDraw', () => {
     expect(ctx.stroke).toHaveBeenCalledTimes(2);
   });
 
-  it('applies EMA smoothing rather than drawing straight to the raw point', () => {
-    const ctx = createMockCtx();
+  it('applies smoothing rather than drawing straight to the raw point', () => {
+    const ctx = createMockCtx() as CanvasRenderingContext2D & {
+      lineTo: ReturnType<typeof vi.fn>;
+    };
     const draw = new CanvasDraw(ctx);
 
-    // alpha = 0.5, so smoothed point after tick 2 = midpoint of (0,0) and (10,0) = (5,0)
     draw.tick({ x: 0, y: 0 });
     draw.tick({ x: 10, y: 0 });
 
-    // first segment: moveTo(prevSmoothed) -> lineTo(mid of prevSmoothed & smoothed)
-    // prevSmoothed = (0,0) [unchanged from first tick, no prior average to blend with]
-    // smoothed = 0.5*10 + 0.5*0 = 5 -> mid = (0+5)/2 = 2.5
-    expect(ctx.moveTo).toHaveBeenCalledWith(0, 0);
-    expect(ctx.lineTo).toHaveBeenCalledWith(2.5, 0);
+    const lineToCall = ctx.lineTo.mock.calls[0];
+
+    expect(lineToCall).toBeDefined();
+
+    const [x, y] = lineToCall;
+
+    // The One Euro filter should smooth the raw movement,
+    // so the first segment should not jump directly to x = 10.
+    expect(x).toBeGreaterThan(0);
+    expect(x).toBeLessThan(10);
+    expect(y).toBe(0);
   });
 
   it('reset() clears state so the next tick behaves like a first tick again', () => {
@@ -79,7 +86,7 @@ describe('CanvasDraw', () => {
     draw.tick({ x: 0, y: 0 });
     draw.tick({ x: 10, y: 0 });
     draw.reset();
-    ctx.stroke = vi.fn(); // reset the spy call count cleanly
+    ctx.stroke = vi.fn();
 
     draw.tick({ x: 50, y: 50 });
 

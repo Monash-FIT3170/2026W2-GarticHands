@@ -4,12 +4,12 @@
  * Component tests for `<Avatar />` (client/src/components/ui/Avatar).
  *
  * `Avatar` renders one of five visual variants used across different screens:
- *  - 'guest':      large white circle with a person icon (landing page).
- *  - 'host-large':  header avatar showing the host's initial letter (or "H"
+ *  - 'guest':      large surface-coloured circle with a person icon.
+ *  - 'host-large': header avatar showing the host's initial letter (or "H"
  *                    as a fallback) instead of the person icon.
- *  - 'host-row':    small avatar in the player list for the host.
- *  - 'player-row':  small avatar in the player list for a regular player.
- *  - 'empty-row':   small avatar for an empty/unfilled player slot.
+ *  - 'host-row':   small avatar in the player list for the host.
+ *  - 'player-row': small avatar in the player list for a regular player.
+ *  - 'empty-row':  small avatar for an empty/unfilled player slot.
  *
  * The real `PersonIcon` is mocked out here so tests can assert on exactly
  * what size class it was given, without depending on its internal SVG markup.
@@ -43,17 +43,23 @@ describe('Avatar', () => {
   test('defaults to the guest variant when no variant is given', () => {
     const { container } = render(<Avatar />)
 
-    // Guest shell: white circle, larger 24-unit size, no border classes.
-    expect(container.firstChild).toHaveClass('bg-white', 'rounded-full', 'w-24', 'h-24')
+    // Guest shell: surface colour, larger 24-unit size, no border classes.
+    expect(container.firstChild).toHaveClass(
+      'bg-[var(--surface)]',
+      'rounded-full',
+      'w-24',
+      'h-24',
+    )
   })
 
   test('renders the person icon at the larger guest size', () => {
     render(<Avatar variant="guest" />)
 
-    // Guest is the only variant that renders the icon at the bigger 14-unit
-    // size, with the orange accent colour.
+    // Guest uses the action colour for its larger person icon.
     expect(mockPersonIcon).toHaveBeenCalledWith(
-      expect.objectContaining({ className: 'w-14 h-14 text-[#D4623E]' }),
+      expect.objectContaining({
+        className: 'w-14 h-14 text-[var(--action)]',
+      }),
     )
   })
 
@@ -72,6 +78,7 @@ describe('Avatar', () => {
 
     // Lowercase input should be uppercased for display.
     expect(getByText('A')).toBeInTheDocument()
+
     // host-large never renders PersonIcon, it shows a letter instead.
     expect(mockPersonIcon).not.toHaveBeenCalled()
   })
@@ -86,22 +93,23 @@ describe('Avatar', () => {
   test('applies the host-row shell classes', () => {
     const { container } = render(<Avatar variant="host-row" />)
 
-    // Orange border + solid white background distinguishes the host row
-    // avatar from the player-row (transparent bg) and empty-row (teal) ones.
+    // Host row uses the action colour for its border and text with a
+    // surface-coloured background.
     expect(container.firstChild).toHaveClass(
-      'border-[#D4623E]',
-      'text-[#D4623E]',
-      'bg-white',
+      'border-[var(--action)]',
+      'text-[var(--action)]',
+      'bg-[var(--surface)]',
     )
   })
 
   test('applies the player-row shell classes', () => {
     const { container } = render(<Avatar variant="player-row" />)
 
-    // Same orange border/text as host-row, but transparent background.
+    // Player row uses the action colour for its border and text with a
+    // transparent background.
     expect(container.firstChild).toHaveClass(
-      'border-[#D4623E]',
-      'text-[#D4623E]',
+      'border-[var(--action)]',
+      'text-[var(--action)]',
       'bg-transparent',
     )
   })
@@ -109,12 +117,12 @@ describe('Avatar', () => {
   test('applies the empty-row shell classes', () => {
     const { container } = render(<Avatar variant="empty-row" />)
 
-    // Teal border/text/background distinguishes an unfilled lobby slot from
-    // an occupied one (which uses orange).
+    // Empty row uses the primary text colour for its border and text,
+    // together with the dedicated empty-avatar background.
     expect(container.firstChild).toHaveClass(
-      'border-[#3D6B64]',
-      'text-[#3D6B64]',
-      'bg-[#8EBAB3]',
+      'border-[var(--text-primary)]',
+      'text-[var(--text-primary)]',
+      'bg-[var(--empty-avatar-bg)]',
     )
   })
 })

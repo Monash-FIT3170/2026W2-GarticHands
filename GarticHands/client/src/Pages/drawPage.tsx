@@ -8,6 +8,7 @@ import {
   useDrawingMode,
   useRecorder,
 } from '../drawing';
+import type { DrawingTool } from '../drawing/components/Canvas';
 import { Card, Button, RoundHeader, CountdownTimer } from '../components/ui';
 import { getRoom, submitDrawing, PhaseConflictStatus } from '../api/room';
 import { usePhaseAdvance } from '../hooks/usePhaseAdvance';
@@ -36,7 +37,8 @@ function DrawPageInner() {
   const { getDrawingImage } = useDrawing();
   const recorder = useRecorder();
   const { saveRecording } = useRecordings();
-  const [mode, setMode] = useDrawingMode();
+  const [mode, setMode] = useDrawingMode('overlay');
+  const [tool, setTool] = useState<DrawingTool>('draw');
   const [drawingEnabled, setDrawingEnabled] = useState(false);
   const [submitted, setSubmitted] = useState(false);
   const [error, setError] = useState('');
@@ -69,7 +71,6 @@ function DrawPageInner() {
     if (roundNum === null) return;
     if (!recorder.isSupported) return;
     startedRef.current = true;
-    // Slight delay so the camera canvas has mounted and started drawing frames.
     const t = setTimeout(() => void recorder.start(), 400);
     return () => clearTimeout(t);
     // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -96,9 +97,6 @@ function DrawPageInner() {
     setSubmitted(true);
     setError('');
 
-    // Stop recording in parallel with the submit. `stop()` resolves with `null`
-    // if nothing was being recorded, so no isRecording-state check is needed —
-    // that check was racy (state lags by a render) and silently dropped saves.
     const [data, blobUrl] = await Promise.all([
       submitDrawing(roomCode, playerName, dataUrl),
       recorder.stop(),
@@ -114,8 +112,6 @@ function DrawPageInner() {
     }
 
     if (!data.success) {
-      // Raced the phase deadline: the server already moved everyone on and
-      // recorded a blank drawing. Stay submitted and let the phase poll navigate.
       if (data.status === PhaseConflictStatus) return;
       setError(data.message || 'Failed to submit drawing.');
       setSubmitted(false);
@@ -132,65 +128,88 @@ function DrawPageInner() {
     if (!submitted) void handleSubmit();
   }
 
+  const actionLabel =
+    tool === 'draw'
+      ? drawingEnabled
+        ? 'Stop Drawing'
+        : 'Start Drawing'
+      : drawingEnabled
+        ? 'Stop Erasing'
+        : 'Start Erasing';
+
   return (
     <div className="background !justify-start">
-      <Card variant="glass" className="w-full !max-w-5xl">
-        <div className="flex items-start justify-between mb-3 gap-4">
-          <div>
+      <Card variant="lobby" className="!max-w-5xl !rounded-[22px] !p-4 md:!p-6">
+        <div className="mb-3 flex flex-col items-stretch justify-between gap-3 md:flex-row md:items-center">
+          <div className="flex justify-center md:justify-start">
             <RoundHeader round={room?.round ?? 1} totalRounds={room?.maxRounds ?? 4} />
-            <h1 className="text-3xl">Draw with your hands</h1>
-            {prompt && (
-              <p className="text-sm text-white/80 mt-1">
-                Your prompt: <span className="font-semibold">{prompt}</span>
-              </p>
-            )}
           </div>
-          <CountdownTimer
-            seconds={TotalTime}
-            secondsLeft={secondsLeft}
-            paused={submitted}
-            onExpire={handleExpire}
+
+          <DrawingModePicker
+            mode={mode}
+            onModeChange={setMode}
+            disabled={submitted}
+            className="!m-0 flex justify-center"
           />
+
+          <div className="flex justify-center md:justify-end">
+            <div className="flex items-center gap-1 rounded-full bg-white px-4 py-1.5 text-xs font-bold text-[var(--action)]">
+              <span>Time left:</span>
+              <CountdownTimer
+                seconds={TotalTime}
+                secondsLeft={secondsLeft}
+                paused={submitted}
+                onExpire={handleExpire}
+                suffix="s"
+                className="!text-[var(--action)]"
+              />
+            </div>
+          </div>
         </div>
 
-        <DrawingModePicker mode={mode} onModeChange={setMode} disabled={submitted} />
-        <DrawingStage mode={mode} drawingEnabled={drawingEnabled} />
+        <DrawingStage
+          mode={mode}
+          drawingEnabled={drawingEnabled}
+          tool={tool}
+          onToolChange={setTool}
+          presentation="game"
+          prompt={prompt}
+          toolbarActions={
+            <div className="flex shrink-0 items-center gap-2">
+              <Button
+                type="button"
+                onClick={() => setDrawingEnabled((enabled) => !enabled)}
+                disabled={submitted}
+                className={`whitespace-nowrap !rounded-lg !px-3 !py-2 text-sm font-bold text-white transition-colors ${
+                  drawingEnabled
+                    ? 'bg-[var(--action)] hover:bg-[var(--action-strong)]'
+                    : 'bg-[var(--success)] hover:bg-[var(--success-hover)]'
+                } ${submitted ? 'cursor-not-allowed opacity-50' : ''}`}
+              >
+                {actionLabel}
+              </Button>
+              <Button
+                variant="submit"
+                size="sm"
+                onClick={() => void handleSubmit()}
+                disabled={submitted}
+                className="!rounded-lg !border-2 !border-[var(--success)] !bg-white !px-3 !py-2 text-sm !text-[var(--success)] hover:!bg-white/90"
+              >
+                Submit Drawing
+              </Button>
+            </div>
+          }
+        />
 
-        <p className="text-xs text-white/70 mt-4 text-center">
-          Pinch your index finger and thumb to draw &middot; Open palm to erase
-        </p>
+        {submitted && !error && (
+          <p className="mt-3 text-center text-sm text-[var(--text-muted)]">
+            {waitingFor > 0
+              ? `Waiting for ${waitingFor} other player${waitingFor === 1 ? '' : 's'}...`
+              : 'Starting guessing phase...'}
+          </p>
+        )}
 
-        <div className="flex justify-center mt-4">
-          <Button
-            type="button"
-            onClick={() => setDrawingEnabled((enabled) => !enabled)}
-            disabled={submitted}
-            className={`px-6 py-3 rounded-lg font-bold text-white transition-colors ${
-              drawingEnabled ? 'bg-red-600 hover:bg-red-700' : 'bg-green-600 hover:bg-green-700'
-            } ${submitted ? 'opacity-50 cursor-not-allowed' : ''}`}
-          >
-            {drawingEnabled ? 'Stop Drawing' : 'Start Drawing'}
-          </Button>
-        </div>
-
-        <div className="flex flex-col items-end mt-4 gap-2">
-          <Button
-            variant="submit"
-            size="sm"
-            onClick={() => void handleSubmit()}
-            disabled={submitted}
-          >
-            Submit Drawing
-          </Button>
-          {submitted && !error && (
-            <p className="text-sm text-white/80">
-              {waitingFor > 0
-                ? `Waiting for ${waitingFor} other player${waitingFor === 1 ? '' : 's'}...`
-                : 'Starting guessing phase...'}
-            </p>
-          )}
-          {error && <p className="text-sm text-red-300">{error}</p>}
-        </div>
+        {error && <p className="mt-3 text-center text-sm text-[var(--action)]">{error}</p>}
       </Card>
     </div>
   );

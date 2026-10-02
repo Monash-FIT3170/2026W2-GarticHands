@@ -47,7 +47,9 @@ describe('Page', () => {
   test('hides the top right buttons when topRight is false', () => {
     render(<Page topRight={false}>Content</Page>)
 
-    expect(screen.queryByTestId('top-right-buttons')).not.toBeInTheDocument()
+    expect(
+      screen.queryByTestId('top-right-buttons'),
+    ).not.toBeInTheDocument()
   })
 
   test('does not show the logo by default', () => {
@@ -69,13 +71,19 @@ describe('Page', () => {
       </Page>,
     )
 
-    expect(screen.getByTestId('logo')).toHaveAttribute('data-compact', 'true')
+    expect(screen.getByTestId('logo')).toHaveAttribute(
+      'data-compact',
+      'true',
+    )
   })
 
   test('logo defaults to non compact when compactLogo is not set', () => {
     render(<Page logo>Content</Page>)
 
-    expect(screen.getByTestId('logo')).toHaveAttribute('data-compact', 'false')
+    expect(screen.getByTestId('logo')).toHaveAttribute(
+      'data-compact',
+      'false',
+    )
   })
 
   test('defaults to the centered layout classes', () => {
@@ -94,14 +102,16 @@ describe('Page', () => {
   test('applies the default background class', () => {
     const { container } = render(<Page>Content</Page>)
 
-    expect(container.firstChild).toHaveClass('bg-[#6FADA0]')
+    expect(container.firstChild).toHaveClass('bg-[var(--page-bg)]')
   })
 
   test('applies a custom background class when given', () => {
-    const { container } = render(<Page background="bg-red-500">Content</Page>)
+    const { container } = render(
+      <Page background="bg-red-500">Content</Page>,
+    )
 
     expect(container.firstChild).toHaveClass('bg-red-500')
-    expect(container.firstChild).not.toHaveClass('bg-[#6FADA0]')
+    expect(container.firstChild).not.toHaveClass('bg-[var(--page-bg)]')
   })
 
   test('applies the default padding classes', () => {
@@ -111,7 +121,9 @@ describe('Page', () => {
   })
 
   test('applies custom padding classes when given', () => {
-    const { container } = render(<Page padding="px-8 py-2">Content</Page>)
+    const { container } = render(
+      <Page padding="px-8 py-2">Content</Page>,
+    )
 
     expect(container.firstChild).toHaveClass('px-8', 'py-2')
   })
