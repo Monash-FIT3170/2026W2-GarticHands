@@ -51,13 +51,16 @@ Orchestration: [`docker-compose.yml`](docker-compose.yml) · config: [`.env.exam
 | 5 | **Game rules** | `MAX_ROUNDS`, phase order, `submitForPhase`, cyclic assignment in `server/index.js` | more rounds, scoring, new phases | the phase machine is one function + a phase string |
 | 6 | **Input method** | [`client/src/drawing/`](client/src/drawing/) (MediaPipe + canvas) | mouse/stylus/touch input | `Pages/drawPage.tsx` consumes a `<Canvas>` + tracker interface |
 | 7 | **Container runtime** | `server/Dockerfile`, `client/Dockerfile`, `client/nginx.conf` | different base images, extra services, CDN | services talk over the compose network by name |
-| 8 | **LLM (prescribed)** | *not present yet* → add `server/ai/` with `providers/` | any provider via `LLM_PROVIDER` | calls go through `chat(messages, model_profile)`, never a vendor SDK directly |
+| 8 | **LLM (prescribed)** | [`server/ai/chat.js`](server/ai/chat.js) + `server/ai/providers/` | any provider via `LLM_PROVIDER` | calls go through `chat(messages, model_profile)`, never a vendor SDK directly |
 
 ### Seam 8 in detail — the LLM adapter (for when AI is added)
 
-Gartic Hands has **no AI today**. When someone adds it (AI guesser, prompt
-generator, drawing scorer), it must land behind a forkable adapter so the fork
-isn't locked to one vendor:
+The first AI feature, the prompt generator, is in place (see
+[`server/README.md` § AI](server/README.md#ai)). Every further AI feature (AI
+guesser, AI drawer, judge) must land behind the same adapter so the fork isn't
+locked to one vendor. Groq, Ollama, OpenRouter and OpenAI all speak the OpenAI
+wire format, so they currently share one adapter, `openaiCompatible.js`; a
+provider with a different API gets its own file. The layout:
 
 ```
 server/

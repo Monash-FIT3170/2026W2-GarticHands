@@ -8,7 +8,7 @@ import {
   useDrawingMode,
 } from '../drawing';
 import { Card, Button, CountdownTimer } from '../components/ui';
-import { randomPrompt } from '../data/prompts';
+import { usePromptQueue } from '../hooks/usePromptQueue';
 
 const TotalTime = 60;
 
@@ -18,9 +18,10 @@ interface SavedDrawing {
 }
 
 /**
- * Single-player practice mode. The computer hands you a random prompt from
- * `data/prompts.ts`; you draw it; save a snapshot or skip to a fresh word.
- * No timer-forced submit, no networking.
+ * Single-player practice mode. The computer hands you a prompt (fresh ones from
+ * the server's AI prompt generator, falling back to `data/prompts.ts`); you draw
+ * it; save a snapshot or skip to a new word. Prompts don't repeat within a
+ * session. No timer-forced submit.
  */
 export default function SoloPage() {
   return (
@@ -34,7 +35,7 @@ function SoloInner() {
   const navigate = useNavigate();
   const { getDrawingImage } = useDrawing();
   const [mode, setMode] = useDrawingMode();
-  const [prompt, setPrompt] = useState<string>(() => randomPrompt());
+  const { prompt, next: nextPrompt } = usePromptQueue();
   const [results, setResults] = useState<SavedDrawing[]>([]);
   const [timerKey, setTimerKey] = useState(0);
 
@@ -45,7 +46,7 @@ function SoloInner() {
   }
 
   function handleNext() {
-    setPrompt(randomPrompt());
+    nextPrompt();
     setTimerKey((k) => k + 1);
   }
 

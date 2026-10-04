@@ -90,6 +90,8 @@ Single file. Three responsibilities:
 2. **In-memory state** — a `rooms` object keyed by 6-char alphanumeric room code. No persistence; restart = data loss. Intentional for now.
 3. **Socket.IO broadcast hub** — events listed in [`server/README.md`](server/README.md#socket-events).
 
+AI calls live in `server/ai/` behind `chat(messages, profile)`; see [`server/README.md` § AI](server/README.md#ai). The client reaches them only through `client/src/api/ai.ts`.
+
 After any REST mutation that affects a room, the server emits `io.to(roomCode).emit('room-update', room)` so future socket-aware clients can drop the 1s polling.
 
 ## Data shapes (canonical)
@@ -141,7 +143,7 @@ Every timed phase has a server-owned deadline. `prompt`, `draw`, and `guess` run
 The server is the only clock that matters:
 
 - `setPhase(room, phase)` in `server/index.js` stamps `room.phaseEndsAt` and arms a `setTimeout`. Every transition goes through it, so a deadline can never be stale and a timer can never outlive its phase.
-- When the timer fires, missing submissions are filled in — a random `FALLBACK_PROMPTS` entry for the prompt phase, `''` for a drawing or a guess — and the room advances. One idle player can no longer stall everyone.
+- When the timer fires, missing submissions are filled in — an AI-generated prompt for the prompt phase (generated in the background when the phase opened; see [`server/README.md` § AI](server/README.md#ai)), falling back to a random `FALLBACK_PROMPTS` entry, and `''` for a drawing or a guess — and the room advances. One idle player can no longer stall everyone.
 - Clients don't run their own clock. `GET /rooms/:code` returns `serverTime` alongside the room, and [`usePhaseAdvance`](client/src/hooks/usePhaseAdvance.ts) counts down `phaseEndsAt - serverTime`, so every player sees the same number regardless of browser clock skew.
 - Clients still auto-submit at zero so in-progress work isn't discarded. The server waits an extra 1.5 s grace before forcing the advance, so that submit wins the race; if it doesn't, the `409` is treated as "too late, follow the room".
 
