@@ -15,7 +15,7 @@
  *   LLM_TIMEOUT_MS      per-request timeout, default 8000.
  */
 
-const { complete } = require('./providers/openaiCompatible')
+const { complete } = require('./providers/openaiCompatible');
 
 /**
  * Profiles describe what a caller needs, not which model it gets:
@@ -30,9 +30,8 @@ const PROVIDERS = {
     keyEnv: 'GROQ_API_KEY',
     keyRequired: true,
     models: {
-      fast: 'llama-3.1-8b-instant',
-      smart: 'llama-3.3-70b-versatile',
-      vision: 'meta-llama/llama-4-scout-17b-16e-instruct',
+      fast: 'openai/gpt-oss-20b',
+      smart: 'openai/gpt-oss-120b',
     },
   },
   // Local and free. Run `ollama pull llama3.2` first. No key needed.
@@ -50,26 +49,26 @@ const PROVIDERS = {
     keyRequired: false,
     models: {},
   },
-}
+};
 
-const DEFAULT_TIMEOUT_MS = 8000
+const DEFAULT_TIMEOUT_MS = 8000;
 
 function providerName() {
-  return (process.env.LLM_PROVIDER || 'groq').toLowerCase()
+  return (process.env.LLM_PROVIDER || 'groq').toLowerCase();
 }
 
 /** Resolve the provider preset plus env overrides, or null if it can't be used. */
 function resolveConfig(profile) {
-  const preset = PROVIDERS[providerName()]
-  if (!preset) return null
+  const preset = PROVIDERS[providerName()];
+  if (!preset) return null;
 
-  const baseUrl = process.env.LLM_BASE_URL || preset.baseUrl
-  const apiKey = preset.keyEnv ? process.env[preset.keyEnv] : undefined
-  const model = process.env[`LLM_MODEL_${profile.toUpperCase()}`] || preset.models[profile]
+  const baseUrl = process.env.LLM_BASE_URL || preset.baseUrl;
+  const apiKey = preset.keyEnv ? process.env[preset.keyEnv] : undefined;
+  const model = process.env[`LLM_MODEL_${profile.toUpperCase()}`] || preset.models[profile];
 
-  if (!baseUrl || !model) return null
-  if (preset.keyRequired && !apiKey) return null
-  return { baseUrl, apiKey, model }
+  if (!baseUrl || !model) return null;
+  if (preset.keyRequired && !apiKey) return null;
+  return { baseUrl, apiKey, model };
 }
 
 /**
@@ -77,28 +76,32 @@ function resolveConfig(profile) {
  * should go straight to their static fallback without touching the network.
  */
 function isAiEnabled(profile = 'fast') {
-  if (process.env.AI_ENABLED === 'false') return false
-  return resolveConfig(profile) !== null
+  if (process.env.AI_ENABLED === 'false') return false;
+  return resolveConfig(profile) !== null;
 }
 
 /**
  * Send `messages` to the configured provider and return the reply text.
  * Throws when AI is disabled or the request fails; callers must catch.
  */
-async function chat(messages, profile = 'fast', { json = true, temperature = 0.4, timeoutMs } = {}) {
-  if (process.env.AI_ENABLED === 'false') throw new Error('AI is disabled (AI_ENABLED=false)')
+async function chat(
+  messages,
+  profile = 'fast',
+  { json = true, temperature = 0.4, timeoutMs } = {},
+) {
+  if (process.env.AI_ENABLED === 'false') throw new Error('AI is disabled (AI_ENABLED=false)');
 
-  const config = resolveConfig(profile)
-  if (!config) throw new Error(`AI provider '${providerName()}' is not configured`)
+  const config = resolveConfig(profile);
+  if (!config) throw new Error(`AI provider '${providerName()}' is not configured`);
 
-  const envTimeout = Number(process.env.LLM_TIMEOUT_MS)
+  const envTimeout = Number(process.env.LLM_TIMEOUT_MS);
   return complete({
     ...config,
     messages,
     json,
     temperature,
     timeoutMs: timeoutMs || (envTimeout > 0 ? envTimeout : DEFAULT_TIMEOUT_MS),
-  })
+  });
 }
 
 /**
@@ -107,13 +110,13 @@ async function chat(messages, profile = 'fast', { json = true, temperature = 0.4
  */
 function parseJsonReply(text) {
   try {
-    return JSON.parse(text)
+    return JSON.parse(text);
   } catch {
-    const start = text.indexOf('{')
-    const end = text.lastIndexOf('}')
-    if (start === -1 || end <= start) throw new Error('LLM reply was not JSON')
-    return JSON.parse(text.slice(start, end + 1))
+    const start = text.indexOf('{');
+    const end = text.lastIndexOf('}');
+    if (start === -1 || end <= start) throw new Error('LLM reply was not JSON');
+    return JSON.parse(text.slice(start, end + 1));
   }
 }
 
-module.exports = { chat, isAiEnabled, parseJsonReply, PROVIDERS }
+module.exports = { chat, isAiEnabled, parseJsonReply, PROVIDERS };
