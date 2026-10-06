@@ -231,7 +231,7 @@ function CardsView({ chains }: { chains: RevealChain[] }) {
           className="bg-[var(--surface-soft)] border border-[var(--surface-border)] rounded-xl p-4"
         >
           <p className="text-sm text-[var(--text-muted)]">
-            <span className="font-semibold">{chain.drawer.name}</span> wrote:{' '}
+            <span className="font-semibold">{chain.drawer.name}</span> drew:{' '}
             <span className="italic">&quot;{chain.prompt || '(no prompt)'}&quot;</span>
           </p>
 
@@ -410,3 +410,4 @@ function RecordingsView({ recordings }: { recordings: Recording[] }) {
     </div>
   );
 }
+
