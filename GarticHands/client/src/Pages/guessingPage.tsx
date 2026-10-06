@@ -3,7 +3,7 @@ import { useLocation, useNavigate } from 'react-router-dom';
 import { Button, RoundHeader, CountdownTimer } from '../components/ui';
 import { getRoom, submitGuess, PhaseConflictStatus } from '../api/room';
 import { usePhaseAdvance } from '../hooks/usePhaseAdvance';
-import type { Player, DrawLocationState } from '../types/room';
+import type { DrawLocationState } from '../types/room';
 import BackgroundRays from '../components/ui/BackgroundRays';
 
 const MaxChars = 120;
@@ -34,17 +34,15 @@ export default function GuessingPage() {
     void getRoom(roomCode).then((data) => {
       if (!data.success || !data.room) return;
 
-      const players: Player[] = data.room.players.filter(
-        (p) => !p.joinedMidRound,
-      );
+      const target = data.room.guessTargets?.[playerName];
 
-      const myIndex = players.findIndex((p) => p.name === playerName);
-      if (myIndex === -1) return;
+      if (!target) {
+        setDrawingLoaded(true);
+        return;
+      }
 
-      const target = players[(myIndex + 1) % players.length];
-
-      setTargetName(target.name);
-      setDrawing((data.room.drawings && data.room.drawings[target.name]) || '');
+      setTargetName(target);
+      setDrawing((data.room.drawings && data.room.drawings[target]) || '');
       setDrawingLoaded(true);
     });
   }, [roomCode, playerName, navigate]);
