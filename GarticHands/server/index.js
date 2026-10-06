@@ -181,6 +181,131 @@ function defaultSubmission(phase) {
 }
 
 /**
+ * Create the prompt assignment for the current round.
+ *
+ * `promptTargets[drawer]` is the name of the player whose prompt that drawer
+ * must draw.
+ *
+ * Every active player receives exactly one other player's prompt.
+ * The offset changes each round so players do not repeatedly receive the
+ * same prompt source where possible.
+ */
+function createPromptTargets(room) {
+  const players = activePlayers(room)
+
+  room.promptTargets = {}
+
+  if (players.length < 2) {
+    return
+  }
+
+  /*
+   * Offset is always between 1 and players.length - 1, which guarantees
+   * that nobody receives their own prompt.
+   *
+   * Example with three players:
+   *
+   * Alice -> receives Bob's prompt
+   * Bob -> receives Charlie's prompt
+   * Charlie -> receives Alice's prompt
+   */
+  const offset =
+    ((room.round - 1) % (players.length - 1)) + 1
+
+  players.forEach((player, index) => {
+    const promptAuthorIndex = (index + offset) % players.length
+    room.promptTargets[player.name] =
+      players[promptAuthorIndex].name
+  })
+}
+
+/**
+ * Create the Classic guess assignment for the current round.
+ *
+ * `guessTargets[guesser]` is the name of the player whose drawing that
+ * guesser must guess.
+ *
+ * The target is deliberately different from:
+ *   1. the guesser themselves
+ *   2. the player whose prompt the guesser received
+ *
+ * This prevents a Classic player from guessing the same player's drawing
+ * that they gave their prompt to.
+ */
+function createGuessTargets(room) {
+  const players = activePlayers(room)
+
+  room.guessTargets = {}
+
+  if (players.length < 3) {
+    return
+  }
+
+  /*
+   * The prompt assignment uses an offset of at least 1.
+   *
+   * We use the next available offset after the prompt assignment for guesses.
+   * For three players this gives the only valid third player.
+   *
+   * For larger rooms, the offset changes with the round where possible while
+   * still avoiding the prompt recipient and the guesser themselves.
+   */
+  const promptOffset =
+    ((room.round - 1) % (players.length - 1)) + 1
+
+  let guessOffset =
+    (promptOffset + 1) % players.length
+
+  if (guessOffset === 0) {
+    guessOffset = 1
+  }
+
+  /*
+   * With three players, the only valid guess target is two positions away.
+   * For larger rooms, keep searching until the target is neither the player
+   * themselves nor the recipient of their prompt.
+   */
+  players.forEach((player, index) => {
+    for (let step = 1; step < players.length; step += 1) {
+      const targetIndex =
+        (index + guessOffset + step - 1) % players.length
+      const target = players[targetIndex]
+
+      const promptRecipient = players[
+        (index + promptOffset) % players.length
+      ]
+
+      if (
+        target.name !== player.name &&
+        target.name !== promptRecipient.name
+      ) {
+        room.guessTargets[player.name] = target.name
+        return
+      }
+    }
+  })
+}
+
+/**
+ * Move from the prompt phase to the drawing phase.
+ *
+ * Prompt assignments are created only after every prompt has been submitted
+ * or fallback prompts have been inserted. This means the assignment always
+ * uses the players who actually participated in the prompt phase.
+ */
+function startDrawPhase(room) {
+  createPromptTargets(room)
+
+  if (room.mode === 'classic') {
+    createGuessTargets(room)
+  } else {
+    room.guessTargets = {}
+  }
+
+  setPhase(room, 'draw')
+}
+
+/**
  * Create the rating assignment for the current round.
  *
  * Every active player rates exactly one other active player's drawing.
@@ -258,7 +383,12 @@ function expirePhase(roomCode, expectedPhase) {
     }
   }
 
-  if (room.mode === 'leaderboard' && expectedPhase === 'draw') {
+  if (expectedPhase === 'prompt') {
+    startDrawPhase(room)
+  } else if (
+    room.mode === 'leaderboard' &&
+    expectedPhase === 'draw'
+  ) {
     startRatingPhase(room)
   } else {
     setPhase(room, NEXT_PHASE[expectedPhase])
@@ -306,12 +436,34 @@ function removePlayer(room, playerName) {
   delete room.guesses[playerName]
   delete room.ratings[playerName]
 
+  if (room.promptTargets) {
+    delete room.promptTargets[playerName]
+
+    for (const recipient of Object.keys(room.promptTargets)) {
+      if (room.promptTargets[recipient] === playerName) {
+        delete room.promptTargets[recipient]
+      }
+    }
+  }
+
   if (room.guessTargets) {
     delete room.guessTargets[playerName]
+
+    for (const guesser of Object.keys(room.guessTargets)) {
+      if (room.guessTargets[guesser] === playerName) {
+        delete room.guessTargets[guesser]
+      }
+    }
   }
 
   if (room.ratingTargets) {
     delete room.ratingTargets[playerName]
+
+    for (const rater of Object.keys(room.ratingTargets)) {
+      if (room.ratingTargets[rater] === playerName) {
+        delete room.ratingTargets[rater]
+      }
+    }
   }
 
   if (gone.isHost) {
@@ -348,7 +500,12 @@ function advanceIfPhaseComplete(room) {
     return false
   }
 
-  if (room.mode === 'leaderboard' && room.phase === 'draw') {
+  if (room.phase === 'prompt') {
+    startDrawPhase(room)
+  } else if (
+    room.mode === 'leaderboard' &&
+    room.phase === 'draw'
+  ) {
     startRatingPhase(room)
   } else {
     setPhase(room, NEXT_PHASE[room.phase])
@@ -447,6 +604,7 @@ app.post('/rooms/create', (req, res) => {
     maxRounds: selectedMaxRounds,
 
     prompts: {},
+    promptTargets: {},
     drawings: {},
 
     // Classic
@@ -662,6 +820,7 @@ app.patch('/rooms/:roomCode/start', (req, res) => {
   room.round = 1
 
   room.prompts = {}
+  room.promptTargets = {}
   room.drawings = {}
 
   // Classic
@@ -716,6 +875,7 @@ app.patch('/rooms/:roomCode/restart', (req, res) => {
   room.status = 'started'
 
   room.prompts = {}
+  room.promptTargets = {}
   room.drawings = {}
 
   // Classic
@@ -764,6 +924,7 @@ app.patch('/rooms/:roomCode/end', (req, res) => {
   room.round = 1
 
   room.prompts = {}
+  room.promptTargets = {}
   room.drawings = {}
 
   // Classic
@@ -893,7 +1054,7 @@ function submitForPhase(
           message:
             'You joined mid-round — you can play from the next round',
         },
-      },
+      }
     }
   }
 
@@ -905,7 +1066,7 @@ function submitForPhase(
           success: false,
           message: 'Invalid submission',
         },
-      },
+      }
     }
   }
 
@@ -986,14 +1147,32 @@ app.post('/rooms/:roomCode/drawings', (req, res) => {
 /**
  * Classic guess submission.
  *
- * This is intentionally unchanged in behaviour so Classic Mode continues
- * using guessingPage.tsx.
+ * The target is assigned by the server at the start of the draw phase.
+ * The client cannot choose a different drawing to guess.
  */
 app.post('/rooms/:roomCode/guesses', (req, res) => {
   const roomCode = req.params.roomCode.toUpperCase()
-  const { playerName, guess, of } = req.body
+  const { playerName, guess } = req.body
 
   const trimmed = (guess || '').trim()
+
+  const room = rooms[roomCode]
+
+  if (!room) {
+    return res.status(404).json({
+      success: false,
+      message: 'Room not found',
+    })
+  }
+
+  const target = room.guessTargets?.[playerName]
+
+  if (!target) {
+    return res.status(409).json({
+      success: false,
+      message: 'No drawing has been assigned to this player.',
+    })
+  }
 
   const result = submitForPhase(
     roomCode,
@@ -1001,11 +1180,9 @@ app.post('/rooms/:roomCode/guesses', (req, res) => {
     trimmed,
     'guess',
     (v) => typeof v === 'string',
-    (room) => {
-      if (typeof of === 'string' && of.length > 0) {
-        room.guessTargets = room.guessTargets || {}
-        room.guessTargets[playerName] = of
-      }
+    (room, player) => {
+      room.guessTargets = room.guessTargets || {}
+      room.guessTargets[player.name] = target
     },
   )
 
@@ -1072,26 +1249,26 @@ app.post('/rooms/:roomCode/ratings', (req, res) => {
       v >= 0 &&
       v <= 100,
     (room, player) => {
-    room.ratingTargets = room.ratingTargets || {}
-    room.ratings = room.ratings || {}
-    room.scores = {}
+      room.ratingTargets = room.ratingTargets || {}
+      room.ratings = room.ratings || {}
+      room.scores = {}
 
-    room.ratings[player.name] = numericRating
+      room.ratings[player.name] = numericRating
 
-    // Recalculate scores from all submitted ratings.
-    for (const raterName of Object.keys(room.ratings)) {
-      const targetName = room.ratingTargets[raterName]
-      const playerRating = room.ratings[raterName]
+      // Recalculate scores from all submitted ratings.
+      for (const raterName of Object.keys(room.ratings)) {
+        const targetName = room.ratingTargets[raterName]
+        const playerRating = room.ratings[raterName]
 
-      if (
-        targetName &&
-        typeof playerRating === 'number'
-      ) {
-        room.scores[targetName] =
-          (room.scores[targetName] || 0) + playerRating
+        if (
+          targetName &&
+          typeof playerRating === 'number'
+        ) {
+          room.scores[targetName] =
+            (room.scores[targetName] || 0) + playerRating
+        }
       }
-    }
-},
+    },
   )
 
   if (result.error) {

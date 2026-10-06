@@ -1,9 +1,9 @@
 import { useEffect, useState } from 'react';
 import { useLocation, useNavigate } from 'react-router-dom';
 import { Button, RoundHeader, CountdownTimer } from '../components/ui';
-import { getRoom, submitGuess, PhaseConflictStatus } from '../api/room';
+import { submitGuess, PhaseConflictStatus } from '../api/room';
 import { usePhaseAdvance } from '../hooks/usePhaseAdvance';
-import type { Player, DrawLocationState } from '../types/room';
+import type { DrawLocationState } from '../types/room';
 import BackgroundRays from '../components/ui/BackgroundRays';
 
 const MaxChars = 120;
@@ -25,30 +25,6 @@ export default function GuessingPage() {
   const drawnBy = targetName ?? '...';
   const [drawingLoaded, setDrawingLoaded] = useState(false);
 
-  useEffect(() => {
-    if (!roomCode || !playerName) {
-      void navigate('/');
-      return;
-    }
-
-    void getRoom(roomCode).then((data) => {
-      if (!data.success || !data.room) return;
-
-      const players: Player[] = data.room.players.filter(
-        (p) => !p.joinedMidRound,
-      );
-
-      const myIndex = players.findIndex((p) => p.name === playerName);
-      if (myIndex === -1) return;
-
-      const target = players[(myIndex + 1) % players.length];
-
-      setTargetName(target.name);
-      setDrawing((data.room.drawings && data.room.drawings[target.name]) || '');
-      setDrawingLoaded(true);
-    });
-  }, [roomCode, playerName, navigate]);
-
   const { waitingFor, room, secondsLeft } = usePhaseAdvance({
     roomCode,
     playerName,
@@ -57,6 +33,23 @@ export default function GuessingPage() {
     to: '/game',
     countBucket: 'guesses',
   });
+
+  useEffect(() => {
+    if (!room || !playerName) return;
+
+    const target = room.guessTargets?.[playerName];
+
+    if (!target) {
+      setTargetName(undefined);
+      setDrawing('');
+      setDrawingLoaded(true);
+      return;
+    }
+
+    setTargetName(target);
+    setDrawing(room.drawings?.[target] ?? '');
+    setDrawingLoaded(true);
+  }, [room, playerName]);
 
   async function handleSubmit(allowEmpty = false) {
     const trimmed = guess.trim();
@@ -75,7 +68,11 @@ export default function GuessingPage() {
     );
 
     if (!data.success) {
-      if (data.status === PhaseConflictStatus) return;
+      if (data.status === PhaseConflictStatus) {
+        setSubmitted(false);
+        setError(data.message || 'The guessing phase has already ended.');
+        return;
+      }
 
       setError(data.message || 'Failed to submit guess.');
       setSubmitted(false);
@@ -99,6 +96,7 @@ export default function GuessingPage() {
       style={{ background: 'var(--page-gradient)' }}
     >
       <BackgroundRays />
+
       {/* Left background doodles */}
       <div className="hidden lg:block absolute left-[3%] top-[18%] pointer-events-none opacity-70">
         <svg
@@ -206,7 +204,7 @@ export default function GuessingPage() {
           />
 
           <path
-            d="M120 350 L123 359 L132 362 L123 365 L120 374 L117 365 L108 362 L117 359 Z"
+            d="M120 350 L123 359 L132 362 L123 365 L120 374 L117 365 L108 362 Z"
             fill="var(--action)"
           />
 
