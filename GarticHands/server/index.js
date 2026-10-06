@@ -272,7 +272,7 @@ function createGuessTargets(room) {
       const target = players[targetIndex]
 
       const promptRecipient = players[
-        (index - promptOffset + players.length) % players.length
+        (index + promptOffset) % players.length
       ]
 
       if (
