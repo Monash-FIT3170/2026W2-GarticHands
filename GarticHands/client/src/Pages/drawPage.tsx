@@ -56,8 +56,12 @@ function DrawPageInner() {
 
     void getRoom(roomCode).then((data) => {
       if (data.success && data.room) {
-        if (data.room.prompts) {
-          setPrompt(data.room.prompts[playerName] || '');
+        const promptAuthor = data.room.promptTargets?.[playerName];
+
+        if (promptAuthor && data.room.prompts) {
+          setPrompt(data.room.prompts[promptAuthor] || '');
+        } else {
+          setPrompt('');
         }
 
         setRoundNum(data.room.round ?? 1);
