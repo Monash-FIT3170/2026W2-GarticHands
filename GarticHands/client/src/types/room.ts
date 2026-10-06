@@ -58,6 +58,11 @@ export interface Room {
   round: number;
   maxRounds: number;
   prompts: Record<string, string>;
+  /**
+   * Drawer name → prompt author name. The server assigns which player's prompt
+   * each drawer receives at the start of the drawing phase.
+   */
+  promptTargets?: Record<string, string>;
   drawings: Record<string, string>;
   guesses: Record<string, string>;
   /**
