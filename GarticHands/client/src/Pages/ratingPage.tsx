@@ -57,8 +57,11 @@ export default function RatingPage() {
         return;
       }
 
+      const drawings: Record<string, string> = data.room.drawings;
+      const targetDrawing: string = drawings[target] || '';
+
       setTargetName(target);
-      setDrawing(data.room.drawings?.[target] || '');
+      setDrawing(targetDrawing);
       setRound(data.room.round ?? 1);
       setMaxRounds(data.room.maxRounds ?? 4);
     }
