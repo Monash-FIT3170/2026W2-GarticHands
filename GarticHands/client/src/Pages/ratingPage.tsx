@@ -48,7 +48,9 @@ export default function RatingPage() {
         return;
       }
 
-      const target = data.room.ratingTargets?.[playerName];
+      const ratingTargets: Record<string, string> =
+        data.room.ratingTargets ?? {};
+      const target: string | undefined = ratingTargets[playerName];
 
       if (!target) {
         setError('No rating target was assigned.');
