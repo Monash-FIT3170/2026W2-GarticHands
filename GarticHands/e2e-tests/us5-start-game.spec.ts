@@ -12,6 +12,7 @@ test('host can start the game once all players are ready, navigating everyone to
     const hostPage = await hostContext.newPage()
     await hostPage.goto('/')
     await hostPage.getByPlaceholder('Enter username...').fill('HostPlayer')
+    await hostPage.getByRole('button', { name: 'Classic' }).click()
     await hostPage.getByRole('button', { name: 'Host Game' }).click()
     await expect(hostPage).toHaveURL('/host')
 
@@ -22,6 +23,7 @@ test('host can start the game once all players are ready, navigating everyone to
     const playerPage = await playerContext.newPage()
     await playerPage.goto('/')
     await playerPage.getByPlaceholder('Enter username...').fill('JoinerPlayer')
+    await playerPage.getByRole('button', { name: 'Classic' }).click()
     await playerPage.getByRole('button', { name: 'Join Room' }).click()
     await playerPage.getByPlaceholder('ABC123').fill(roomCode)
     await playerPage.getByRole('button', { name: 'Join Game' }).click()
