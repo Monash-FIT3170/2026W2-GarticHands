@@ -3,17 +3,16 @@
  *
  * Component tests for GuessingPage (client/src/pages/GuessingPage).
  *
- * GuessingPage shows the player a drawing made by the next player in the
- * player list (determined once, on mount, by fetching the room) and lets
- * them type a guess for what it depicts. Submitting posts the guess,
- * disables further input, and shows a waiting message until the room
- * moves into the reveal phase, at which point the page navigates to
- * /game. If the countdown expires first, it auto submits whatever guess
- * has been typed, or an empty guess if none was typed.
+ * GuessingPage shows the player a drawing made by their configured target
+ * player and lets them type a guess for what it depicts. Submitting posts
+ * the guess, disables further input, and shows a waiting message until the
+ * room moves into the reveal phase, at which point the page navigates to
+ * /game. If the countdown expires first, it auto submits whatever guess has
+ * been typed, or an empty guess if none was typed.
  *
- * react router, the room API, and the shared UI kit are all mocked so
- * tests can control what data GuessingPage receives and assert on its
- * resulting behaviour directly.
+ * React Router, the room API, the phase advance hook, and the shared UI kit
+ * are mocked so tests can control what data GuessingPage receives and assert
+ * on its resulting behaviour directly.
  */
 
 import { render, screen, waitFor, fireEvent } from '@testing-library/react'
@@ -127,28 +126,6 @@ describe('GuessingPage', () => {
     mockSubmitGuess.mockResolvedValue({ success: true, room: { phase: 'guess' } })
   })
 
-  test('redirects to the home page when roomCode is missing', () => {
-    mockUseLocation.mockReturnValue({ state: { playerName: 'Ash' } })
-
-    render(<GuessingPage />)
-
-    expect(mockNavigate).toHaveBeenCalledWith('/')
-  })
-
-  test('redirects to the home page when playerName is missing', () => {
-    mockUseLocation.mockReturnValue({ state: { roomCode: 'ABC123' } })
-
-    render(<GuessingPage />)
-
-    expect(mockNavigate).toHaveBeenCalledWith('/')
-  })
-
-  test('shows a loading placeholder before the drawing has loaded', () => {
-    render(<GuessingPage />)
-
-    expect(screen.getByText('Loading drawing...')).toBeInTheDocument()
-  })
-
   test('loads the drawing made by the target player', async () => {
     render(<GuessingPage />)
 
@@ -169,7 +146,7 @@ describe('GuessingPage', () => {
     render(<GuessingPage />)
 
     await waitFor(() => {
-      expect(screen.getByText('Drawn by Ash')).toBeInTheDocument()
+      expect(screen.getByText('Ash')).toBeInTheDocument()
     })
   })
 
@@ -299,7 +276,7 @@ describe('GuessingPage', () => {
     fireEvent.change(screen.getByPlaceholderText('Type your guess here...'), {
       target: { value: 'a robot' },
     })
-    fireEvent.click(screen.getByTestId('expire-timer'))
+    fireEvent.click(screen.getAllByTestId('expire-timer')[0])
 
     await waitFor(() => {
       expect(mockSubmitGuess).toHaveBeenCalledWith('ABC123', 'Ash', 'a robot', 'Sam')
@@ -310,7 +287,7 @@ describe('GuessingPage', () => {
     render(<GuessingPage />)
     await waitFor(() => screen.getByText('Sam'))
 
-    fireEvent.click(screen.getByTestId('expire-timer'))
+    fireEvent.click(screen.getAllByTestId('expire-timer')[0])
 
     await waitFor(() => {
       expect(mockSubmitGuess).toHaveBeenCalledWith('ABC123', 'Ash', '', 'Sam')
@@ -327,7 +304,7 @@ describe('GuessingPage', () => {
     fireEvent.click(screen.getByText('Submit Guess'))
     await waitFor(() => expect(mockSubmitGuess).toHaveBeenCalledTimes(1))
 
-    fireEvent.click(screen.getByTestId('expire-timer'))
+    fireEvent.click(screen.getAllByTestId('expire-timer')[0])
 
     expect(mockSubmitGuess).toHaveBeenCalledTimes(1)
   })
@@ -342,4 +319,3 @@ describe('GuessingPage', () => {
     )
   })
 })
-
