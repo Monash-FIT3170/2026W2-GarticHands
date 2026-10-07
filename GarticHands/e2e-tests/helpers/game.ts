@@ -2,7 +2,6 @@ import type { Page } from '@playwright/test'
 import { expect } from '@playwright/test'
 import type { Landmark } from './gestures'
 
-/** Waits for the hand-tracking seam to be wired up, then sends one synthetic frame. */
 export async function sendHandFrame(page: Page, landmarks: Landmark[] | null, gesture: string) {
     await page.waitForFunction(() => !!(window as unknown as GhWindow).__ghTestHooks?.injectHandFrame)
     await page.evaluate(
@@ -13,18 +12,12 @@ export async function sendHandFrame(page: Page, landmarks: Landmark[] | null, ge
     )
 }
 
-/**
- * Enables the `useHandTracking` test seam (bypasses the real camera/MediaPipe
- * pipeline) for the lifetime of this page's session. Must be called before
- * the first `page.goto()` so it's set before `/draw` ever mounts.
- */
 export async function enableHandTrackingTestSeam(page: Page) {
     await page.addInitScript(() => {
         window.sessionStorage.setItem('gh:e2eHands', '1')
     })
 }
 
-/** Minimal shape of the test-only global exposed by `useHandTracking.ts`. */
 interface GhWindow {
     __ghTestHooks?: {
         injectHandFrame?: (landmarks: Landmark[] | null, gesture: string) => void
@@ -32,10 +25,8 @@ interface GhWindow {
 }
 
 /**
- * Solo host-only flow from the landing page all the way to `/draw`: host a
- * room (a lone host is always "ready"), start it, submit the prompt, and land
- * on the drawing page with the hand-tracking test seam already enabled.
- * Returns the room code (read via the "Copy Room Code" clipboard action).
+ * Drives a host through the landing page to `/draw` using two API-created
+ * fixture players to satisfy Classic Mode's three-player minimum.
  */
 export async function reachDrawPageSolo(page: Page, hostName: string): Promise<string> {
     await enableHandTrackingTestSeam(page)
@@ -48,27 +39,90 @@ export async function reachDrawPageSolo(page: Page, hostName: string): Promise<s
 
     await page.getByRole('button', { name: 'Copy Room Code' }).click()
     const roomCode = await page.evaluate(() => navigator.clipboard.readText())
+    await page.getByRole('button', { name: 'OK', exact: true }).click()
 
-    await page.getByRole('button', { name: 'Start Game' }).click()
+    const apiBase = 'http://localhost:3000'
+
+    for (const playerName of ['FixturePlayer2', 'FixturePlayer3']) {
+        await page.evaluate(
+            async ({ apiBase, roomCode, playerName }) => {
+                const joinResponse = await fetch(`${apiBase}/rooms/join`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ roomCode, playerName }),
+                })
+
+                if (!joinResponse.ok) {
+                    throw new Error(`Failed to join fixture player ${playerName}`)
+                }
+
+                const readyResponse = await fetch(`${apiBase}/rooms/${roomCode}/ready`, {
+                    method: 'PATCH',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ playerName, ready: true }),
+                })
+
+                if (!readyResponse.ok) {
+                    throw new Error(`Failed to ready fixture player ${playerName}`)
+                }
+            },
+            { apiBase, roomCode, playerName },
+        )
+    }
+
+    // Wait for the host lobby to receive both fixture players.
+    await expect(page.getByText('PLAYERS 3/8')).toBeVisible({ timeout: 5000 })
+
+    const startButton = page.getByRole('button', {
+        name: 'Start Game',
+        exact: true,
+    })
+
+    await expect(startButton).toBeVisible({ timeout: 5000 })
+    await expect(startButton).toBeEnabled({ timeout: 5000 })
+    await startButton.click()
+
     await expect(page).toHaveURL('/input', { timeout: 5000 })
 
-    await page.locator('input.text.box').fill('a fixture prompt')
+    // Submit the host's prompt through the real UI.
+    await page.getByPlaceholder('What should they draw?').fill('a fixture prompt')
     await page.getByRole('button', { name: 'Submit' }).click()
 
+    // Submit prompts for the fixture players after the game has started.
+    for (const playerName of ['FixturePlayer2', 'FixturePlayer3']) {
+        await page.evaluate(
+            async ({ apiBase, roomCode, playerName }) => {
+                const promptResponse = await fetch(`${apiBase}/rooms/${roomCode}/prompts`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        playerName,
+                        prompt: `fixture prompt from ${playerName}`,
+                    }),
+                })
+
+                if (!promptResponse.ok) {
+                    throw new Error(`Failed to submit prompt for ${playerName}`)
+                }
+            },
+            { apiBase, roomCode, playerName },
+        )
+    }
+
     await expect(page).toHaveURL('/draw', { timeout: 5000 })
+
     return roomCode
 }
 
 /** On `/input`: types and submits a prompt. */
 export async function submitPromptUI(page: Page, prompt: string) {
-    await page.locator('input.text.box').fill(prompt)
+    await page.getByPlaceholder('What should they draw?').fill(prompt)
     await page.getByRole('button', { name: 'Submit' }).click()
 }
 
 /**
  * On `/draw`: waits long enough for the real (fake-camera-fed) recorder to
- * collect at least one chunk, then submits the drawing as-is (a blank canvas
- * is still a valid `data:image/...` payload the server accepts).
+ * collect at least one chunk, then submits the drawing as-is.
  */
 export async function submitDrawingUI(page: Page) {
     await page.waitForTimeout(1500)

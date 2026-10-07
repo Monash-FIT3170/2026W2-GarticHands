@@ -57,6 +57,7 @@ test('all inputs, buttons, and images expose accessible names', async ({ page })
 
 test('primary text is not visually clipped by its container', async ({ page }) => {
     await page.goto('/')
+    await page.getByPlaceholder('Enter username...').fill('player1')
     await page.getByRole('button', { name: /Classic Play with friends/ }).click()
 
     const heading = page.getByRole('button', { name: 'Host Game', exact: true })

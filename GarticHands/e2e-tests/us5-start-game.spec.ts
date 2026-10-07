@@ -18,6 +18,7 @@ test('host can start the game once all players are ready, navigating everyone to
 
     await hostPage.getByRole('button', { name: 'Copy Room Code' }).click()
     const roomCode = await hostPage.evaluate(() => navigator.clipboard.readText())
+    await hostPage.getByRole('button', { name: 'OK', exact: true }).click()
 
     const playerContext = await browser.newContext()
     const playerPage = await playerContext.newPage()

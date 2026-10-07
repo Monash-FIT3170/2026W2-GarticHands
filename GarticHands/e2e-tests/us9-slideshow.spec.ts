@@ -23,6 +23,7 @@ test('slideshow cycles through every drawing/prompt/guess, manually and automati
 
     await hostPage.getByRole('button', { name: 'Copy Room Code' }).click()
     const roomCode = await hostPage.evaluate(() => navigator.clipboard.readText())
+    await hostPage.getByRole('button', { name: 'OK', exact: true }).click()
 
     const playerContext = await browser.newContext()
     const playerPage = await playerContext.newPage()

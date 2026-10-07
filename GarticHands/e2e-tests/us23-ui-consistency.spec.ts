@@ -49,6 +49,7 @@ test.describe('consistent branding across pages', () => {
 
     test('every top-level page exposes exactly one primary heading region', async ({ page }) => {
         await page.goto('/')
+        await page.getByPlaceholder('Enter username...').fill('player1')
         await page.getByRole('button', { name: /Classic Play with friends/ }).click()
 
         // Landing page has no <h1>/<h2> chrome of its own — Card content stands in;
