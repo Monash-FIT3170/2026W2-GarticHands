@@ -85,9 +85,8 @@ vi.mock('../client/src/components/ui', () => ({
   ),
 }))
 
-// Three player fixture room used across most tests. From Ash's point of
-// view, the next player in the list is Sam, so Ash should be shown Sam's
-// drawing.
+// Three player fixture room used across most tests. The room explicitly
+// provides the server-owned guess target for each player.
 function makeRoomResponse() {
   return {
     success: true as const,
@@ -104,6 +103,10 @@ function makeRoomResponse() {
       maxRounds: 4,
       prompts: {},
       drawings: { Sam: 'data:image/png;base64,samdrawing' },
+      guessTargets: {
+        Ash: 'Sam',
+        Alex: 'Ash',
+      },
       guesses: {},
       createdAt: 1,
     },
@@ -146,7 +149,7 @@ describe('GuessingPage', () => {
     expect(screen.getByText('Loading drawing...')).toBeInTheDocument()
   })
 
-  test('loads the drawing made by the next player after the current player', async () => {
+  test('loads the drawing made by the target player', async () => {
     render(<GuessingPage />)
 
     await waitFor(() => {
@@ -158,7 +161,7 @@ describe('GuessingPage', () => {
     )
   })
 
-  test('wraps around the player list when the current player is last', async () => {
+  test('uses the configured target when the current player is Alex', async () => {
     mockUseLocation.mockReturnValue({
       state: { roomCode: 'ABC123', playerName: 'Alex' },
     })
@@ -176,7 +179,7 @@ describe('GuessingPage', () => {
 
     expect(screen.getByText('Submit Guess')).toBeDisabled()
 
-    fireEvent.change(screen.getByPlaceholderText('What is this drawing?'), {
+    fireEvent.change(screen.getByPlaceholderText('Type your guess here...'), {
       target: { value: 'a robot' },
     })
 
@@ -187,7 +190,7 @@ describe('GuessingPage', () => {
     render(<GuessingPage />)
     await waitFor(() => screen.getByText('Drawn by Sam'))
 
-    fireEvent.change(screen.getByPlaceholderText('What is this drawing?'), {
+    fireEvent.change(screen.getByPlaceholderText('Type your guess here...'), {
       target: { value: '   ' },
     })
 
@@ -198,7 +201,7 @@ describe('GuessingPage', () => {
     render(<GuessingPage />)
     await waitFor(() => screen.getByText('Drawn by Sam'))
 
-    fireEvent.change(screen.getByPlaceholderText('What is this drawing?'), {
+    fireEvent.change(screen.getByPlaceholderText('Type your guess here...'), {
       target: { value: '  a robot  ' },
     })
     fireEvent.click(screen.getByText('Submit Guess'))
@@ -206,7 +209,7 @@ describe('GuessingPage', () => {
     await waitFor(() => {
       expect(mockSubmitGuess).toHaveBeenCalledWith('ABC123', 'Ash', 'a robot', 'Sam')
     })
-    expect(screen.getByPlaceholderText('What is this drawing?')).toBeDisabled()
+    expect(screen.getByPlaceholderText('Type your guess here...')).toBeDisabled()
   })
 
   test('navigates to /game once the submission moves the room into the reveal phase', async () => {
@@ -218,7 +221,7 @@ describe('GuessingPage', () => {
     render(<GuessingPage />)
     await waitFor(() => screen.getByText('Drawn by Sam'))
 
-    fireEvent.change(screen.getByPlaceholderText('What is this drawing?'), {
+    fireEvent.change(screen.getByPlaceholderText('Type your guess here...'), {
       target: { value: 'a robot' },
     })
     fireEvent.click(screen.getByText('Submit Guess'))
@@ -239,7 +242,7 @@ describe('GuessingPage', () => {
     render(<GuessingPage />)
     await waitFor(() => screen.getByText('Drawn by Sam'))
 
-    fireEvent.change(screen.getByPlaceholderText('What is this drawing?'), {
+    fireEvent.change(screen.getByPlaceholderText('Type your guess here...'), {
       target: { value: 'a robot' },
     })
     fireEvent.click(screen.getByText('Submit Guess'))
@@ -248,7 +251,7 @@ describe('GuessingPage', () => {
       expect(screen.getByText('Room is full.')).toBeInTheDocument()
     })
     expect(screen.getByText('Submit Guess')).not.toBeDisabled()
-    expect(screen.getByPlaceholderText('What is this drawing?')).not.toBeDisabled()
+    expect(screen.getByPlaceholderText('Type your guess here...')).not.toBeDisabled()
   })
 
   test('shows a waiting message with correct pluralisation after submitting', async () => {
@@ -260,7 +263,7 @@ describe('GuessingPage', () => {
     render(<GuessingPage />)
     await waitFor(() => screen.getByText('Drawn by Sam'))
 
-    fireEvent.change(screen.getByPlaceholderText('What is this drawing?'), {
+    fireEvent.change(screen.getByPlaceholderText('Type your guess here...'), {
       target: { value: 'a robot' },
     })
     fireEvent.click(screen.getByText('Submit Guess'))
@@ -279,7 +282,7 @@ describe('GuessingPage', () => {
     render(<GuessingPage />)
     await waitFor(() => screen.getByText('Drawn by Sam'))
 
-    fireEvent.change(screen.getByPlaceholderText('What is this drawing?'), {
+    fireEvent.change(screen.getByPlaceholderText('Type your guess here...'), {
       target: { value: 'a robot' },
     })
     fireEvent.click(screen.getByText('Submit Guess'))
@@ -293,7 +296,7 @@ describe('GuessingPage', () => {
     render(<GuessingPage />)
     await waitFor(() => screen.getByText('Drawn by Sam'))
 
-    fireEvent.change(screen.getByPlaceholderText('What is this drawing?'), {
+    fireEvent.change(screen.getByPlaceholderText('Type your guess here...'), {
       target: { value: 'a robot' },
     })
     fireEvent.click(screen.getByTestId('expire-timer'))
@@ -318,7 +321,7 @@ describe('GuessingPage', () => {
     render(<GuessingPage />)
     await waitFor(() => screen.getByText('Drawn by Sam'))
 
-    fireEvent.change(screen.getByPlaceholderText('What is this drawing?'), {
+    fireEvent.change(screen.getByPlaceholderText('Type your guess here...'), {
       target: { value: 'a robot' },
     })
     fireEvent.click(screen.getByText('Submit Guess'))
@@ -333,9 +336,10 @@ describe('GuessingPage', () => {
     render(<GuessingPage />)
     await waitFor(() => screen.getByText('Drawn by Sam'))
 
-    expect(screen.getByPlaceholderText('What is this drawing?')).toHaveAttribute(
+    expect(screen.getByPlaceholderText('Type your guess here...')).toHaveAttribute(
       'maxLength',
       '120',
     )
   })
 })
+
