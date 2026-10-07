@@ -153,7 +153,7 @@ describe('GuessingPage', () => {
     render(<GuessingPage />)
 
     await waitFor(() => {
-      expect(screen.getByText('Drawn by Sam')).toBeInTheDocument()
+      expect(screen.getByText('Sam')).toBeInTheDocument()
     })
     expect(screen.getByAltText('Drawing by Sam')).toHaveAttribute(
       'src',
@@ -175,7 +175,7 @@ describe('GuessingPage', () => {
 
   test('submit is disabled until a guess is typed', async () => {
     render(<GuessingPage />)
-    await waitFor(() => screen.getByText('Drawn by Sam'))
+    await waitFor(() => screen.getByText('Sam'))
 
     expect(screen.getByText('Submit Guess')).toBeDisabled()
 
@@ -188,7 +188,7 @@ describe('GuessingPage', () => {
 
   test('submit is disabled when the guess is only whitespace', async () => {
     render(<GuessingPage />)
-    await waitFor(() => screen.getByText('Drawn by Sam'))
+    await waitFor(() => screen.getByText('Sam'))
 
     fireEvent.change(screen.getByPlaceholderText('Type your guess here...'), {
       target: { value: '   ' },
@@ -199,7 +199,7 @@ describe('GuessingPage', () => {
 
   test('submitting sends the trimmed guess and disables the input', async () => {
     render(<GuessingPage />)
-    await waitFor(() => screen.getByText('Drawn by Sam'))
+    await waitFor(() => screen.getByText('Sam'))
 
     fireEvent.change(screen.getByPlaceholderText('Type your guess here...'), {
       target: { value: '  a robot  ' },
@@ -219,7 +219,7 @@ describe('GuessingPage', () => {
     })
 
     render(<GuessingPage />)
-    await waitFor(() => screen.getByText('Drawn by Sam'))
+    await waitFor(() => screen.getByText('Sam'))
 
     fireEvent.change(screen.getByPlaceholderText('Type your guess here...'), {
       target: { value: 'a robot' },
@@ -240,7 +240,7 @@ describe('GuessingPage', () => {
     })
 
     render(<GuessingPage />)
-    await waitFor(() => screen.getByText('Drawn by Sam'))
+    await waitFor(() => screen.getByText('Sam'))
 
     fireEvent.change(screen.getByPlaceholderText('Type your guess here...'), {
       target: { value: 'a robot' },
@@ -261,7 +261,7 @@ describe('GuessingPage', () => {
     })
 
     render(<GuessingPage />)
-    await waitFor(() => screen.getByText('Drawn by Sam'))
+    await waitFor(() => screen.getByText('Sam'))
 
     fireEvent.change(screen.getByPlaceholderText('Type your guess here...'), {
       target: { value: 'a robot' },
@@ -280,7 +280,7 @@ describe('GuessingPage', () => {
     })
 
     render(<GuessingPage />)
-    await waitFor(() => screen.getByText('Drawn by Sam'))
+    await waitFor(() => screen.getByText('Sam'))
 
     fireEvent.change(screen.getByPlaceholderText('Type your guess here...'), {
       target: { value: 'a robot' },
@@ -294,7 +294,7 @@ describe('GuessingPage', () => {
 
   test('the timer expiring auto submits the typed guess', async () => {
     render(<GuessingPage />)
-    await waitFor(() => screen.getByText('Drawn by Sam'))
+    await waitFor(() => screen.getByText('Sam'))
 
     fireEvent.change(screen.getByPlaceholderText('Type your guess here...'), {
       target: { value: 'a robot' },
@@ -308,7 +308,7 @@ describe('GuessingPage', () => {
 
   test('the timer expiring with no typed guess auto submits an empty guess', async () => {
     render(<GuessingPage />)
-    await waitFor(() => screen.getByText('Drawn by Sam'))
+    await waitFor(() => screen.getByText('Sam'))
 
     fireEvent.click(screen.getByTestId('expire-timer'))
 
@@ -319,7 +319,7 @@ describe('GuessingPage', () => {
 
   test('the timer expiring after submission does not submit again', async () => {
     render(<GuessingPage />)
-    await waitFor(() => screen.getByText('Drawn by Sam'))
+    await waitFor(() => screen.getByText('Sam'))
 
     fireEvent.change(screen.getByPlaceholderText('Type your guess here...'), {
       target: { value: 'a robot' },
@@ -334,7 +334,7 @@ describe('GuessingPage', () => {
 
   test('limits the guess input to the configured maximum length', async () => {
     render(<GuessingPage />)
-    await waitFor(() => screen.getByText('Drawn by Sam'))
+    await waitFor(() => screen.getByText('Sam'))
 
     expect(screen.getByPlaceholderText('Type your guess here...')).toHaveAttribute(
       'maxLength',
