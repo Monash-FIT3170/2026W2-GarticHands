@@ -17,6 +17,7 @@ test('a player can join a room using the host-provided invite code', async ({ br
 
     await hostPage.goto('/')
     await hostPage.getByPlaceholder('Enter username...').fill('HostPlayer')
+    await hostPage.getByRole('button', { name: 'Classic' }).click()
     await hostPage.getByRole('button', { name: 'Host Game' }).click()
     await expect(hostPage).toHaveURL('/host')
 
@@ -29,6 +30,7 @@ test('a player can join a room using the host-provided invite code', async ({ br
 
     await playerPage.goto('/')
     await playerPage.getByPlaceholder('Enter username...').fill('JoinerPlayer')
+    await playerPage.getByRole('button', { name: 'Classic' }).click()
     await playerPage.getByRole('button', { name: 'Join Room' }).click()
     await expect(playerPage).toHaveURL('/join')
 
