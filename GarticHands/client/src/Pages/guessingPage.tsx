@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react';
+import { useState } from 'react';
 import { useLocation, useNavigate } from 'react-router-dom';
 import { Button, RoundHeader, CountdownTimer } from '../components/ui';
 import { submitGuess, PhaseConflictStatus } from '../api/room';
@@ -20,10 +20,6 @@ export default function GuessingPage() {
   const [guess, setGuess] = useState('');
   const [submitted, setSubmitted] = useState(false);
   const [error, setError] = useState('');
-  const [drawing, setDrawing] = useState<string>('');
-  const [targetName, setTargetName] = useState<string | undefined>(undefined);
-  const drawnBy = targetName ?? '...';
-  const [drawingLoaded, setDrawingLoaded] = useState(false);
 
   const { waitingFor, room, secondsLeft } = usePhaseAdvance({
     roomCode,
@@ -34,22 +30,11 @@ export default function GuessingPage() {
     countBucket: 'guesses',
   });
 
-  useEffect(() => {
-    if (!room || !playerName) return;
-
-    const target = room.guessTargets?.[playerName];
-
-    if (!target) {
-      setTargetName(undefined);
-      setDrawing('');
-      setDrawingLoaded(true);
-      return;
-    }
-
-    setTargetName(target);
-    setDrawing(room.drawings?.[target] ?? '');
-    setDrawingLoaded(true);
-  }, [room, playerName]);
+  const targetName =
+    room && playerName ? room.guessTargets?.[playerName] : undefined;
+  const drawnBy = targetName ?? '...';
+  const drawing = targetName ? room?.drawings?.[targetName] ?? '' : '';
+  const drawingLoaded = Boolean(room && playerName);
 
   async function handleSubmit(allowEmpty = false) {
     const trimmed = guess.trim();
