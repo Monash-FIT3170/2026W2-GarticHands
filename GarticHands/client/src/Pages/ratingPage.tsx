@@ -40,8 +40,11 @@ export default function RatingPage() {
       return;
     }
 
+    const currentRoomCode = roomCode;
+    const currentPlayerName = playerName;
+
     async function loadRoom() {
-      const data = await getRoom(roomCode);
+      const data = await getRoom(currentRoomCode);
 
       if (!data.success || !data.room) {
         setError('Unable to load the rating.');
@@ -50,7 +53,8 @@ export default function RatingPage() {
 
       const ratingTargets: Record<string, string> =
         data.room.ratingTargets ?? {};
-      const target: string | undefined = ratingTargets[playerName];
+      const target: string | undefined =
+        ratingTargets[currentPlayerName];
 
       if (!target) {
         setError('No rating target was assigned.');
@@ -58,7 +62,7 @@ export default function RatingPage() {
       }
 
       const drawings: Record<string, string> = data.room.drawings;
-      const targetDrawing: string = drawings[target] || '';
+      const targetDrawing: string = drawings[target] ?? '';
 
       setTargetName(target);
       setDrawing(targetDrawing);

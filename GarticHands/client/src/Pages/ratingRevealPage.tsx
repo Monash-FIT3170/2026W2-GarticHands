@@ -33,6 +33,8 @@ export default function RatingRevealPage() {
       return;
     }
 
+    const currentPlayerName = playerName;
+
     let cancelled = false;
 
     async function loadRoom() {
@@ -48,14 +50,20 @@ export default function RatingRevealPage() {
       setMaxRounds(room.maxRounds ?? 4);
 
       const me = room.players.find(
-        (player) => player.name === playerName,
+        (player) => player.name === currentPlayerName,
       );
 
       setIsHost(me?.isHost ?? false);
 
-      setDrawing(room.drawings?.[playerName] || '');
+      const drawingEntry = Object.entries(room.drawings)
+        .find(([name]) => name === currentPlayerName);
+      const playerDrawing: string = drawingEntry?.[1] ?? '';
 
-      const receivedRating = room.ratings?.[playerName];
+      setDrawing(playerDrawing);
+
+      const receivedRating: number | undefined =
+        Object.entries(room.ratings)
+          .find(([name]) => name === currentPlayerName)?.[1];
 
       if (typeof receivedRating === 'number') {
         setRating(receivedRating);
@@ -63,7 +71,10 @@ export default function RatingRevealPage() {
 
       if (room.phase === 'leaderboard') {
         void navigate('/leaderboard', {
-          state: { roomCode, playerName },
+          state: {
+            roomCode,
+            playerName: currentPlayerName,
+          },
         });
       }
     }
