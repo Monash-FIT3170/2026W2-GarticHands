@@ -131,7 +131,7 @@ export async function submitDrawingUI(page: Page) {
 
 /** On `/guess`: types and submits a guess. */
 export async function submitGuessUI(page: Page, guess: string) {
-    await page.getByPlaceholder('What is this drawing?').fill(guess)
+    await page.getByPlaceholder('Type your guess here...').fill(guess)
     await page.getByRole('button', { name: 'Submit Guess' }).click()
 }
 

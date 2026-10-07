@@ -6,13 +6,14 @@ import { submitDrawingUI, submitGuessUI, submitPromptUI } from './helpers/game.j
  * prompts and drawings that occurred during the game, once the rounds have
  * concluded.
  *
- * Drives two real players through the full lobby -> prompt -> draw -> guess
- * flow via the UI (no API seeding, no direct navigation) until they land on
- * `/game` in the 'reveal' phase, then exercises the Slideshow tab: first
- * slide, manual Next/Prev, and `page.clock`-driven auto-advance every 4s.
+ * Drives three real players through the full lobby -> prompt -> draw -> guess
+ * flow via the UI until they land on `/game` in the 'reveal' phase, then
+ * exercises the Slideshow tab: first slide, manual Next/Prev, and
+ * page.clock-driven auto-advance every 4s.
  */
 test('slideshow cycles through every drawing/prompt/guess, manually and automatically', async ({ browser }) => {
     test.setTimeout(60_000)
+
     const hostContext = await browser.newContext()
     const hostPage = await hostContext.newPage()
     await hostPage.goto('/')
@@ -35,38 +36,57 @@ test('slideshow cycles through every drawing/prompt/guess, manually and automati
     await playerPage.getByRole('button', { name: 'Join Game' }).click()
     await expect(playerPage).toHaveURL(`/joined/${roomCode}`)
 
+    const thirdPlayerContext = await browser.newContext()
+    const thirdPlayerPage = await thirdPlayerContext.newPage()
+    await thirdPlayerPage.goto('/')
+    await thirdPlayerPage.getByPlaceholder('Enter username...').fill('ThirdPlayer')
+    await thirdPlayerPage.getByRole('button', { name: /Classic Play with friends/ }).click()
+    await thirdPlayerPage.getByRole('button', { name: 'Join Room', exact: true }).click()
+    await thirdPlayerPage.getByPlaceholder('ABC123').fill(roomCode)
+    await thirdPlayerPage.getByRole('button', { name: 'Join Game' }).click()
+    await expect(thirdPlayerPage).toHaveURL(`/joined/${roomCode}`)
+
     await playerPage.getByRole('button', { name: 'Ready Up' }).click()
+    await thirdPlayerPage.getByRole('button', { name: 'Ready Up' }).click()
+
     await hostPage.getByRole('button', { name: 'Start Game' }).click()
 
     await Promise.all([
         expect(hostPage).toHaveURL('/input'),
         expect(playerPage).toHaveURL('/input'),
+        expect(thirdPlayerPage).toHaveURL('/input'),
     ])
 
     await submitPromptUI(hostPage, "host's prompt")
     await submitPromptUI(playerPage, "joiner's prompt")
+    await submitPromptUI(thirdPlayerPage, "third player's prompt")
 
     await Promise.all([
         expect(hostPage).toHaveURL('/draw'),
         expect(playerPage).toHaveURL('/draw'),
+        expect(thirdPlayerPage).toHaveURL('/draw'),
     ])
 
     await Promise.all([
         submitDrawingUI(hostPage),
         submitDrawingUI(playerPage),
+        submitDrawingUI(thirdPlayerPage),
     ])
 
     await Promise.all([
         expect(hostPage).toHaveURL('/guess'),
         expect(playerPage).toHaveURL('/guess'),
+        expect(thirdPlayerPage).toHaveURL('/guess'),
     ])
 
     await submitGuessUI(hostPage, "host's guess")
     await submitGuessUI(playerPage, "joiner's guess")
+    await submitGuessUI(thirdPlayerPage, "third player's guess")
 
     await Promise.all([
         expect(hostPage).toHaveURL('/game'),
         expect(playerPage).toHaveURL('/game'),
+        expect(thirdPlayerPage).toHaveURL('/game'),
     ])
 
     await expect(hostPage.getByRole('heading', { name: 'Reveal' })).toBeVisible()
@@ -77,22 +97,29 @@ test('slideshow cycles through every drawing/prompt/guess, manually and automati
     await hostPage.getByRole('button', { name: 'Slideshow' }).click()
 
     // First slide.
-    await expect(hostPage.getByText('1 / 2')).toBeVisible()
+    await expect(hostPage.getByText('1 / 3')).toBeVisible()
     const firstDrawer = await hostPage.locator('span.font-semibold').first().innerText()
-    expect(['HostPlayer', 'JoinerPlayer']).toContain(firstDrawer)
+    expect(['HostPlayer', 'JoinerPlayer', 'ThirdPlayer']).toContain(firstDrawer)
 
     await hostPage.getByRole('button', { name: 'Next' }).click()
-    await expect(hostPage.getByText('2 / 2')).toBeVisible()
+    await expect(hostPage.getByText('2 / 3')).toBeVisible()
     const secondDrawer = await hostPage.locator('span.font-semibold').first().innerText()
     expect(secondDrawer).not.toBe(firstDrawer)
 
+    await hostPage.getByRole('button', { name: 'Next' }).click()
+    await expect(hostPage.getByText('3 / 3')).toBeVisible()
+    const thirdDrawer = await hostPage.locator('span.font-semibold').first().innerText()
+    expect(thirdDrawer).not.toBe(firstDrawer)
+    expect(thirdDrawer).not.toBe(secondDrawer)
+
     await hostPage.getByRole('button', { name: 'Prev' }).click()
-    await expect(hostPage.getByText('1 / 2')).toBeVisible()
+    await expect(hostPage.getByText('2 / 3')).toBeVisible()
 
     // Auto-advance: 4s per slide.
     await hostPage.clock.fastForward(4000)
-    await expect(hostPage.getByText('2 / 2')).toBeVisible()
+    await expect(hostPage.getByText('3 / 3')).toBeVisible()
 
     await hostContext.close()
     await playerContext.close()
+    await thirdPlayerContext.close()
 })
