@@ -20,10 +20,7 @@ async function expectNoSeriousViolations(page: import('@playwright/test').Page) 
     expect(serious, JSON.stringify(serious, null, 2)).toEqual([])
 }
 
-// The current product palette has known serious WCAG AA contrast violations.
-// Keep them visible in test output without making the E2E job fail until the
-// visual styles are corrected in the application.
-test.fail('landing page has no serious accessibility violations', async ({ page }) => {
+test('landing page has no serious accessibility violations', async ({ page }) => {
     await page.goto('/')
     await expect(page.getByPlaceholder('Enter username...')).toBeVisible()
     await expectNoSeriousViolations(page)
@@ -32,6 +29,7 @@ test.fail('landing page has no serious accessibility violations', async ({ page 
 test.fail('host lobby has no serious accessibility violations', async ({ page }) => {
     await page.goto('/')
     await page.getByPlaceholder('Enter username...').fill('player1')
+    await page.getByRole('button', { name: 'Classic' }).click()
     await page.getByRole('button', { name: 'Host Game' }).click()
     await expect(page).toHaveURL('/host')
     await expectNoSeriousViolations(page)
@@ -59,6 +57,8 @@ test('all inputs, buttons, and images expose accessible names', async ({ page })
 
 test('primary text is not visually clipped by its container', async ({ page }) => {
     await page.goto('/')
+    await page.getByRole('button', { name: 'Classic' }).click()
+
     const heading = page.getByRole('button', { name: 'Host Game' })
     const box = await heading.boundingBox()
     expect(box).not.toBeNull()
