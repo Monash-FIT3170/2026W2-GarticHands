@@ -17,8 +17,8 @@ test.describe('visual regression baselines', () => {
     test('host lobby', async ({ page }) => {
         await page.goto('/')
         await page.getByPlaceholder('Enter username...').fill('player1')
-        await page.getByRole('button', { name: 'Classic' }).click()
-        await page.getByRole('button', { name: 'Host Game' }).click()
+        await page.getByRole('button', { name: /Classic Play with friends/ }).click()
+        await page.getByRole('button', { name: 'Host Game', exact: true }).click()
         await expect(page).toHaveURL('/host')
         // The displayed room code is random per run, so it must be masked out
         // of the comparison — otherwise no baseline can ever match twice.
@@ -31,8 +31,8 @@ test.describe('visual regression baselines', () => {
     test('join page', async ({ page }) => {
         await page.goto('/')
         await page.getByPlaceholder('Enter username...').fill('player1')
-        await page.getByRole('button', { name: 'Classic' }).click()
-        await page.getByRole('button', { name: 'Join Room' }).click()
+        await page.getByRole('button', { name: /Classic Play with friends/ }).click()
+        await page.getByRole('button', { name: 'Join Room', exact: true }).click()
         await expect(page).toHaveURL('/join')
         await expect(page).toHaveScreenshot('join-page.png', { maxDiffPixels: 1000 })
     })

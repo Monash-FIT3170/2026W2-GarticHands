@@ -17,8 +17,8 @@ test('a player can join a room using the host-provided invite code', async ({ br
 
     await hostPage.goto('/')
     await hostPage.getByPlaceholder('Enter username...').fill('HostPlayer')
-    await hostPage.getByRole('button', { name: 'Classic' }).click()
-    await hostPage.getByRole('button', { name: 'Host Game' }).click()
+    await hostPage.getByRole('button', { name: /Classic Play with friends/ }).click()
+    await hostPage.getByRole('button', { name: 'Host Game', exact: true }).click()
     await expect(hostPage).toHaveURL('/host')
 
     await hostPage.getByRole('button', { name: 'Copy Room Code' }).click()
@@ -30,8 +30,8 @@ test('a player can join a room using the host-provided invite code', async ({ br
 
     await playerPage.goto('/')
     await playerPage.getByPlaceholder('Enter username...').fill('JoinerPlayer')
-    await playerPage.getByRole('button', { name: 'Classic' }).click()
-    await playerPage.getByRole('button', { name: 'Join Room' }).click()
+    await playerPage.getByRole('button', { name: /Classic Play with friends/ }).click()
+    await playerPage.getByRole('button', { name: 'Join Room', exact: true }).click()
     await expect(playerPage).toHaveURL('/join')
 
     await playerPage.getByPlaceholder('ABC123').fill(roomCode)

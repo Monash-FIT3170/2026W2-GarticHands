@@ -42,8 +42,8 @@ export async function reachDrawPageSolo(page: Page, hostName: string): Promise<s
 
     await page.goto('/')
     await page.getByPlaceholder('Enter username...').fill(hostName)
-    await page.getByRole('button', { name: 'Classic' }).click()
-    await page.getByRole('button', { name: 'Host Game' }).click()
+    await page.getByRole('button', { name: /Classic Play with friends/ }).click()
+    await page.getByRole('button', { name: 'Host Game', exact: true }).click()
     await expect(page).toHaveURL('/host')
 
     await page.getByRole('button', { name: 'Copy Room Code' }).click()

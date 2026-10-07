@@ -15,8 +15,8 @@ test('My Recordings shows a playable replay per round and Next advances between 
     test.setTimeout(60_000)
     await page.goto('/')
     await page.getByPlaceholder('Enter username...').fill('RecorderTester')
-    await page.getByRole('button', { name: 'Classic' }).click()
-    await page.getByRole('button', { name: 'Host Game' }).click()
+    await page.getByRole('button', { name: /Classic Play with friends/ }).click()
+    await page.getByRole('button', { name: 'Host Game', exact: true }).click()
     await expect(page).toHaveURL('/host')
     await page.getByRole('button', { name: 'Start Game' }).click()
 

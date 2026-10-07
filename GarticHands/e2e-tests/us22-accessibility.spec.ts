@@ -29,8 +29,8 @@ test('landing page has no serious accessibility violations', async ({ page }) =>
 test.fail('host lobby has no serious accessibility violations', async ({ page }) => {
     await page.goto('/')
     await page.getByPlaceholder('Enter username...').fill('player1')
-    await page.getByRole('button', { name: 'Classic' }).click()
-    await page.getByRole('button', { name: 'Host Game' }).click()
+    await page.getByRole('button', { name: /Classic Play with friends/ }).click()
+    await page.getByRole('button', { name: 'Host Game', exact: true }).click()
     await expect(page).toHaveURL('/host')
     await expectNoSeriousViolations(page)
 })
@@ -57,9 +57,9 @@ test('all inputs, buttons, and images expose accessible names', async ({ page })
 
 test('primary text is not visually clipped by its container', async ({ page }) => {
     await page.goto('/')
-    await page.getByRole('button', { name: 'Classic' }).click()
+    await page.getByRole('button', { name: /Classic Play with friends/ }).click()
 
-    const heading = page.getByRole('button', { name: 'Host Game' })
+    const heading = page.getByRole('button', { name: 'Host Game', exact: true })
     const box = await heading.boundingBox()
     expect(box).not.toBeNull()
     expect(box!.width).toBeGreaterThan(0)
