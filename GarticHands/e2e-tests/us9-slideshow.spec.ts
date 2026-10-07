@@ -17,6 +17,7 @@ test('slideshow cycles through every drawing/prompt/guess, manually and automati
     const hostPage = await hostContext.newPage()
     await hostPage.goto('/')
     await hostPage.getByPlaceholder('Enter username...').fill('HostPlayer')
+    await hostPage.getByRole('button', { name: 'Classic' }).click()
     await hostPage.getByRole('button', { name: 'Host Game' }).click()
     await expect(hostPage).toHaveURL('/host')
 
@@ -27,6 +28,7 @@ test('slideshow cycles through every drawing/prompt/guess, manually and automati
     const playerPage = await playerContext.newPage()
     await playerPage.goto('/')
     await playerPage.getByPlaceholder('Enter username...').fill('JoinerPlayer')
+    await playerPage.getByRole('button', { name: 'Classic' }).click()
     await playerPage.getByRole('button', { name: 'Join Room' }).click()
     await playerPage.getByPlaceholder('ABC123').fill(roomCode)
     await playerPage.getByRole('button', { name: 'Join Game' }).click()
@@ -39,22 +41,28 @@ test('slideshow cycles through every drawing/prompt/guess, manually and automati
         expect(hostPage).toHaveURL('/input'),
         expect(playerPage).toHaveURL('/input'),
     ])
+
     await submitPromptUI(hostPage, "host's prompt")
     await submitPromptUI(playerPage, "joiner's prompt")
+
     await Promise.all([
         expect(hostPage).toHaveURL('/draw'),
         expect(playerPage).toHaveURL('/draw'),
     ])
+
     await Promise.all([
         submitDrawingUI(hostPage),
         submitDrawingUI(playerPage),
     ])
+
     await Promise.all([
         expect(hostPage).toHaveURL('/guess'),
         expect(playerPage).toHaveURL('/guess'),
     ])
+
     await submitGuessUI(hostPage, "host's guess")
     await submitGuessUI(playerPage, "joiner's guess")
+
     await Promise.all([
         expect(hostPage).toHaveURL('/game'),
         expect(playerPage).toHaveURL('/game'),
@@ -87,4 +95,3 @@ test('slideshow cycles through every drawing/prompt/guess, manually and automati
     await hostContext.close()
     await playerContext.close()
 })
-
