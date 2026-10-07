@@ -22,7 +22,8 @@ test.describe('consistent branding across pages', () => {
     test('host lobby shows the (compact) logo after hosting', async ({ page }) => {
         await page.goto('/')
         await page.getByPlaceholder('Enter username...').fill('player1')
-        await page.getByRole('button', { name: 'Host Game' }).click()
+        await page.getByRole('button', { name: /Classic Play with friends/ }).click()
+        await page.getByRole('button', { name: 'Host Game', exact: true }).click()
         await expect(page).toHaveURL('/host')
         await expect(page.getByAltText('GarticHand logo')).toBeVisible()
     })
@@ -35,7 +36,8 @@ test.describe('consistent branding across pages', () => {
             .evaluate((el) => getComputedStyle(el).backgroundColor)
 
         await page.getByPlaceholder('Enter username...').fill('player1')
-        await page.getByRole('button', { name: 'Host Game' }).click()
+        await page.getByRole('button', { name: /Classic Play with friends/ }).click()
+        await page.getByRole('button', { name: 'Host Game', exact: true }).click()
         await expect(page).toHaveURL('/host')
 
         const lobbyRoot = page.locator('div.min-h-screen').first()
@@ -47,10 +49,13 @@ test.describe('consistent branding across pages', () => {
 
     test('every top-level page exposes exactly one primary heading region', async ({ page }) => {
         await page.goto('/')
+        await page.getByPlaceholder('Enter username...').fill('player1')
+        await page.getByRole('button', { name: /Classic Play with friends/ }).click()
+
         // Landing page has no <h1>/<h2> chrome of its own — Card content stands in;
         // the key invariant is that the page never renders more than one visually
         // primary call-to-action button group at once.
-        await expect(page.getByRole('button', { name: 'Host Game' })).toHaveCount(1)
-        await expect(page.getByRole('button', { name: 'Join Room' })).toHaveCount(1)
+        await expect(page.getByRole('button', { name: 'Host Game', exact: true })).toHaveCount(1)
+        await expect(page.getByRole('button', { name: 'Join Room', exact: true })).toHaveCount(1)
     })
 })

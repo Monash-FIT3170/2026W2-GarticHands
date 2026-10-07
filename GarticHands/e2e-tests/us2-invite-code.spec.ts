@@ -12,11 +12,13 @@ test('host can copy a 6-character invite code to the clipboard', async ({ page, 
 
     await page.goto('/')
     await page.getByPlaceholder('Enter username...').fill('player1')
-    await page.getByRole('button', { name: 'Host Game' }).click()
+    await page.getByRole('button', { name: /Classic Play with friends/ }).click()
+    await page.getByRole('button', { name: 'Host Game', exact: true }).click()
     await expect(page).toHaveURL('/host')
 
     await page.getByRole('button', { name: 'Copy Room Code' }).click()
-    await expect(page.getByText('Invite code copied!')).toBeVisible()
+    await expect(page.getByText('Room code copied')).toBeVisible()
+    await page.getByRole('button', { name: 'OK', exact: true }).click()
 
     const clipboardText = await page.evaluate(() => navigator.clipboard.readText())
     expect(clipboardText).toMatch(/^[A-Z0-9]{6}$/)

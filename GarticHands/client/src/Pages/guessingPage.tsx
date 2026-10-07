@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react';
+import { useState } from 'react';
 import { useLocation, useNavigate } from 'react-router-dom';
 import { Button, RoundHeader, CountdownTimer } from '../components/ui';
 import { submitGuess, PhaseConflictStatus } from '../api/room';
@@ -20,10 +20,6 @@ export default function GuessingPage() {
   const [guess, setGuess] = useState('');
   const [submitted, setSubmitted] = useState(false);
   const [error, setError] = useState('');
-  const [drawing, setDrawing] = useState<string>('');
-  const [targetName, setTargetName] = useState<string | undefined>(undefined);
-  const drawnBy = targetName ?? '...';
-  const [drawingLoaded, setDrawingLoaded] = useState(false);
 
   const { waitingFor, room, secondsLeft } = usePhaseAdvance({
     roomCode,
@@ -34,38 +30,20 @@ export default function GuessingPage() {
     countBucket: 'guesses',
   });
 
-  useEffect(() => {
-    if (!room || !playerName) return;
-
-    const target = room.guessTargets?.[playerName];
-
-    if (!target) {
-      setTargetName(undefined);
-      setDrawing('');
-      setDrawingLoaded(true);
-      return;
-    }
-
-    setTargetName(target);
-    setDrawing(room.drawings?.[target] ?? '');
-    setDrawingLoaded(true);
-  }, [room, playerName]);
+  const targetName = room && playerName ? room.guessTargets?.[playerName] : undefined;
+  const drawnBy = targetName ?? '...';
+  const drawing = targetName ? (room?.drawings?.[targetName] ?? '') : '';
+  const drawingLoaded = Boolean(room && playerName);
 
   async function handleSubmit(allowEmpty = false) {
     const trimmed = guess.trim();
 
-    if ((!trimmed && !allowEmpty) || submitted || !roomCode || !playerName)
-      return;
+    if ((!trimmed && !allowEmpty) || submitted || !roomCode || !playerName) return;
 
     setSubmitted(true);
     setError('');
 
-    const data = await submitGuess(
-      roomCode,
-      playerName,
-      trimmed,
-      targetName,
-    );
+    const data = await submitGuess(roomCode, playerName, trimmed, targetName);
 
     if (!data.success) {
       if (data.status === PhaseConflictStatus) {
@@ -99,11 +77,7 @@ export default function GuessingPage() {
 
       {/* Left background doodles */}
       <div className="hidden lg:block absolute left-[3%] top-[18%] pointer-events-none opacity-70">
-        <svg
-          viewBox="0 0 180 420"
-          className="w-32 h-72 xl:w-40 xl:h-80"
-          aria-hidden="true"
-        >
+        <svg viewBox="0 0 180 420" className="w-32 h-72 xl:w-40 xl:h-80" aria-hidden="true">
           <g transform="rotate(-18 65 90)">
             <path
               d="M42 35 L70 7 L100 37 L72 65 Z"
@@ -149,24 +123,13 @@ export default function GuessingPage() {
             strokeLinecap="round"
           />
 
-          <circle
-            cx="132"
-            cy="365"
-            r="14"
-            fill="none"
-            stroke="var(--accent)"
-            strokeWidth="5"
-          />
+          <circle cx="132" cy="365" r="14" fill="none" stroke="var(--accent)" strokeWidth="5" />
         </svg>
       </div>
 
       {/* Right background doodles */}
       <div className="hidden lg:block absolute right-[3%] top-[20%] pointer-events-none opacity-70">
-        <svg
-          viewBox="0 0 180 420"
-          className="w-32 h-72 xl:w-40 xl:h-80"
-          aria-hidden="true"
-        >
+        <svg viewBox="0 0 180 420" className="w-32 h-72 xl:w-40 xl:h-80" aria-hidden="true">
           <path
             d="M65 85 C65 55 108 52 116 78 C123 101 101 111 89 121 C81 128 80 135 80 143"
             fill="none"
@@ -222,10 +185,7 @@ export default function GuessingPage() {
       <main className="relative z-10 max-w-5xl mx-auto">
         {/* Header */}
         <div className="text-center mb-7 lg:mb-8">
-          <RoundHeader
-            round={room?.round ?? 1}
-            totalRounds={room?.maxRounds ?? 4}
-          />
+          <RoundHeader round={room?.round ?? 1} totalRounds={room?.maxRounds ?? 4} />
 
           <p className="text-[var(--text-secondary)] text-xs font-extrabold uppercase tracking-[0.25em] mt-5">
             Your turn to guess
@@ -236,13 +196,9 @@ export default function GuessingPage() {
           </h1>
 
           <div className="inline-flex items-center gap-2 mt-3 px-5 py-2 rounded-full bg-white/80 border-2 border-[var(--accent)] shadow-sm">
-            <span className="text-sm font-bold text-[var(--text-secondary)]">
-              Drawn by
-            </span>
+            <span className="text-sm font-bold text-[var(--text-secondary)]">Drawn by</span>
 
-            <span className="text-sm font-extrabold text-[var(--primary)]">
-              {drawnBy}
-            </span>
+            <span className="text-sm font-extrabold text-[var(--primary)]">{drawnBy}</span>
           </div>
         </div>
 
@@ -296,9 +252,7 @@ export default function GuessingPage() {
               />
             ) : (
               <div className="text-sm text-[var(--text-secondary)] text-center px-4">
-                {drawingLoaded
-                  ? `${drawnBy} ran out of time — no drawing`
-                  : 'Loading drawing...'}
+                {drawingLoaded ? `${drawnBy} ran out of time — no drawing` : 'Loading drawing...'}
               </div>
             )}
           </div>
@@ -355,18 +309,14 @@ export default function GuessingPage() {
               <div className="flex justify-center mt-4">
                 <p className="text-sm font-bold text-[var(--text-secondary)] bg-[var(--accent-soft)]/30 border-2 border-[var(--accent)] rounded-full px-4 py-2 text-center">
                   {waitingFor > 0
-                    ? `Waiting for ${waitingFor} other player${
-                        waitingFor === 1 ? '' : 's'
-                      }...`
+                    ? `Waiting for ${waitingFor} other player${waitingFor === 1 ? '' : 's'}...`
                     : 'Revealing results...'}
                 </p>
               </div>
             )}
 
             {error && (
-              <p className="text-sm font-bold text-[var(--action)] mt-3 text-center">
-                {error}
-              </p>
+              <p className="text-sm font-bold text-[var(--action)] mt-3 text-center">{error}</p>
             )}
           </div>
         </section>

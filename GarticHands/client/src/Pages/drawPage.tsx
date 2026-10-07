@@ -167,16 +167,10 @@ function DrawPageInner() {
     <div className="background !justify-start">
       <BackgroundRays />
 
-      <Card
-        variant="lobby"
-        className="relative z-10 !max-w-5xl !rounded-[22px] !p-4 md:!p-6"
-      >
+      <Card variant="lobby" className="relative z-10 !max-w-5xl !rounded-[22px] !p-4 md:!p-6">
         <div className="mb-3 flex flex-col items-stretch justify-between gap-3 md:flex-row md:items-center">
           <div className="flex justify-center md:justify-start">
-            <RoundHeader
-              round={room?.round ?? 1}
-              totalRounds={room?.maxRounds ?? 4}
-            />
+            <RoundHeader round={room?.round ?? 1} totalRounds={room?.maxRounds ?? 4} />
           </div>
 
           <DrawingModePicker
@@ -213,9 +207,7 @@ function DrawPageInner() {
             <div className="flex shrink-0 items-center gap-2">
               <Button
                 type="button"
-                onClick={() =>
-                  setDrawingEnabled((enabled) => !enabled)
-                }
+                onClick={() => setDrawingEnabled((enabled) => !enabled)}
                 disabled={submitted}
                 className={`whitespace-nowrap !rounded-lg !px-3 !py-2 text-sm font-bold text-white transition-colors ${
                   drawingEnabled
@@ -242,20 +234,14 @@ function DrawPageInner() {
         {submitted && !error && (
           <p className="mt-3 text-center text-sm text-[var(--text-muted)]">
             {waitingFor > 0
-              ? `Waiting for ${waitingFor} other player${
-                  waitingFor === 1 ? '' : 's'
-                }...`
+              ? `Waiting for ${waitingFor} other player${waitingFor === 1 ? '' : 's'}...`
               : gameMode === 'leaderboard'
                 ? 'Starting rating phase...'
                 : 'Starting guessing phase...'}
           </p>
         )}
 
-        {error && (
-          <p className="mt-3 text-center text-sm text-[var(--action)]">
-            {error}
-          </p>
-        )}
+        {error && <p className="mt-3 text-center text-sm text-[var(--action)]">{error}</p>}
       </Card>
     </div>
   );

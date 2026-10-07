@@ -27,10 +27,7 @@ export default function RulesPanel({ open, onClose }: RulesPanelProps) {
         className="w-full max-w-md rounded-3xl bg-[var(--card-bg)] border-2 border-white/30 shadow-2xl p-7"
       >
         <div className="flex items-center justify-between mb-5">
-          <h2
-            id="rules-title"
-            className="text-2xl font-extrabold text-white"
-          >
+          <h2 id="rules-title" className="text-2xl font-extrabold text-white">
             How to Play
           </h2>
 
@@ -59,12 +56,7 @@ export default function RulesPanel({ open, onClose }: RulesPanelProps) {
           ))}
         </ol>
 
-        <Button
-          variant="primary"
-          size="full"
-          onClick={onClose}
-          className="mt-7"
-        >
+        <Button variant="primary" size="full" onClick={onClose} className="mt-7">
           Got it!
         </Button>
       </div>

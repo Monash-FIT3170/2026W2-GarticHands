@@ -1,16 +1,7 @@
 import { useEffect, useState } from 'react';
 import { useLocation, useNavigate } from 'react-router-dom';
-import {
-  Card,
-  Button,
-  RoundHeader,
-  CountdownTimer,
-} from '../components/ui';
-import {
-  getRoom,
-  submitRating,
-  PhaseConflictStatus,
-} from '../api/room';
+import { Card, Button, RoundHeader, CountdownTimer } from '../components/ui';
+import { getRoom, submitRating, PhaseConflictStatus } from '../api/room';
 import { usePhaseAdvance } from '../hooks/usePhaseAdvance';
 import type { DrawLocationState } from '../types/room';
 import BackgroundRays from '../components/ui/BackgroundRays';
@@ -40,23 +31,30 @@ export default function RatingPage() {
       return;
     }
 
+    const currentRoomCode = roomCode;
+    const currentPlayerName = playerName;
+
     async function loadRoom() {
-      const data = await getRoom(roomCode);
+      const data = await getRoom(currentRoomCode);
 
       if (!data.success || !data.room) {
         setError('Unable to load the rating.');
         return;
       }
 
-      const target = data.room.ratingTargets?.[playerName];
+      const ratingTargets: Record<string, string> = data.room.ratingTargets ?? {};
+      const target: string | undefined = ratingTargets[currentPlayerName];
 
       if (!target) {
         setError('No rating target was assigned.');
         return;
       }
 
+      const drawings: Record<string, string> = data.room.drawings;
+      const targetDrawing: string = drawings[target] ?? '';
+
       setTargetName(target);
-      setDrawing(data.room.drawings?.[target] || '');
+      setDrawing(targetDrawing);
       setRound(data.room.round ?? 1);
       setMaxRounds(data.room.maxRounds ?? 4);
     }
@@ -91,11 +89,7 @@ export default function RatingPage() {
     setSubmitted(true);
     setError('');
 
-    const data = await submitRating(
-      roomCode,
-      playerName,
-      numericRating,
-    );
+    const data = await submitRating(roomCode, playerName, numericRating);
 
     if (!data.success) {
       if (data.status === PhaseConflictStatus) return;
@@ -152,20 +146,12 @@ export default function RatingPage() {
 
       <div className="relative z-10 flex w-full max-w-4xl flex-col items-center px-4 py-6">
         <div className="mb-4">
-          <RoundHeader
-            round={displayRound}
-            totalRounds={displayMaxRounds}
-          />
+          <RoundHeader round={displayRound} totalRounds={displayMaxRounds} />
         </div>
 
-        <Card
-          variant="lobby"
-          className="!max-w-3xl !rounded-[22px] !p-6 md:!p-8"
-        >
+        <Card variant="lobby" className="!max-w-3xl !rounded-[22px] !p-6 md:!p-8">
           <div className="flex flex-col items-center">
-            <h1 className="text-center text-3xl font-extrabold text-white">
-              Rate the Drawing
-            </h1>
+            <h1 className="text-center text-3xl font-extrabold text-white">Rate the Drawing</h1>
 
             <p className="mt-2 text-center text-sm font-semibold text-white/70">
               Give this drawing a score from 0 to 100.
@@ -185,9 +171,7 @@ export default function RatingPage() {
                   className="max-h-[500px] max-w-full object-contain"
                 />
               ) : (
-                <p className="text-sm font-semibold text-gray-500">
-                  Drawing unavailable.
-                </p>
+                <p className="text-sm font-semibold text-gray-500">Drawing unavailable.</p>
               )}
             </div>
 
@@ -239,18 +223,12 @@ export default function RatingPage() {
             {submitted && !error && (
               <p className="mt-4 text-center text-sm text-[var(--text-muted)]">
                 {waitingFor > 0
-                  ? `Waiting for ${waitingFor} other player${
-                      waitingFor === 1 ? '' : 's'
-                    }...`
+                  ? `Waiting for ${waitingFor} other player${waitingFor === 1 ? '' : 's'}...`
                   : 'Showing results...'}
               </p>
             )}
 
-            {error && (
-              <p className="mt-4 text-center text-sm text-[var(--action)]">
-                {error}
-              </p>
-            )}
+            {error && <p className="mt-4 text-center text-sm text-[var(--action)]">{error}</p>}
           </div>
         </Card>
       </div>

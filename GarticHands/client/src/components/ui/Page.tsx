@@ -58,17 +58,9 @@ export default function Page({
         />
       )}
 
-      {topRight && (
-        <SettingsPanel
-          open={settingsOpen}
-          onClose={() => setSettingsOpen(false)}
-        />
-      )}
+      {topRight && <SettingsPanel open={settingsOpen} onClose={() => setSettingsOpen(false)} />}
 
-      <RulesPanel
-        open={rulesOpen}
-        onClose={() => setRulesOpen(false)}
-      />
+      <RulesPanel open={rulesOpen} onClose={() => setRulesOpen(false)} />
 
       {logo && <Logo compact={compactLogo} />}
 

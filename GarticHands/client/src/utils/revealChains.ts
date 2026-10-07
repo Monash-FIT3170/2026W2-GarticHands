@@ -33,9 +33,7 @@ export function buildRevealChains(room: Room): RevealChain[] {
 
     // Never reattribute a guess that is known to be about a different drawing:
     // the index-math fallback applies only when it has no recorded target.
-    const guesser =
-      recorded ??
-      (targets[fallback.name] === undefined ? fallback : undefined);
+    const guesser = recorded ?? (targets[fallback.name] === undefined ? fallback : undefined);
 
     // The drawer sees the prompt assigned to them, not the prompt they
     // originally submitted.
@@ -43,7 +41,7 @@ export function buildRevealChains(room: Room): RevealChain[] {
 
     return {
       drawer,
-      prompt: promptAuthor ? room.prompts?.[promptAuthor] ?? '' : '',
+      prompt: promptAuthor ? (room.prompts?.[promptAuthor] ?? '') : '',
       drawing: room.drawings?.[drawer.name] ?? '',
       guesserName: guesser?.name ?? 'Nobody',
       guess: guesser ? (room.guesses?.[guesser.name] ?? '') : '',

@@ -33,14 +33,7 @@ export type RoomStatus = 'waiting' | 'started';
 export type GameMode = 'classic' | 'leaderboard';
 
 export type RoomPhase =
-  | 'lobby'
-  | 'prompt'
-  | 'draw'
-  | 'guess'
-  | 'reveal'
-  | 'rating'
-  | 'ratingReveal'
-  | 'leaderboard';
+  'lobby' | 'prompt' | 'draw' | 'guess' | 'reveal' | 'rating' | 'ratingReveal' | 'leaderboard';
 
 export interface Room {
   code: string;

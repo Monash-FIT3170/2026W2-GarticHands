@@ -1,15 +1,7 @@
 import { useEffect, useState } from 'react';
 import { useLocation, useNavigate } from 'react-router-dom';
-import {
-  Card,
-  Button,
-  RoundHeader,
-} from '../components/ui';
-import {
-  getRoom,
-  restartRoom,
-  endRoom,
-} from '../api/room';
+import { Card, Button, RoundHeader } from '../components/ui';
+import { getRoom, restartRoom, endRoom } from '../api/room';
 import type { DrawLocationState, Player } from '../types/room';
 import BackgroundRays from '../components/ui/BackgroundRays';
 
@@ -50,9 +42,7 @@ export default function LeaderboardPage() {
       setRound(room.round ?? 1);
       setMaxRounds(room.maxRounds ?? 4);
 
-      const me = room.players.find(
-        (player) => player.name === playerName,
-      );
+      const me = room.players.find((player) => player.name === playerName);
 
       setIsHost(me?.isHost ?? false);
 
@@ -87,9 +77,7 @@ export default function LeaderboardPage() {
     const data = await restartRoom(roomCode);
 
     if (!data.success) {
-      setError(
-        data.message || 'Unable to start the next round.',
-      );
+      setError(data.message || 'Unable to start the next round.');
       return;
     }
 
@@ -104,20 +92,14 @@ export default function LeaderboardPage() {
     const data = await endRoom(roomCode);
 
     if (!data.success) {
-      setError(
-        data.message || 'Unable to end the game.',
-      );
+      setError(data.message || 'Unable to end the game.');
       return;
     }
 
     void navigate('/');
   }
 
-  const sortedPlayers = [...players].sort(
-    (a, b) =>
-      (scores[b.name] ?? 0) -
-      (scores[a.name] ?? 0),
-  );
+  const sortedPlayers = [...players].sort((a, b) => (scores[b.name] ?? 0) - (scores[a.name] ?? 0));
 
   const isFinalRound = round >= maxRounds;
 
@@ -127,40 +109,27 @@ export default function LeaderboardPage() {
 
       <div className="relative z-10 flex w-full max-w-4xl flex-col items-center px-4 py-6">
         <div className="mb-4">
-          <RoundHeader
-            round={round}
-            totalRounds={maxRounds}
-          />
+          <RoundHeader round={round} totalRounds={maxRounds} />
         </div>
 
-        <Card
-          variant="lobby"
-          className="!max-w-3xl !rounded-[22px] !p-6 md:!p-8"
-        >
+        <Card variant="lobby" className="!max-w-3xl !rounded-[22px] !p-6 md:!p-8">
           <div className="flex flex-col items-center">
-            <h1 className="text-center text-3xl font-extrabold text-white">
-              Leaderboard
-            </h1>
+            <h1 className="text-center text-3xl font-extrabold text-white">Leaderboard</h1>
 
             <p className="mt-2 text-center text-sm font-semibold text-white/70">
-              {isFinalRound
-                ? 'Final scores'
-                : `Scores after Round ${round}`}
+              {isFinalRound ? 'Final scores' : `Scores after Round ${round}`}
             </p>
 
             <div className="mt-6 w-full max-w-2xl overflow-hidden rounded-xl bg-white">
               {sortedPlayers.map((player, index) => {
                 const score = scores[player.name] ?? 0;
-                const isCurrentPlayer =
-                  player.name === playerName;
+                const isCurrentPlayer = player.name === playerName;
 
                 return (
                   <div
                     key={player.name}
                     className={`flex items-center justify-between border-b border-gray-200 px-5 py-4 last:border-b-0 ${
-                      isCurrentPlayer
-                        ? 'bg-gray-50'
-                        : ''
+                      isCurrentPlayer ? 'bg-gray-50' : ''
                     }`}
                   >
                     <div className="flex items-center gap-4">
@@ -177,13 +146,9 @@ export default function LeaderboardPage() {
                     </div>
 
                     <div className="text-right">
-                      <p className="text-2xl font-extrabold text-[var(--action)]">
-                        {score}
-                      </p>
+                      <p className="text-2xl font-extrabold text-[var(--action)]">{score}</p>
 
-                      <p className="text-xs font-semibold text-gray-400">
-                        points
-                      </p>
+                      <p className="text-xs font-semibold text-gray-400">points</p>
                     </div>
                   </div>
                 );
@@ -193,24 +158,12 @@ export default function LeaderboardPage() {
             {isHost && (
               <div className="mt-6 flex w-full max-w-sm translate-x-0 flex-col gap-3 md:translate-x-6">
                 {!isFinalRound && (
-                  <Button
-                    variant="start"
-                    size="full"
-                    onClick={() =>
-                      void handleNextRound()
-                    }
-                  >
+                  <Button variant="start" size="full" onClick={() => void handleNextRound()}>
                     Start Round {round + 1}
                   </Button>
                 )}
 
-                <Button
-                  variant="leave"
-                  size="full"
-                  onClick={() =>
-                    void handleEndGame()
-                  }
-                >
+                <Button variant="leave" size="full" onClick={() => void handleEndGame()}>
                   End Game
                 </Button>
               </div>
@@ -224,11 +177,7 @@ export default function LeaderboardPage() {
               </p>
             )}
 
-            {error && (
-              <p className="mt-4 text-center text-sm text-[var(--action)]">
-                {error}
-              </p>
-            )}
+            {error && <p className="mt-4 text-center text-sm text-[var(--action)]">{error}</p>}
           </div>
         </Card>
       </div>
