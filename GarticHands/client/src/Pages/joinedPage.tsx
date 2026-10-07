@@ -17,13 +17,9 @@ export default function JoinedPage() {
   const playerName = state?.playerName;
   const navigate = useNavigate();
 
-  const [players, setPlayers] = useState<Player[]>(
-    state?.room?.players ?? [],
-  );
+  const [players, setPlayers] = useState<Player[]>(state?.room?.players ?? []);
 
-  const [gameMode, setGameMode] = useState<GameMode>(
-    state?.room?.mode ?? 'classic',
-  );
+  const [gameMode, setGameMode] = useState<GameMode>(state?.room?.mode ?? 'classic');
 
   const [ready, setReady] = useState(false);
   const [starting, setStarting] = useState(false);
@@ -32,13 +28,9 @@ export default function JoinedPage() {
   const me = players.find((p) => p.name === playerName);
   const isHost = me?.isHost ?? false;
 
-  const readyCount = players.filter(
-    (p) => p.ready || p.isHost,
-  ).length;
+  const readyCount = players.filter((p) => p.ready || p.isHost).length;
 
-  const allReady =
-    players.length > 0 &&
-    players.every((p) => p.ready || p.isHost);
+  const allReady = players.length > 0 && players.every((p) => p.ready || p.isHost);
 
   const copyCode = useCallback(() => {
     if (!roomCode) return;
@@ -59,9 +51,7 @@ export default function JoinedPage() {
 
       setGameMode(data.room.mode ?? 'classic');
 
-      const stillIn = data.room.players.some(
-        (p: Player) => p.name === playerName,
-      );
+      const stillIn = data.room.players.some((p: Player) => p.name === playerName);
 
       if (!stillIn && !alreadyStarted) {
         void navigate('/');
@@ -101,9 +91,7 @@ export default function JoinedPage() {
 
       if (alreadyStarted) return;
 
-      const meFresh = data.room.players.find(
-        (p: Player) => p.name === playerName,
-      );
+      const meFresh = data.room.players.find((p: Player) => p.name === playerName);
 
       if (meFresh) {
         setReady(meFresh.ready);
@@ -119,9 +107,7 @@ export default function JoinedPage() {
     return () => clearInterval(interval);
   }, [roomCode, playerName, navigate]);
 
-  usePlayerDepartures(players, (names) =>
-    setPopup(`${names.join(', ')} left the room`),
-  );
+  usePlayerDepartures(players, (names) => setPopup(`${names.join(', ')} left the room`));
 
   const leaveRoom = useLeaveRoom(roomCode, playerName);
 
@@ -135,11 +121,7 @@ export default function JoinedPage() {
 
     const next = !ready;
 
-    const data = await updateReady(
-      roomCode,
-      playerName,
-      next,
-    );
+    const data = await updateReady(roomCode, playerName, next);
 
     if (data.success && data.room) {
       setReady(next);
@@ -158,9 +140,7 @@ export default function JoinedPage() {
     }
 
     if (gameMode === 'leaderboard' && players.length < 2) {
-      setPopup(
-        'Leaderboard Mode needs at least 2 players.',
-      );
+      setPopup('Leaderboard Mode needs at least 2 players.');
       return;
     }
 
@@ -170,9 +150,7 @@ export default function JoinedPage() {
 
     if (!data.success) {
       setStarting(false);
-      setPopup(
-        data.message ?? 'Unable to start the game.',
-      );
+      setPopup(data.message ?? 'Unable to start the game.');
     }
   }
 
@@ -203,9 +181,7 @@ export default function JoinedPage() {
 
           <section className="flex flex-col items-center">
             <div className="color-vision-lobby-section flex w-full flex-col items-center rounded-xl p-6">
-              <h2 className="mb-5 text-2xl font-extrabold tracking-wide text-white">
-                GAMEMODE
-              </h2>
+              <h2 className="mb-5 text-2xl font-extrabold tracking-wide text-white">GAMEMODE</h2>
 
               <div className="flex w-full max-w-[200px] flex-col items-center justify-center rounded-lg border-4 border-[var(--accent)] bg-[var(--surface)] shadow-sm">
                 {isLeaderboard ? (
@@ -219,9 +195,7 @@ export default function JoinedPage() {
                 )}
 
                 <p className="font-extrabold text-[var(--primary)]">
-                  {isLeaderboard
-                    ? 'Leaderboard'
-                    : 'Classic'}
+                  {isLeaderboard ? 'Leaderboard' : 'Classic'}
                 </p>
               </div>
             </div>
@@ -235,11 +209,7 @@ export default function JoinedPage() {
                 {roomCode}
               </p>
 
-              <Button
-                variant="outline"
-                size="full"
-                onClick={copyCode}
-              >
+              <Button variant="outline" size="full" onClick={copyCode}>
                 <span className="flex items-center justify-center gap-2">
                   <svg
                     xmlns="http://www.w3.org/2000/svg"
@@ -251,13 +221,7 @@ export default function JoinedPage() {
                     strokeLinecap="round"
                     strokeLinejoin="round"
                   >
-                    <rect
-                      x="9"
-                      y="9"
-                      width="13"
-                      height="13"
-                      rx="2"
-                    />
+                    <rect x="9" y="9" width="13" height="13" rx="2" />
                     <path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v5" />
                   </svg>
                   Copy Room Code
@@ -273,9 +237,7 @@ export default function JoinedPage() {
                 disabled={!allReady || starting}
                 className="mt-4"
               >
-                {allReady
-                  ? 'Start Game'
-                  : 'Waiting for Players'}
+                {allReady ? 'Start Game' : 'Waiting for Players'}
               </Button>
             ) : (
               <Button
@@ -303,40 +265,20 @@ export default function JoinedPage() {
         </div>
       </Card>
 
-      {popup && (
-        <Popup
-          message={popup}
-          onClose={() => setPopup('')}
-        />
-      )}
+      {popup && <Popup message={popup} onClose={() => setPopup('')} />}
     </Page>
   );
 }
 
-function Popup({
-  message,
-  onClose,
-}: {
-  message: string;
-  onClose: () => void;
-}) {
+function Popup({ message, onClose }: { message: string; onClose: () => void }) {
   return (
     <div className="fixed inset-0 z-[100] flex items-center justify-center bg-black/50 px-4">
       <div className="w-full max-w-md rounded-2xl border-2 border-[var(--accent)] bg-[var(--surface)] p-6 text-center shadow-2xl">
-        <h2 className="text-xl font-extrabold text-[var(--primary)]">
-          Notice
-        </h2>
+        <h2 className="text-xl font-extrabold text-[var(--primary)]">Notice</h2>
 
-        <p className="mt-3 text-sm font-semibold text-[var(--text-muted)]">
-          {message}
-        </p>
+        <p className="mt-3 text-sm font-semibold text-[var(--text-muted)]">{message}</p>
 
-        <Button
-          variant="start"
-          size="full"
-          onClick={onClose}
-          className="mt-6"
-        >
+        <Button variant="start" size="full" onClick={onClose} className="mt-6">
           OK
         </Button>
       </div>
@@ -346,11 +288,7 @@ function Popup({
 
 function LeaderboardIcon() {
   return (
-    <svg
-      viewBox="0 0 100 100"
-      className="mb-2 h-16 w-16"
-      aria-hidden="true"
-    >
+    <svg viewBox="0 0 100 100" className="mb-2 h-16 w-16" aria-hidden="true">
       <rect
         x="18"
         y="48"

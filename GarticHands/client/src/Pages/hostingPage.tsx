@@ -18,9 +18,11 @@ export default function HostingPage() {
   const navigate = useNavigate();
   const location = useLocation();
 
-  const state = location.state as (DrawLocationState & {
-    mode?: GameMode;
-  }) | null;
+  const state = location.state as
+    | (DrawLocationState & {
+        mode?: GameMode;
+      })
+    | null;
 
   const hostName = state?.playerName;
   const gameMode = state?.mode ?? 'classic';
@@ -78,13 +80,9 @@ export default function HostingPage() {
 
   const leaveRoom = useLeaveRoom(roomCode || undefined, hostName);
 
-  const readyCount = players.filter(
-    (player) => player.ready || player.isHost,
-  ).length;
+  const readyCount = players.filter((player) => player.ready || player.isHost).length;
 
-  const allReady =
-    players.length > 0 &&
-    players.every((player) => player.ready || player.isHost);
+  const allReady = players.length > 0 && players.every((player) => player.ready || player.isHost);
 
   const copyCode = useCallback(() => {
     if (!roomCode) return;
@@ -155,9 +153,7 @@ export default function HostingPage() {
 
           <section className="flex flex-col items-center">
             <div className="color-vision-lobby-section flex w-full flex-col items-center rounded-xl p-6">
-              <h2 className="mb-5 text-2xl font-extrabold tracking-wide text-white">
-                GAMEMODE
-              </h2>
+              <h2 className="mb-5 text-2xl font-extrabold tracking-wide text-white">GAMEMODE</h2>
 
               <div className="flex w-full max-w-[200px] flex-col items-center justify-center rounded-lg border-4 border-[var(--accent)] bg-[var(--surface)] shadow-sm">
                 {isLeaderboard ? (
@@ -185,11 +181,7 @@ export default function HostingPage() {
                 {roomCode || '------'}
               </p>
 
-              <Button
-                variant="outline"
-                size="full"
-                onClick={copyCode}
-              >
+              <Button variant="outline" size="full" onClick={copyCode}>
                 <span className="flex items-center justify-center gap-2">
                   <svg
                     xmlns="http://www.w3.org/2000/svg"
@@ -201,13 +193,7 @@ export default function HostingPage() {
                     strokeLinecap="round"
                     strokeLinejoin="round"
                   >
-                    <rect
-                      x="9"
-                      y="9"
-                      width="13"
-                      height="13"
-                      rx="2"
-                    />
+                    <rect x="9" y="9" width="13" height="13" rx="2" />
                     <path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v5" />
                   </svg>
                   Copy Room Code
@@ -225,52 +211,27 @@ export default function HostingPage() {
               {allReady ? 'Start Game' : 'Waiting for Players'}
             </Button>
 
-            <Button
-              variant="leave"
-              size="full"
-              onClick={() => void handleLeave()}
-              className="mt-3"
-            >
+            <Button variant="leave" size="full" onClick={() => void handleLeave()} className="mt-3">
               Leave Room
             </Button>
           </section>
         </div>
       </Card>
 
-      {popup && (
-        <Popup
-          message={popup}
-          onClose={() => setPopup('')}
-        />
-      )}
+      {popup && <Popup message={popup} onClose={() => setPopup('')} />}
     </Page>
   );
 }
 
-function Popup({
-  message,
-  onClose,
-}: {
-  message: string;
-  onClose: () => void;
-}) {
+function Popup({ message, onClose }: { message: string; onClose: () => void }) {
   return (
     <div className="fixed inset-0 z-[100] flex items-center justify-center bg-black/50 px-4">
       <div className="w-full max-w-md rounded-2xl border-2 border-[var(--accent)] bg-[var(--surface)] p-6 text-center shadow-2xl">
-        <h2 className="text-xl font-extrabold text-[var(--primary)]">
-          Notice
-        </h2>
+        <h2 className="text-xl font-extrabold text-[var(--primary)]">Notice</h2>
 
-        <p className="mt-3 text-sm font-semibold text-black">
-          {message}
-        </p>
+        <p className="mt-3 text-sm font-semibold text-black">{message}</p>
 
-        <Button
-          variant="start"
-          size="full"
-          onClick={onClose}
-          className="mt-6"
-        >
+        <Button variant="start" size="full" onClick={onClose} className="mt-6">
           OK
         </Button>
       </div>
@@ -280,11 +241,7 @@ function Popup({
 
 function LeaderboardIcon() {
   return (
-    <svg
-      viewBox="0 0 100 100"
-      className="h-16 w-16 mb-2"
-      aria-hidden="true"
-    >
+    <svg viewBox="0 0 100 100" className="h-16 w-16 mb-2" aria-hidden="true">
       <rect
         x="18"
         y="48"

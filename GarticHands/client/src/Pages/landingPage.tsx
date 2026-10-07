@@ -15,9 +15,7 @@ export default function LandingPage() {
     if (mode === 'ai') return;
 
     if (mode === 'classic' || mode === 'leaderboard') {
-      setExpandedMode((current) =>
-        current === mode ? null : mode,
-      );
+      setExpandedMode((current) => (current === mode ? null : mode));
       return;
     }
 
@@ -57,7 +55,6 @@ export default function LandingPage() {
     <Page variant="centered" logo padding="px-4 py-8">
       <div className="w-full max-w-5xl">
         <div className="grid grid-cols-1 lg:grid-cols-[0.8fr_1.7fr] gap-6 items-stretch">
-
           {/* Profile / username panel */}
           <section
             className="
@@ -329,10 +326,7 @@ function GameModeCard({
         if (!comingSoon) onClick();
       }}
       onKeyDown={(event) => {
-        if (
-          !comingSoon &&
-          (event.key === 'Enter' || event.key === ' ')
-        ) {
+        if (!comingSoon && (event.key === 'Enter' || event.key === ' ')) {
           event.preventDefault();
           onClick();
         }
@@ -406,20 +400,14 @@ function GameModeCard({
           shadow-sm
           transition-all
           duration-300
-          ${
-            comingSoon
-              ? ''
-              : 'group-hover:scale-105 group-hover:rotate-2'
-          }
+          ${comingSoon ? '' : 'group-hover:scale-105 group-hover:rotate-2'}
         `}
       >
         {icon}
       </div>
 
       {/* Title */}
-      <h2 className="text-2xl font-extrabold text-[var(--primary)] mt-3">
-        {title}
-      </h2>
+      <h2 className="text-2xl font-extrabold text-[var(--primary)] mt-3">{title}</h2>
 
       {/* Description */}
       <div
@@ -440,11 +428,7 @@ function GameModeCard({
       </div>
 
       {/* Room controls */}
-      {hasRoomControls && expanded && (
-        <div className="w-full mt-4">
-          {children}
-        </div>
-      )}
+      {hasRoomControls && expanded && <div className="w-full mt-4">{children}</div>}
 
       {/* Hint */}
       {!expanded && !comingSoon && (
@@ -460,11 +444,7 @@ function GameModeCard({
 
 function ClassicIcon() {
   return (
-    <svg
-      viewBox="0 0 100 100"
-      className="w-12 h-12"
-      aria-hidden="true"
-    >
+    <svg viewBox="0 0 100 100" className="w-12 h-12" aria-hidden="true">
       <rect
         x="15"
         y="20"
@@ -484,35 +464,18 @@ function ClassicIcon() {
         strokeLinecap="round"
       />
 
-      <path
-        d="M63 72 L78 57"
-        stroke="var(--action)"
-        strokeWidth="7"
-        strokeLinecap="round"
-      />
+      <path d="M63 72 L78 57" stroke="var(--action)" strokeWidth="7" strokeLinecap="round" />
 
-      <path
-        d="M76 58 L82 52 L88 58 L82 64 Z"
-        fill="var(--accent)"
-      />
+      <path d="M76 58 L82 52 L88 58 L82 64 Z" fill="var(--accent)" />
 
-      <circle
-        cx="29"
-        cy="34"
-        r="5"
-        fill="var(--accent)"
-      />
+      <circle cx="29" cy="34" r="5" fill="var(--accent)" />
     </svg>
   );
 }
 
 function LeaderboardIcon() {
   return (
-    <svg
-      viewBox="0 0 100 100"
-      className="w-12 h-12"
-      aria-hidden="true"
-    >
+    <svg viewBox="0 0 100 100" className="w-12 h-12" aria-hidden="true">
       <rect
         x="18"
         y="48"
@@ -568,11 +531,7 @@ function LeaderboardIcon() {
 
 function PlaygroundIcon() {
   return (
-    <svg
-      viewBox="0 0 100 100"
-      className="w-12 h-12"
-      aria-hidden="true"
-    >
+    <svg viewBox="0 0 100 100" className="w-12 h-12" aria-hidden="true">
       <path
         d="M20 70 L67 23 L79 35 L32 82 L17 84 Z"
         fill="white"
@@ -589,39 +548,20 @@ function PlaygroundIcon() {
         strokeLinejoin="round"
       />
 
-      <path
-        d="M17 84 L20 70 L32 82 Z"
-        fill="var(--action)"
-      />
+      <path d="M17 84 L20 70 L32 82 Z" fill="var(--action)" />
 
-      <path
-        d="M29 66 L41 78"
-        stroke="var(--primary)"
-        strokeWidth="5"
-      />
+      <path d="M29 66 L41 78" stroke="var(--primary)" strokeWidth="5" />
 
-      <circle
-        cx="29"
-        cy="29"
-        r="8"
-        fill="var(--action)"
-      />
+      <circle cx="29" cy="29" r="8" fill="var(--action)" />
 
-      <path
-        d="M51 14 L54 24 L64 27 L54 30 L51 40 L48 30 L38 27 L48 24 Z"
-        fill="var(--accent)"
-      />
+      <path d="M51 14 L54 24 L64 27 L54 30 L51 40 L48 30 L38 27 L48 24 Z" fill="var(--accent)" />
     </svg>
   );
 }
 
 function SoloIcon() {
   return (
-    <svg
-      viewBox="0 0 100 100"
-      className="w-12 h-12"
-      aria-hidden="true"
-    >
+    <svg viewBox="0 0 100 100" className="w-12 h-12" aria-hidden="true">
       {/* Prompt card */}
       <rect
         x="19"
@@ -656,39 +596,18 @@ function SoloIcon() {
         strokeLinecap="round"
       />
 
-      <circle
-        cx="53"
-        cy="72"
-        r="4"
-        fill="var(--action)"
-      />
+      <circle cx="53" cy="72" r="4" fill="var(--action)" />
 
       {/* Small sparkle */}
-      <path
-        d="M27 66 L29 72 L35 74 L29 76 L27 82 L25 76 L19 74 L25 72 Z"
-        fill="var(--accent)"
-      />
+      <path d="M27 66 L29 72 L35 74 L29 76 L27 82 L25 76 L19 74 L25 72 Z" fill="var(--accent)" />
 
       {/* Pencil */}
       <g transform="rotate(-38 70 72)">
-        <rect
-          x="66"
-          y="57"
-          width="10"
-          height="27"
-          rx="2"
-          fill="var(--action)"
-        />
+        <rect x="66" y="57" width="10" height="27" rx="2" fill="var(--action)" />
 
-        <polygon
-          points="66,57 76,57 71,49"
-          fill="var(--action-strong)"
-        />
+        <polygon points="66,57 76,57 71,49" fill="var(--action-strong)" />
 
-        <polygon
-          points="69,53 73,53 71,49"
-          fill="var(--primary)"
-        />
+        <polygon points="69,53 73,53 71,49" fill="var(--primary)" />
       </g>
     </svg>
   );
@@ -696,11 +615,7 @@ function SoloIcon() {
 
 function AiIcon() {
   return (
-    <svg
-      viewBox="0 0 100 100"
-      className="w-12 h-12"
-      aria-hidden="true"
-    >
+    <svg viewBox="0 0 100 100" className="w-12 h-12" aria-hidden="true">
       <rect
         x="20"
         y="22"
@@ -712,19 +627,9 @@ function AiIcon() {
         strokeWidth="3"
       />
 
-      <circle
-        cx="39"
-        cy="47"
-        r="6"
-        fill="var(--primary)"
-      />
+      <circle cx="39" cy="47" r="6" fill="var(--primary)" />
 
-      <circle
-        cx="61"
-        cy="47"
-        r="6"
-        fill="var(--primary)"
-      />
+      <circle cx="61" cy="47" r="6" fill="var(--primary)" />
 
       <path
         d="M38 62 Q50 70 62 62"
@@ -734,19 +639,9 @@ function AiIcon() {
         strokeLinecap="round"
       />
 
-      <path
-        d="M50 22 L50 12"
-        stroke="var(--accent)"
-        strokeWidth="5"
-        strokeLinecap="round"
-      />
+      <path d="M50 22 L50 12" stroke="var(--accent)" strokeWidth="5" strokeLinecap="round" />
 
-      <circle
-        cx="50"
-        cy="9"
-        r="4"
-        fill="var(--accent)"
-      />
+      <circle cx="50" cy="9" r="4" fill="var(--accent)" />
 
       <path
         d="M20 43 L12 38 M80 43 L88 38"

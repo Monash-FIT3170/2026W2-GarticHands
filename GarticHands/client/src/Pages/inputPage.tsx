@@ -64,10 +64,7 @@ export default function InputPage() {
       <BackgroundRays />
       <div className="w-full max-w-2xl flex flex-col items-center">
         <div className="mb-2">
-          <RoundHeader
-            round={room?.round ?? 1}
-            totalRounds={room?.maxRounds ?? 4}
-          />
+          <RoundHeader round={room?.round ?? 1} totalRounds={room?.maxRounds ?? 4} />
         </div>
 
         {/* Creative illustration collage */}
@@ -78,18 +75,11 @@ export default function InputPage() {
             className="absolute top-4 left-7 w-9 h-9 text-white/75 rotate-[-12deg]"
             aria-hidden="true"
           >
-            <path
-              d="M20 2 L23 16 L38 20 L23 24 L20 38 L17 24 L2 20 L17 16 Z"
-              fill="currentColor"
-            />
+            <path d="M20 2 L23 16 L38 20 L23 24 L20 38 L17 24 L2 20 L17 16 Z" fill="currentColor" />
           </svg>
 
           {/* Top-right circle */}
-          <svg
-            viewBox="0 0 50 50"
-            className="absolute top-7 right-8 w-10 h-10"
-            aria-hidden="true"
-          >
+          <svg viewBox="0 0 50 50" className="absolute top-7 right-8 w-10 h-10" aria-hidden="true">
             <circle
               cx="25"
               cy="25"
@@ -122,18 +112,11 @@ export default function InputPage() {
             className="absolute right-5 bottom-5 w-8 h-8 text-white/60 rotate-12"
             aria-hidden="true"
           >
-            <path
-              d="M20 2 L23 16 L38 20 L23 24 L20 38 L17 24 L2 20 L17 16 Z"
-              fill="currentColor"
-            />
+            <path d="M20 2 L23 16 L38 20 L23 24 L20 38 L17 24 L2 20 L17 16 Z" fill="currentColor" />
           </svg>
 
           {/* Small accent dot */}
-          <svg
-            viewBox="0 0 24 24"
-            className="absolute left-20 top-14 w-5 h-5"
-            aria-hidden="true"
-          >
+          <svg viewBox="0 0 24 24" className="absolute left-20 top-14 w-5 h-5" aria-hidden="true">
             <circle cx="12" cy="12" r="7" fill="var(--action)" />
           </svg>
 
@@ -190,10 +173,7 @@ export default function InputPage() {
               fill="var(--accent)"
             />
 
-            <path
-              d="M37 91 L63 91 L59 103 L41 103 Z"
-              fill="var(--action)"
-            />
+            <path d="M37 91 L63 91 L59 103 L41 103 Z" fill="var(--action)" />
 
             <path
               d="M42 108 L58 108"
@@ -202,12 +182,7 @@ export default function InputPage() {
               strokeLinecap="round"
             />
 
-            <path
-              d="M50 25 L50 57"
-              stroke="var(--primary)"
-              strokeWidth="5"
-              strokeLinecap="round"
-            />
+            <path d="M50 25 L50 57" stroke="var(--primary)" strokeWidth="5" strokeLinecap="round" />
 
             <path
               d="M37 39 L50 54 L63 39"
@@ -226,23 +201,9 @@ export default function InputPage() {
             aria-label="Paintbrush"
             role="img"
           >
-            <rect
-              x="40"
-              y="48"
-              width="20"
-              height="92"
-              rx="8"
-              fill="var(--action)"
-            />
+            <rect x="40" y="48" width="20" height="92" rx="8" fill="var(--action)" />
 
-            <rect
-              x="38"
-              y="42"
-              width="24"
-              height="18"
-              rx="5"
-              fill="var(--primary)"
-            />
+            <rect x="38" y="42" width="24" height="18" rx="5" fill="var(--primary)" />
 
             <path
               d="M39 140 L61 140 L68 164
@@ -265,10 +226,7 @@ export default function InputPage() {
             aria-label="Drawing paper"
             role="img"
           >
-            <path
-              d="M18 12 L68 12 L83 27 L83 88 L18 88 Z"
-              fill="rgba(255,255,255,0.94)"
-            />
+            <path d="M18 12 L68 12 L83 27 L83 88 L18 88 Z" fill="rgba(255,255,255,0.94)" />
 
             <path
               d="M68 12 L68 27 L83 27"
@@ -309,10 +267,7 @@ export default function InputPage() {
             />
 
             {/* Folded paper corner */}
-            <path
-              d="M164 35 L196 67 L164 67 Z"
-              fill="rgba(210,235,225,0.95)"
-            />
+            <path d="M164 35 L196 67 L164 67 Z" fill="rgba(210,235,225,0.95)" />
 
             {/* Drawing on paper */}
             <path
@@ -366,33 +321,13 @@ export default function InputPage() {
 
             {/* Pencil */}
             <g transform="rotate(-32 143 108)">
-              <rect
-                x="132"
-                y="36"
-                width="17"
-                height="87"
-                rx="5"
-                fill="var(--action)"
-              />
+              <rect x="132" y="36" width="17" height="87" rx="5" fill="var(--action)" />
 
-              <polygon
-                points="132,36 149,36 140.5,20"
-                fill="var(--action-strong)"
-              />
+              <polygon points="132,36 149,36 140.5,20" fill="var(--action-strong)" />
 
-              <polygon
-                points="137,27 144,27 140.5,20"
-                fill="var(--primary)"
-              />
+              <polygon points="137,27 144,27 140.5,20" fill="var(--primary)" />
 
-              <rect
-                x="132"
-                y="36"
-                width="17"
-                height="13"
-                rx="2"
-                fill="var(--accent)"
-              />
+              <rect x="132" y="36" width="17" height="13" rx="2" fill="var(--accent)" />
             </g>
           </svg>
         </div>
@@ -410,12 +345,7 @@ export default function InputPage() {
             <rect width="700" height="180" fill="#9edcf2" />
 
             {/* Sun */}
-            <circle
-              cx="590"
-              cy="42"
-              r="25"
-              fill="#ffd95a"
-            />
+            <circle cx="590" cy="42" r="25" fill="#ffd95a" />
 
             <circle
               cx="590"
@@ -463,107 +393,37 @@ export default function InputPage() {
 
             {/* Barn */}
             <g>
-              <rect
-                x="250"
-                y="83"
-                width="105"
-                height="70"
-                rx="2"
-                fill="#d95b45"
-              />
+              <rect x="250" y="83" width="105" height="70" rx="2" fill="#d95b45" />
 
-              <path
-                d="M238 85 L302 48 L367 85 Z"
-                fill="#a94335"
-              />
+              <path d="M238 85 L302 48 L367 85 Z" fill="#a94335" />
 
-              <path
-                d="M270 84 L302 60 L335 84"
-                fill="none"
-                stroke="#f6d9a8"
-                strokeWidth="7"
-              />
+              <path d="M270 84 L302 60 L335 84" fill="none" stroke="#f6d9a8" strokeWidth="7" />
 
-              <rect
-                x="288"
-                y="112"
-                width="28"
-                height="41"
-                fill="#f3c76b"
-              />
+              <rect x="288" y="112" width="28" height="41" fill="#f3c76b" />
 
-              <rect
-                x="327"
-                y="101"
-                width="15"
-                height="18"
-                rx="2"
-                fill="#8bc6d8"
-              />
+              <rect x="327" y="101" width="15" height="18" rx="2" fill="#8bc6d8" />
 
-              <rect
-                x="260"
-                y="101"
-                width="15"
-                height="18"
-                rx="2"
-                fill="#8bc6d8"
-              />
+              <rect x="260" y="101" width="15" height="18" rx="2" fill="#8bc6d8" />
             </g>
 
             {/* Windmill */}
             <g>
-              <path
-                d="M520 66 L533 66 L540 143 L514 143 Z"
-                fill="#f1e3c5"
-              />
+              <path d="M520 66 L533 66 L540 143 L514 143 Z" fill="#f1e3c5" />
 
-              <circle
-                cx="526"
-                cy="66"
-                r="7"
-                fill="var(--action)"
-              />
+              <circle cx="526" cy="66" r="7" fill="var(--action)" />
 
-              <path
-                d="M526 66 L495 45"
-                stroke="#f4eee0"
-                strokeWidth="7"
-                strokeLinecap="round"
-              />
+              <path d="M526 66 L495 45" stroke="#f4eee0" strokeWidth="7" strokeLinecap="round" />
 
-              <path
-                d="M526 66 L555 43"
-                stroke="#f4eee0"
-                strokeWidth="7"
-                strokeLinecap="round"
-              />
+              <path d="M526 66 L555 43" stroke="#f4eee0" strokeWidth="7" strokeLinecap="round" />
 
-              <path
-                d="M526 66 L558 84"
-                stroke="#f4eee0"
-                strokeWidth="7"
-                strokeLinecap="round"
-              />
+              <path d="M526 66 L558 84" stroke="#f4eee0" strokeWidth="7" strokeLinecap="round" />
 
-              <path
-                d="M526 66 L498 87"
-                stroke="#f4eee0"
-                strokeWidth="7"
-                strokeLinecap="round"
-              />
+              <path d="M526 66 L498 87" stroke="#f4eee0" strokeWidth="7" strokeLinecap="round" />
             </g>
 
             {/* Tree */}
             <g>
-              <rect
-                x="105"
-                y="111"
-                width="14"
-                height="42"
-                rx="5"
-                fill="#87583d"
-              />
+              <rect x="105" y="111" width="14" height="42" rx="5" fill="#87583d" />
 
               <circle cx="112" cy="94" r="28" fill="#4f9657" />
               <circle cx="91" cy="105" r="20" fill="#5faa61" />
@@ -571,11 +431,7 @@ export default function InputPage() {
             </g>
 
             {/* Fence */}
-            <g
-              stroke="#ead0a0"
-              strokeWidth="6"
-              strokeLinecap="round"
-            >
+            <g stroke="#ead0a0" strokeWidth="6" strokeLinecap="round">
               <path d="M410 138 L410 166" />
               <path d="M450 138 L450 166" />
               <path d="M490 138 L490 166" />
@@ -595,11 +451,7 @@ export default function InputPage() {
             />
 
             {/* Small grass details */}
-            <g
-              stroke="#397c49"
-              strokeWidth="3"
-              strokeLinecap="round"
-            >
+            <g stroke="#397c49" strokeWidth="3" strokeLinecap="round">
               <path d="M50 170 L46 161 M50 170 L55 160" />
               <path d="M195 170 L191 160 M195 170 L201 162" />
               <path d="M380 170 L376 160 M380 170 L386 161" />
@@ -607,12 +459,7 @@ export default function InputPage() {
             </g>
 
             {/* Birds */}
-            <g
-              fill="none"
-              stroke="#557b82"
-              strokeWidth="3"
-              strokeLinecap="round"
-            >
+            <g fill="none" stroke="#557b82" strokeWidth="3" strokeLinecap="round">
               <path d="M185 55 Q191 49 197 55 Q203 49 209 55" />
               <path d="M345 62 Q351 56 357 62 Q363 56 369 62" />
             </g>
@@ -622,9 +469,7 @@ export default function InputPage() {
         {/* Prompt card */}
         <div className="w-full bg-[var(--surface-soft)] border border-white/20 backdrop-blur-md rounded-3xl shadow-2xl px-8 py-8">
           <div className="text-center mb-6">
-            <h1 className="text-3xl sm:text-4xl font-extrabold text-white">
-              Create Your Prompt
-            </h1>
+            <h1 className="text-3xl sm:text-4xl font-extrabold text-white">Create Your Prompt</h1>
 
             <p className="text-white/75 font-medium mt-2">
               Give another player something fun to draw!
@@ -675,11 +520,7 @@ export default function InputPage() {
             </p>
           )}
 
-          {error && (
-            <p className="text-sm text-white font-semibold text-center mt-5">
-              {error}
-            </p>
-          )}
+          {error && <p className="text-sm text-white font-semibold text-center mt-5">{error}</p>}
         </div>
 
         {!submitted && (

@@ -32,10 +32,7 @@ async function withStatus(res: Response): Promise<SubmitResponse> {
   return { ...((await res.json()) as RoomResponse), status: res.status };
 }
 
-export async function createRoom(
-  hostName: string,
-  mode: GameMode = 'classic',
-) {
+export async function createRoom(hostName: string, mode: GameMode = 'classic') {
   const res = await fetch(`${API_URL}/rooms/create`, {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
@@ -61,9 +58,7 @@ export async function joinRoom(roomCode: string, playerName: string) {
  * repeating poll should identify its caller. See `server/README.md` § Presence.
  */
 export async function getRoom(roomCode: string, playerName?: string) {
-  const query = playerName
-    ? `?playerName=${encodeURIComponent(playerName)}`
-    : '';
+  const query = playerName ? `?playerName=${encodeURIComponent(playerName)}` : '';
   const res = await fetch(`${API_URL}/rooms/${roomCode}${query}`);
   return (await res.json()) as RoomResponse;
 }
@@ -73,11 +68,7 @@ export async function getRoom(roomCode: string, playerName?: string) {
  * a closing tab still reports the departure instead of waiting for the server's
  * presence timeout.
  */
-export async function leaveRoom(
-  roomCode: string,
-  playerName: string,
-  keepalive = false,
-) {
+export async function leaveRoom(roomCode: string, playerName: string, keepalive = false) {
   const res = await fetch(
     `${API_URL}/rooms/${roomCode}/players/${encodeURIComponent(playerName)}`,
     {
@@ -88,11 +79,7 @@ export async function leaveRoom(
   return (await res.json()) as RoomResponse;
 }
 
-export async function updateReady(
-  roomCode: string,
-  playerName: string,
-  ready: boolean,
-) {
+export async function updateReady(roomCode: string, playerName: string, ready: boolean) {
   const res = await fetch(`${API_URL}/rooms/${roomCode}/ready`, {
     method: 'PATCH',
     headers: { 'Content-Type': 'application/json' },
@@ -111,11 +98,7 @@ export async function startRoom(roomCode: string) {
   return (await res.json()) as RoomResponse;
 }
 
-export async function submitPrompt(
-  roomCode: string,
-  playerName: string,
-  prompt: string,
-) {
+export async function submitPrompt(roomCode: string, playerName: string, prompt: string) {
   const res = await fetch(`${API_URL}/rooms/${roomCode}/prompts`, {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
@@ -124,11 +107,7 @@ export async function submitPrompt(
   return withStatus(res);
 }
 
-export async function submitDrawing(
-  roomCode: string,
-  playerName: string,
-  dataUrl: string,
-) {
+export async function submitDrawing(roomCode: string, playerName: string, dataUrl: string) {
   const res = await fetch(`${API_URL}/rooms/${roomCode}/drawings`, {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
@@ -174,11 +153,7 @@ export async function advanceRatingReveal(roomCode: string) {
  * The server determines the rating target, so the client cannot rate
  * a different player's drawing.
  */
-export async function submitRating(
-  roomCode: string,
-  playerName: string,
-  rating: number,
-) {
+export async function submitRating(roomCode: string, playerName: string, rating: number) {
   const res = await fetch(`${API_URL}/rooms/${roomCode}/ratings`, {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },

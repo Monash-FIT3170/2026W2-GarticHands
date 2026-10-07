@@ -8,11 +8,7 @@ interface TopRightButtonsProps {
   onRules?: () => void;
 }
 
-export default function TopRightButtons({
-  onVolume,
-  onSettings,
-  onRules,
-}: TopRightButtonsProps) {
+export default function TopRightButtons({ onVolume, onSettings, onRules }: TopRightButtonsProps) {
   const base =
     'w-11 h-11 flex items-center justify-center rounded-full ' +
     'bg-white/10 border border-white/20 text-white ' +
