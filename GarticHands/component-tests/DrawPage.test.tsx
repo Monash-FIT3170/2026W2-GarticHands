@@ -6,15 +6,15 @@
  * DrawPage is a fairly large orchestration page: it reads roomCode and
  * playerName from router location state, fetches the room on mount to get
  * the current prompt and round, starts a screen recording once the round
- * is known, polls for the guess phase via usePhaseAdvance once the
- * drawing is submitted, and on submit sends the drawing image plus stops
- * the recorder in parallel before optionally navigating to /guess.
+ * is known, polls for the next phase via usePhaseAdvance once the drawing
+ * is submitted, and on submit sends the drawing image plus stops the
+ * recorder in parallel before optionally navigating to the next page.
  *
  * Because this page pulls in routing, the drawing module, the shared UI
  * kit, the room API, a phase-advance hook, and a recordings context, all
- * of those are mocked here. The goal is to test DrawPage own
- * orchestration logic (what it does with the data those pieces provide),
- * not the internals of any of them.
+ * of those are mocked here. The goal is to test DrawPage's orchestration
+ * logic (what it does with the data those pieces provide), not the
+ * internals of any of them.
  */
 
 import { render, screen, waitFor, fireEvent } from '@testing-library/react';
@@ -133,7 +133,8 @@ vi.mock('../client/src/state/RecordingsContext', () => ({
 }));
 
 // Shared "happy path" room fixture returned by getRoom, reused across
-// most tests below.
+// most tests below. promptTargets identifies which player's prompt the
+// current player should draw.
 const roomFixture = {
   success: true as const,
   room: {
@@ -144,6 +145,7 @@ const roomFixture = {
     round: 2,
     maxRounds: 4,
     prompts: { Ash: 'a flying cat' },
+    promptTargets: { Ash: 'Ash' },
     drawings: {},
     guesses: {},
     createdAt: 1,
@@ -227,7 +229,11 @@ describe('DrawPage', () => {
     fireEvent.click(screen.getByText('Submit Drawing'));
 
     await waitFor(() => {
-      expect(mockSubmitDrawing).toHaveBeenCalledWith('ABC123', 'Ash', 'data:image/png;base64,fake');
+      expect(mockSubmitDrawing).toHaveBeenCalledWith(
+        'ABC123',
+        'Ash',
+        'data:image/png;base64,fake',
+      );
     });
     expect(mockRecorderStop).toHaveBeenCalledTimes(1);
   });
