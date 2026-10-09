@@ -1,8 +1,9 @@
 import { useEffect, useState, useCallback } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
-import { createRoom, getRoom, startRoom } from '../api/room';
+import { createRoom, getRoom, startRoom, updateRoomSettings } from '../api/room';
 import { Page, Card, Button } from '../components/ui';
 import PlayerList from '../components/PlayerList';
+import RoomSettings from '../components/RoomSettings';
 import { useLeaveRoom } from '../hooks/useLeaveRoom';
 import { usePlayerDepartures } from '../hooks/usePlayerDepartures';
 import type { GameMode, Player, DrawLocationState } from '../types/room';
@@ -13,6 +14,8 @@ const MAX_PLAYERS = 8;
 export default function HostingPage() {
   const [roomCode, setRoomCode] = useState('');
   const [players, setPlayers] = useState<Player[]>([]);
+  const [drawTimeSeconds, setDrawTimeSeconds] = useState(60);
+  const [maxRounds, setMaxRounds] = useState(4);
   const [popup, setPopup] = useState('');
 
   const navigate = useNavigate();
@@ -39,6 +42,8 @@ export default function HostingPage() {
       if (data.success && data.roomCode && data.room) {
         setRoomCode(data.roomCode);
         setPlayers(data.room.players);
+        setDrawTimeSeconds(data.room.drawTimeSeconds ?? 60);
+        setMaxRounds(data.room.maxRounds);
       }
     }
 
@@ -56,6 +61,8 @@ export default function HostingPage() {
 
         if (!cancelled && data.success && data.room) {
           setPlayers(data.room.players);
+          setDrawTimeSeconds(data.room.drawTimeSeconds ?? 60);
+          setMaxRounds(data.room.maxRounds);
         }
       } catch {
         // Retry on the next poll.
@@ -81,6 +88,7 @@ export default function HostingPage() {
   const leaveRoom = useLeaveRoom(roomCode || undefined, hostName);
 
   const readyCount = players.filter((player) => player.ready || player.isHost).length;
+  const isHost = players.some((player) => player.name === hostName && player.isHost);
 
   const allReady = players.length > 0 && players.every((player) => player.ready || player.isHost);
 
@@ -94,6 +102,23 @@ export default function HostingPage() {
   async function handleLeave() {
     await leaveRoom();
     void navigate('/');
+  }
+
+  async function saveRoomSettings(settings: { drawTimeSeconds?: number; maxRounds?: number }) {
+    if (!roomCode || !hostName) return;
+
+    try {
+      const data = await updateRoomSettings(roomCode, hostName, settings);
+      if (!data.success || !data.room) {
+        setPopup(data.message ?? 'Unable to update room settings.');
+        return;
+      }
+
+      setDrawTimeSeconds(data.room.drawTimeSeconds ?? 60);
+      setMaxRounds(data.room.maxRounds);
+    } catch {
+      setPopup('Unable to update room settings. Please try again.');
+    }
   }
 
   async function handleStart() {
@@ -148,6 +173,19 @@ export default function HostingPage() {
               selfName={hostName}
               variant="lobby"
               padTo={MAX_PLAYERS_DISPLAY}
+            />
+            <RoomSettings
+              drawTimeSeconds={drawTimeSeconds}
+              maxRounds={maxRounds}
+              disabled={!isHost}
+              onDrawTimeChange={(value) => {
+                setDrawTimeSeconds(value);
+                void saveRoomSettings({ drawTimeSeconds: value });
+              }}
+              onRoundsChange={(value) => {
+                setMaxRounds(value);
+                void saveRoomSettings({ maxRounds: value });
+              }}
             />
           </section>
 

@@ -1,8 +1,9 @@
 import { useState, useEffect, useCallback } from 'react';
 import { useParams, useLocation, useNavigate } from 'react-router-dom';
-import { getRoom, updateReady, startRoom } from '../api/room';
+import { getRoom, updateReady, startRoom, updateRoomSettings } from '../api/room';
 import { Page, Card, Button } from '../components/ui';
 import PlayerList from '../components/PlayerList';
+import RoomSettings from '../components/RoomSettings';
 import { useLeaveRoom } from '../hooks/useLeaveRoom';
 import { usePlayerDepartures } from '../hooks/usePlayerDepartures';
 import type { GameMode, Player, DrawLocationState } from '../types/room';
@@ -18,6 +19,8 @@ export default function JoinedPage() {
   const navigate = useNavigate();
 
   const [players, setPlayers] = useState<Player[]>(state?.room?.players ?? []);
+  const [drawTimeSeconds, setDrawTimeSeconds] = useState(state?.room?.drawTimeSeconds ?? 60);
+  const [maxRounds, setMaxRounds] = useState(state?.room?.maxRounds ?? 4);
 
   const [gameMode, setGameMode] = useState<GameMode>(state?.room?.mode ?? 'classic');
 
@@ -50,6 +53,8 @@ export default function JoinedPage() {
       if (!data.success || !data.room) return;
 
       setGameMode(data.room.mode ?? 'classic');
+      setDrawTimeSeconds(data.room.drawTimeSeconds ?? 60);
+      setMaxRounds(data.room.maxRounds);
 
       const stillIn = data.room.players.some((p: Player) => p.name === playerName);
 
@@ -129,6 +134,23 @@ export default function JoinedPage() {
     }
   }
 
+  async function saveRoomSettings(settings: { drawTimeSeconds?: number; maxRounds?: number }) {
+    if (!roomCode || !playerName || !isHost) return;
+
+    try {
+      const data = await updateRoomSettings(roomCode, playerName, settings);
+      if (!data.success || !data.room) {
+        setPopup(data.message ?? 'Unable to update room settings.');
+        return;
+      }
+
+      setDrawTimeSeconds(data.room.drawTimeSeconds ?? 60);
+      setMaxRounds(data.room.maxRounds);
+    } catch {
+      setPopup('Unable to update room settings. Please try again.');
+    }
+  }
+
   async function handleStart() {
     if (!roomCode || !allReady || starting) return;
 
@@ -176,6 +198,19 @@ export default function JoinedPage() {
               selfName={playerName}
               variant="lobby"
               padTo={MAX_PLAYERS_DISPLAY}
+            />
+            <RoomSettings
+              drawTimeSeconds={drawTimeSeconds}
+              maxRounds={maxRounds}
+              disabled={!isHost}
+              onDrawTimeChange={(value) => {
+                setDrawTimeSeconds(value);
+                void saveRoomSettings({ drawTimeSeconds: value });
+              }}
+              onRoundsChange={(value) => {
+                setMaxRounds(value);
+                void saveRoomSettings({ maxRounds: value });
+              }}
             />
           </section>
 

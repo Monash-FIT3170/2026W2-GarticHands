@@ -52,6 +52,8 @@ type Room = {
   phase: RoomPhase
   phaseEndsAt: number | null        // epoch ms; null on untimed phases
   round: number             // increments on each "Play Again"
+  maxRounds: number
+  drawTimeSeconds: number   // host-selected draw phase duration
   prompts: Record<string, string>   // playerName → prompt text
   drawings: Record<string, string>  // playerName → PNG data URL
   guesses: Record<string, string>   // playerName → guess text
@@ -206,6 +208,29 @@ Toggle a player's ready flag. No-op for the host (the host is always treated as 
 
 **Response 200** `{ "success": true, "room": { ... } }`
 **Response 404** room or player not found.
+
+Also broadcasts `room-update`.
+
+### `PATCH /rooms/:roomCode/settings`
+
+Update lobby settings. Only the current host can change them, and only before
+the game starts. Other players see the settings through the room response and
+lobby polling.
+
+**Body** — send one or both settings with the host's player name:
+
+```json
+{ "playerName": "Alice", "drawTimeSeconds": 90 }
+```
+
+`drawTimeSeconds` must be one of `30, 45, 60, 90, 120, 150, 180, 240, 300,
+360`; `maxRounds` must be an integer from `1` to `8`.
+
+**Response 200** `{ "success": true, "room": { ... } }`
+**Response 400** invalid or missing settings.
+**Response 403** caller is not the host.
+**Response 404** room or player not found.
+**Response 409** the game has already started.
 
 Also broadcasts `room-update`.
 

@@ -89,6 +89,20 @@ export async function updateReady(roomCode: string, playerName: string, ready: b
   return (await res.json()) as RoomResponse;
 }
 
+export async function updateRoomSettings(
+  roomCode: string,
+  playerName: string,
+  settings: { drawTimeSeconds?: number; maxRounds?: number },
+) {
+  const res = await fetch(`${API_URL}/rooms/${roomCode}/settings`, {
+    method: 'PATCH',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ playerName, ...settings }),
+  });
+
+  return (await res.json()) as RoomResponse;
+}
+
 export async function startRoom(roomCode: string) {
   const res = await fetch(`${API_URL}/rooms/${roomCode}/start`, {
     method: 'PATCH',

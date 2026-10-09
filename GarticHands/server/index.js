@@ -15,6 +15,8 @@ const io = new Server(server, {
 const PORT = process.env.PORT || 3000
 const MAX_ROUNDS = 4
 const MAX_PLAYERS = 8
+const DRAW_TIME_OPTIONS = [30, 45, 60, 90, 120, 150, 180, 240, 300, 360]
+const ROUND_OPTIONS = [1, 2, 3, 4, 5, 6, 7, 8]
 
 /** Env override — lets a demo or test run through a phase without waiting a full minute. */
 function phaseSeconds(envName, fallback) {
@@ -147,7 +149,10 @@ function setPhase(room, phase) {
 
   room.phase = phase
 
-  const duration = PHASE_DURATIONS[phase]
+  const duration =
+    phase === 'draw' && !process.env.DRAW_SECONDS
+      ? room.drawTimeSeconds || PHASE_DURATIONS.draw
+      : PHASE_DURATIONS[phase]
 
   if (!duration) {
     room.phaseEndsAt = null
@@ -575,9 +580,7 @@ app.get('/', (_req, res) => {
  *
  * `mode` is optional so existing clients still create Classic rooms.
  *
- * `maxRounds` is also optional for future round-selector work, but currently
- * defaults to the existing MAX_ROUNDS value. We deliberately do not change
- * the current round-selector implementation here.
+ * `maxRounds` and `drawTimeSeconds` are configurable from the host lobby.
  */
 app.post('/rooms/create', (req, res) => {
   const { hostName, mode, maxRounds } = req.body
@@ -588,7 +591,7 @@ app.post('/rooms/create', (req, res) => {
     mode === 'leaderboard' ? 'leaderboard' : 'classic'
 
   const selectedMaxRounds =
-    Number.isInteger(maxRounds) && maxRounds > 0
+    ROUND_OPTIONS.includes(maxRounds)
       ? maxRounds
       : MAX_ROUNDS
 
@@ -602,6 +605,7 @@ app.post('/rooms/create', (req, res) => {
 
     round: 1,
     maxRounds: selectedMaxRounds,
+    drawTimeSeconds: 60,
 
     prompts: {},
     promptTargets: {},
@@ -623,6 +627,67 @@ app.post('/rooms/create', (req, res) => {
     success: true,
     roomCode,
     room: rooms[roomCode],
+  })
+})
+
+app.patch('/rooms/:roomCode/settings', (req, res) => {
+  const roomCode = req.params.roomCode.toUpperCase()
+  const { playerName, drawTimeSeconds, maxRounds } = req.body
+  const room = rooms[roomCode]
+
+  if (!room) {
+    return res.status(404).json({
+      success: false,
+      message: 'Room not found',
+    })
+  }
+
+  const player = room.players.find((p) => p.name === playerName)
+
+  if (!player) {
+    return res.status(404).json({
+      success: false,
+      message: 'Player not found',
+    })
+  }
+
+  if (!player.isHost) {
+    return res.status(403).json({
+      success: false,
+      message: 'Only the host can update room settings.',
+    })
+  }
+
+  if (room.status !== 'waiting' || room.phase !== 'lobby') {
+    return res.status(409).json({
+      success: false,
+      message: 'Room settings cannot be changed after the game starts.',
+    })
+  }
+
+  const hasDrawTime = Object.hasOwn(req.body, 'drawTimeSeconds')
+  const hasRounds = Object.hasOwn(req.body, 'maxRounds')
+
+  if (
+    (!hasDrawTime && !hasRounds) ||
+    (hasDrawTime && !DRAW_TIME_OPTIONS.includes(drawTimeSeconds)) ||
+    (hasRounds && !ROUND_OPTIONS.includes(maxRounds))
+  ) {
+    return res.status(400).json({
+      success: false,
+      message: 'Invalid room settings.',
+    })
+  }
+
+  if (hasDrawTime) room.drawTimeSeconds = drawTimeSeconds
+  if (hasRounds) room.maxRounds = maxRounds
+  player.lastSeen = Date.now()
+
+  io.to(room.code).emit('room-update', room)
+
+  res.json({
+    success: true,
+    room,
   })
 })
 

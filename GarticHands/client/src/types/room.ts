@@ -50,6 +50,8 @@ export interface Room {
   phaseEndsAt: number | null;
   round: number;
   maxRounds: number;
+  /** Host-selected draw time; optional for room payloads from older servers. */
+  drawTimeSeconds?: number;
   prompts: Record<string, string>;
   /**
    * Drawer name → prompt author name. The server assigns which player's prompt

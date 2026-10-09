@@ -26,7 +26,7 @@ export default function PlayerList({
   if (variant === 'lobby') {
     const empties = Math.max(0, (padTo ?? players.length) - players.length);
     return (
-      <div className="space-y-4 max-h-72 overflow-y-auto pr-3">
+      <div className="space-y-4 max-h-60 overflow-y-auto pr-3">
         {players.map((player, i) => (
           <LobbyRow key={`p-${i}`} player={player} isSelf={player.name === selfName} />
         ))}
