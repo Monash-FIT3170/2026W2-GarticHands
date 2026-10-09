@@ -58,7 +58,10 @@ function DiscreteSlider({
   const percent = (valueIndex / (options.length - 1)) * 100;
 
   return (
-    <div className="w-full">
+    <div
+      className="relative w-full"
+      title={disabled ? 'Only the host can modify room settings' : undefined}
+    >
       <label className="mb-1 block text-center text-xl font-bold text-white">{label}</label>
       <div className="mb-1 flex justify-between text-sm font-semibold text-white">
         <span>{options[0]}</span>
@@ -68,6 +71,7 @@ function DiscreteSlider({
         <input
           aria-label={label}
           aria-valuetext={`${options[valueIndex]}${label === 'Draw Time (seconds)' ? ' seconds' : ''}`}
+          aria-description={disabled ? 'Only the host can modify room settings' : undefined}
           className="room-slider relative z-10 w-full"
           type="range"
           min={0}
