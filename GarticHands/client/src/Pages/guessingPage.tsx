@@ -3,10 +3,9 @@ import { useLocation, useNavigate } from 'react-router-dom';
 import { Card, Button, RoundHeader, CountdownTimer } from '../components/ui';
 import { getRoom, submitGuess, PhaseConflictStatus } from '../api/room';
 import { usePhaseAdvance } from '../hooks/usePhaseAdvance';
-import type { Player, DrawLocationState } from '../types/room';
+import type { Player, Room, DrawLocationState } from '../types/room';
 
 const MaxChars = 120;
-/** Shown until the room's server-owned deadline arrives. Real limit: `PHASE_DURATIONS` in `server/index.js`. */
 const TotalTime = 60;
 
 export default function GuessingPage() {
@@ -20,14 +19,12 @@ export default function GuessingPage() {
   const [submitted, setSubmitted] = useState(false);
   const [error, setError] = useState('');
   const [drawing, setDrawing] = useState<string>('');
-  // Name of the player whose drawing we're guessing. Submitted alongside the
-  // guess so the reveal can pair it with the right drawing even if the roster
-  // changes before then.
   const [targetName, setTargetName] = useState<string | undefined>(undefined);
-  const drawnBy = targetName ?? '...';
-  // The draw phase can time out with nothing submitted, so "no drawing" is a
-  // real outcome — distinguish it from "still fetching".
   const [drawingLoaded, setDrawingLoaded] = useState(false);
+  const [aiMode, setAiMode] = useState(false);
+  const [room, setRoomData] = useState<Room | null>(null);
+
+  const drawnBy = targetName ?? '...';
 
   useEffect(() => {
     if (!roomCode || !playerName) {
@@ -35,11 +32,21 @@ export default function GuessingPage() {
       return;
     }
 
-    // Pick the player whose drawing we'll guess: the next player in the player list,
-    // wrapping around. Deterministic across clients because the list order is shared.
-    // Mid-round joiners have no drawing, so they're excluded from the rotation.
     void getRoom(roomCode).then((data) => {
       if (!data.success || !data.room) return;
+      setRoomData(data.room);
+
+      // AI Mode — skip guessing entirely, wait for AI to guess and advance
+      if (data.room.aiMode) {
+        setAiMode(true);
+        // If AI already guessed and phase advanced, navigate immediately
+        if (data.room.phase === 'reveal') {
+          void navigate('/game', { state: { roomCode, playerName } });
+        }
+        return;
+      }
+
+      // Classic Mode — pick target player's drawing to guess
       const players: Player[] = data.room.players.filter((p) => !p.joinedMidRound);
       const myIndex = players.findIndex((p) => p.name === playerName);
       if (myIndex === -1) return;
@@ -50,7 +57,24 @@ export default function GuessingPage() {
     });
   }, [roomCode, playerName, navigate]);
 
-  const { waitingFor, room, secondsLeft } = usePhaseAdvance({
+  // In AI Mode, poll until the AI submits its guess and phase moves to reveal
+  useEffect(() => {
+    if (!aiMode || !roomCode) return;
+
+    const interval = setInterval(async () => {
+      const data = await getRoom(roomCode, playerName);
+      if (!data.success || !data.room) return;
+      setRoomData(data.room);
+
+      if (data.room.phase === 'reveal') {
+        void navigate('/game', { state: { roomCode, playerName } });
+      }
+    }, 1000);
+
+    return () => clearInterval(interval);
+  }, [aiMode, roomCode, playerName, navigate]);
+
+  const { waitingFor, secondsLeft } = usePhaseAdvance({
     roomCode,
     playerName,
     enabled: submitted,
@@ -59,7 +83,6 @@ export default function GuessingPage() {
     countBucket: 'guesses',
   });
 
-  /** `allowEmpty` is only set by the deadline handler — the button requires text. */
   async function handleSubmit(allowEmpty = false) {
     const trimmed = guess.trim();
     if ((!trimmed && !allowEmpty) || submitted || !roomCode || !playerName) return;
@@ -69,8 +92,6 @@ export default function GuessingPage() {
 
     const data = await submitGuess(roomCode, playerName, trimmed, targetName);
     if (!data.success) {
-      // Raced the phase deadline: the server already moved everyone on and
-      // recorded a blank guess. Stay submitted and let the phase poll navigate.
       if (data.status === PhaseConflictStatus) return;
       setError(data.message || 'Failed to submit guess.');
       setSubmitted(false);
@@ -82,11 +103,32 @@ export default function GuessingPage() {
     }
   }
 
-  /** Time is up — submit whatever is typed, blank included, so the round advances. */
   function handleExpire() {
     if (!submitted) void handleSubmit(true);
   }
 
+  // AI Mode — show waiting screen while AI generates its guess
+  if (aiMode) {
+    return (
+      <div className="background">
+        <Card variant="glass">
+          <RoundHeader round={room?.round ?? 1} totalRounds={room?.maxRounds ?? 4} />
+          <h1 className="text-3xl">AI Mode</h1>
+          <div className="flex flex-col items-center gap-4 mt-4">
+            <span className="text-5xl animate-pulse">🤖</span>
+            <p className="text-[var(--text-muted)] text-sm text-center">
+              The AI is analysing your drawing...
+            </p>
+            <p className="text-xs text-[var(--text-muted)]">
+              Hang tight — results coming up!
+            </p>
+          </div>
+        </Card>
+      </div>
+    );
+  }
+
+  // Classic Mode — normal guessing UI
   return (
     <div className="background">
       <Card variant="glass">

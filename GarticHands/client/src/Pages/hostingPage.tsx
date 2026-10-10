@@ -68,7 +68,7 @@ export default function HostingPage() {
 
   const leaveRoom = useLeaveRoom(roomCode || undefined, hostName);
 
-  const humanPlayers = players.filter((p) => !p.isAI);
+  const humanPlayers = players;
   const readyCount = humanPlayers.filter((p) => p.ready || p.isHost).length;
   const allReady = humanPlayers.length > 0 && humanPlayers.every((p) => p.ready || p.isHost);
 

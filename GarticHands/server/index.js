@@ -182,10 +182,9 @@ function expirePhase(roomCode, expectedPhase) {
   const completedPhase = expectedPhase
   setPhase(room, NEXT_PHASE[expectedPhase])
 
-  // Same AI hook as advanceIfPhaseComplete
   if (completedPhase === 'draw' && room.aiMode) {
     autoSubmitAIGuess(room).catch((err) =>
-      console.error('[AI] Unhandled error in autoSubmitAIGuess:', err)
+      console.error('[AI] Unhandled error in autoSubmitAIGuess:', err),
     )
   }
 
@@ -246,38 +245,33 @@ function advanceIfPhaseComplete(room) {
   const completedPhase = room.phase
   setPhase(room, NEXT_PHASE[room.phase])
 
-  // After draw phase completes and we enter guess phase,
-  // trigger the AI guess automatically
+  // When draw phase ends in AI Mode, auto-generate a guess
   if (completedPhase === 'draw' && room.aiMode) {
-    // Run async but don't await — the round continues normally
-    // The AI submits whenever Claude responds (~1-3 seconds)
     autoSubmitAIGuess(room).catch((err) =>
-      console.error('[AI] Unhandled error in autoSubmitAIGuess:', err)
+      console.error('[AI] Unhandled error in autoSubmitAIGuess:', err),
     )
   }
 
   return true
 }
 /**
- * After the draw phase ends and the room advances to guess,
- * the AI player automatically guesses the drawing it was assigned.
- * The AI always guesses the host's drawing (the human player who created the room).
- * If the guess fails, it falls back gracefully so the round is never blocked.
+ * After the draw phase ends, generate an AI guess for the player's drawing.
+ * The guess is stored in room.aiGuess and broadcast to all clients.
+ * The round is never blocked — if Gemini fails, a fallback is used.
  */
 async function autoSubmitAIGuess(room) {
-  const aiPlayer = room.players.find((p) => p.isAI)
-  if (!aiPlayer) return
   if (room.phase !== 'guess') return
 
-  // Find the host's drawing for the AI to guess
-  const hostPlayer = room.players.find((p) => p.isHost && !p.isAI)
+  // Find the host's drawing — in AI Mode there is only one human player
+  const hostPlayer = room.players.find((p) => p.isHost)
   if (!hostPlayer) return
 
   const drawingToGuess = room.drawings[hostPlayer.name]
   if (!drawingToGuess) {
-    // Host never submitted a drawing — give a fallback guess
-    room.guesses[aiPlayer.name] = 'nothing'
-    room.guessTargets[aiPlayer.name] = hostPlayer.name
+    room.aiGuess = 'nothing'
+    // Store as a regular guess so reveal page can display it
+    room.guesses['AI Guesser'] = 'nothing'
+    room.guessTargets['AI Guesser'] = hostPlayer.name
     advanceIfPhaseComplete(room)
     io.to(room.code).emit('room-update', room)
     return
@@ -288,23 +282,20 @@ async function autoSubmitAIGuess(room) {
     const guess = await generateGuess(drawingToGuess)
     console.log(`[AI] Guess: "${guess}"`)
 
-    // Only submit if the room is still in guess phase
-    // (could have advanced early if the human already guessed)
-    if (room.phase === 'guess') {
-      room.guesses[aiPlayer.name] = guess
-      room.guessTargets[aiPlayer.name] = hostPlayer.name
-      advanceIfPhaseComplete(room)
-      io.to(room.code).emit('room-update', room)
-    }
+    room.aiGuess = guess
+    room.guesses['AI Guesser'] = guess
+    room.guessTargets['AI Guesser'] = hostPlayer.name
+
+    // Advance to reveal since AI is the only guesser in AI Mode
+    setPhase(room, 'reveal')
+    io.to(room.code).emit('room-update', room)
   } catch (err) {
     console.error('[AI] Guess failed:', err.message)
-    // Fallback so the AI never blocks the round
-    if (room.phase === 'guess') {
-      room.guesses[aiPlayer.name] = 'I have no idea'
-      room.guessTargets[aiPlayer.name] = hostPlayer.name
-      advanceIfPhaseComplete(room)
-      io.to(room.code).emit('room-update', room)
-    }
+    room.aiGuess = 'I have no idea'
+    room.guesses['AI Guesser'] = 'I have no idea'
+    room.guessTargets['AI Guesser'] = hostPlayer.name
+    setPhase(room, 'reveal')
+    io.to(room.code).emit('room-update', room)
   }
 }
 /**
@@ -502,13 +493,48 @@ app.patch('/rooms/:roomCode/start', (req, res) => {
   room.drawings = {}
   room.guesses = {}
   room.guessTargets = {}
-  // Everyone present when the game starts is a full participant.
+  room.aiPrompt = null
+  room.aiGuess = null
+
   for (const p of room.players) {
     p.joinedMidRound = false
   }
+
   setPhase(room, 'prompt')
   io.to(room.code).emit('game-start', room)
   io.to(room.code).emit('room-update', room)
+
+  // In AI Mode, generate a prompt automatically so the player
+  // skips typing and goes straight to drawing
+  if (room.aiMode) {
+    generatePrompt()
+      .then((prompt) => {
+        // Auto-submit the prompt for every active player
+        for (const player of activePlayers(room)) {
+          if (!room.prompts[player.name]) {
+            room.prompts[player.name] = prompt
+          }
+        }
+        room.aiPrompt = prompt
+        advanceIfPhaseComplete(room)
+        io.to(room.code).emit('room-update', room)
+        console.log(`[AI] Generated prompt: "${prompt}"`)
+      })
+      .catch((err) => {
+        console.error('[AI] Prompt generation failed:', err.message)
+        // Fall back to a random fallback prompt
+        const fallback = FALLBACK_PROMPTS[Math.floor(Math.random() * FALLBACK_PROMPTS.length)]
+        for (const player of activePlayers(room)) {
+          if (!room.prompts[player.name]) {
+            room.prompts[player.name] = fallback
+          }
+        }
+        room.aiPrompt = fallback
+        advanceIfPhaseComplete(room)
+        io.to(room.code).emit('room-update', room)
+      })
+  }
+
   res.json({ success: true, room })
 })
 
@@ -532,13 +558,45 @@ app.patch('/rooms/:roomCode/restart', (req, res) => {
   room.drawings = {}
   room.guesses = {}
   room.guessTargets = {}
+  room.aiPrompt = null
+  room.aiGuess = null
   room.round = (room.round || 1) + 1
-  // A new round starts — mid-round joiners become full participants.
+
   for (const p of room.players) {
     p.joinedMidRound = false
   }
+
   setPhase(room, 'prompt')
   io.to(room.code).emit('room-update', room)
+
+  // Generate a fresh AI prompt for the new round
+  if (room.aiMode) {
+    generatePrompt()
+      .then((prompt) => {
+        for (const player of activePlayers(room)) {
+          if (!room.prompts[player.name]) {
+            room.prompts[player.name] = prompt
+          }
+        }
+        room.aiPrompt = prompt
+        advanceIfPhaseComplete(room)
+        io.to(room.code).emit('room-update', room)
+        console.log(`[AI] Generated prompt for round ${room.round}: "${prompt}"`)
+      })
+      .catch((err) => {
+        console.error('[AI] Prompt generation failed:', err.message)
+        const fallback = FALLBACK_PROMPTS[Math.floor(Math.random() * FALLBACK_PROMPTS.length)]
+        for (const player of activePlayers(room)) {
+          if (!room.prompts[player.name]) {
+            room.prompts[player.name] = fallback
+          }
+        }
+        room.aiPrompt = fallback
+        advanceIfPhaseComplete(room)
+        io.to(room.code).emit('room-update', room)
+      })
+  }
+
   res.json({ success: true, room, maxRounds: MAX_ROUNDS })
 })
 
