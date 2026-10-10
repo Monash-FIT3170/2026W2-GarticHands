@@ -13,6 +13,8 @@ const MAX_PLAYERS = 8;
 export default function HostingPage() {
   const [roomCode, setRoomCode] = useState('');
   const [players, setPlayers] = useState<Player[]>([]);
+  const [aiMode, setAiMode] = useState(false);
+  const [roomCreated, setRoomCreated] = useState(false);
   const { toast, show } = useToast('pill');
 
   const navigate = useNavigate();
@@ -20,34 +22,29 @@ export default function HostingPage() {
   const state = location.state as DrawLocationState | null;
   const hostName = state?.playerName;
 
-  useEffect(() => {
-    async function setupRoom() {
-      if (!hostName) {
-        void navigate('/');
-        return;
-      }
-
-      const data = await createRoom(hostName);
-
-      if (data.success && data.roomCode && data.room) {
-        setRoomCode(data.roomCode);
-        setPlayers(data.room.players);
-      }
+  // Only create room once user clicks "Create Room"
+  async function handleCreateRoom() {
+    if (!hostName) {
+      void navigate('/');
+      return;
     }
 
-    void setupRoom();
-  }, [hostName, navigate]);
+    const data = await createRoom(hostName, aiMode);
+
+    if (data.success && data.roomCode && data.room) {
+      setRoomCode(data.roomCode);
+      setPlayers(data.room.players);
+      setRoomCreated(true);
+    }
+  }
 
   useEffect(() => {
-    if (!roomCode || !hostName) return;
+    if (!roomCode || !hostName || !roomCreated) return;
 
     async function loadRoom() {
-      // Passing the name doubles as this player's presence heartbeat.
       const data = await getRoom(roomCode, hostName);
       if (!data.success || !data.room) return;
 
-      // Dropped by the server (network died long enough to look like leaving) —
-      // the room carries on without us, so stop pretending we're still in it.
       const stillIn = data.room.players.some((p: Player) => p.name === hostName);
 
       if (!stillIn) {
@@ -65,14 +62,15 @@ export default function HostingPage() {
     }, 1000);
 
     return () => clearInterval(interval);
-  }, [roomCode, hostName, navigate]);
+  }, [roomCode, hostName, navigate, roomCreated]);
 
   usePlayerDepartures(players, (names) => show(`${names.join(', ')} left the room`));
 
   const leaveRoom = useLeaveRoom(roomCode || undefined, hostName);
 
-  const readyCount = players.filter((p) => p.ready || p.isHost).length;
-  const allReady = players.length > 0 && players.every((p) => p.ready || p.isHost);
+  const humanPlayers = players.filter((p) => !p.isAI);
+  const readyCount = humanPlayers.filter((p) => p.ready || p.isHost).length;
+  const allReady = humanPlayers.length > 0 && humanPlayers.every((p) => p.ready || p.isHost);
 
   async function handleLeave() {
     await leaveRoom();
@@ -81,7 +79,6 @@ export default function HostingPage() {
 
   function copyCode() {
     if (!roomCode) return;
-
     navigator.clipboard.writeText(roomCode).catch(() => {});
     show('Invite code copied!');
   }
@@ -99,6 +96,68 @@ export default function HostingPage() {
     }, 1200);
   }
 
+  // ── PRE-ROOM SCREEN — choose mode before creating ──
+  if (!roomCreated) {
+    return (
+      <Page variant="centered" logo>
+        <Card variant="lobby">
+          <div className="flex flex-col items-center gap-6 p-4">
+            <h2 className="text-white text-2xl font-extrabold tracking-wide">
+              CHOOSE GAMEMODE
+            </h2>
+
+            <div className="flex flex-col gap-4 w-full max-w-[220px]">
+              {/* Classic */}
+              <button
+                className="bg-[var(--surface)] rounded-lg border-4 border-[var(--accent)] flex flex-col items-center justify-center shadow-sm py-4"
+              >
+                <img
+                  src="/gamemode_classic.png"
+                  alt="Classic"
+                  className="w-16 h-16 mb-2 object-contain"
+                />
+                <p className="text-[var(--primary)] font-extrabold">Classic</p>
+              </button>
+
+              {/* AI Mode toggle */}
+              <button
+                onClick={() => setAiMode(!aiMode)}
+                className={`rounded-lg border-4 flex flex-col items-center justify-center shadow-sm py-4 transition-colors ${
+                  aiMode
+                    ? 'bg-indigo-600 border-indigo-400 text-white'
+                    : 'bg-[var(--surface)] border-[var(--border)] text-[var(--primary)]'
+                }`}
+              >
+                <span className="text-3xl mb-1">🤖</span>
+                <p className="font-extrabold">AI Mode</p>
+                <p className="text-xs opacity-70 mt-1">
+                  {aiMode ? 'ON — AI will guess your drawing' : 'OFF'}
+                </p>
+              </button>
+            </div>
+
+            <Button
+              variant="start"
+              size="full"
+              onClick={() => void handleCreateRoom()}
+            >
+              Create Room
+            </Button>
+
+            <Button
+              variant="leave"
+              size="full"
+              onClick={() => void navigate('/')}
+            >
+              Back
+            </Button>
+          </div>
+        </Card>
+      </Page>
+    );
+  }
+
+  // ── LOBBY SCREEN — after room is created ──
   return (
     <Page variant="centered" logo>
       <Card variant="lobby">
@@ -110,7 +169,7 @@ export default function HostingPage() {
               </h2>
 
               <p className="text-white/80 text-sm font-semibold">
-                {readyCount}/{players.length} ready
+                {readyCount}/{humanPlayers.length} ready
               </p>
             </div>
 
@@ -124,9 +183,27 @@ export default function HostingPage() {
 
           <section className="flex flex-col items-center">
             <div className="color-vision-lobby-section rounded-xl p-6 w-full flex flex-col items-center">
-              <h2 className="text-white text-2xl font-extrabold tracking-wide mb-5">GAMEMODE</h2>
+              <h2 className="text-white text-2xl font-extrabold tracking-wide mb-3">
+                GAMEMODE
+              </h2>
 
-              <GamemodeSelect />
+              <div className="flex flex-col items-center gap-2">
+                <button className="bg-[var(--surface)] rounded-lg border-4 border-[var(--accent)] flex flex-col items-center justify-center shadow-sm w-full max-w-[160px] py-3">
+                  <img
+                    src="/gamemode_classic.png"
+                    alt="Classic"
+                    className="w-12 h-12 mb-1 object-contain"
+                  />
+                  <p className="text-[var(--primary)] font-extrabold text-sm">Classic</p>
+                </button>
+
+                {aiMode && (
+                  <div className="flex items-center gap-2 bg-indigo-600 rounded-lg px-3 py-2">
+                    <span className="text-lg">🤖</span>
+                    <p className="text-white font-bold text-sm">AI Mode ON</p>
+                  </div>
+                )}
+              </div>
             </div>
 
             <div className="mt-6 w-full flex flex-col items-center gap-2">
@@ -168,7 +245,12 @@ export default function HostingPage() {
               {allReady ? 'Start Game' : 'Waiting for Players'}
             </Button>
 
-            <Button variant="leave" size="full" onClick={() => void handleLeave()} className="mt-3">
+            <Button
+              variant="leave"
+              size="full"
+              onClick={() => void handleLeave()}
+              className="mt-3"
+            >
               Leave Room
             </Button>
           </section>
@@ -177,16 +259,5 @@ export default function HostingPage() {
 
       {toast}
     </Page>
-  );
-}
-
-function GamemodeSelect() {
-  return (
-    <div className="grid grid-cols-1 gap-4 w-full max-w-[200px]">
-      <button className="bg-[var(--surface)] rounded-lg border-4 border-[var(--accent)] flex flex-col items-center justify-center shadow-sm">
-        <img src="/gamemode_classic.png" alt="Classic" className="w-16 h-16 mb-2 object-contain" />
-        <p className="text-[var(--primary)] font-extrabold">Classic</p>
-      </button>
-    </div>
   );
 }

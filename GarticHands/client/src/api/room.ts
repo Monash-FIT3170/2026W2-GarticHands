@@ -32,11 +32,11 @@ async function withStatus(res: Response): Promise<SubmitResponse> {
   return { ...((await res.json()) as RoomResponse), status: res.status };
 }
 
-export async function createRoom(hostName: string) {
+export async function createRoom(hostName: string, aiMode = false) {
   const res = await fetch(`${API_URL}/rooms/create`, {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({ hostName }),
+    body: JSON.stringify({ hostName, aiMode }),
   });
 
   return (await res.json()) as RoomResponse;

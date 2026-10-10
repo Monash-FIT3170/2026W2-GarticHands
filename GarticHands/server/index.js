@@ -1,7 +1,9 @@
+require('dotenv').config()
 const express = require('express')
 const http = require('http')
 const cors = require('cors')
 const { Server } = require('socket.io')
+const { generatePrompt, generateGuess } = require('./ai/guesser')
 
 const app = express()
 const server = http.createServer(app)
@@ -177,7 +179,16 @@ function expirePhase(roomCode, expectedPhase) {
     }
   }
 
+  const completedPhase = expectedPhase
   setPhase(room, NEXT_PHASE[expectedPhase])
+
+  // Same AI hook as advanceIfPhaseComplete
+  if (completedPhase === 'draw' && room.aiMode) {
+    autoSubmitAIGuess(room).catch((err) =>
+      console.error('[AI] Unhandled error in autoSubmitAIGuess:', err)
+    )
+  }
+
   io.to(room.code).emit('phase-timeout', { code: room.code, phase: expectedPhase })
   io.to(room.code).emit('room-update', room)
 }
@@ -232,10 +243,70 @@ function advanceIfPhaseComplete(room) {
   )
   if (!everyoneSubmitted) return false
 
+  const completedPhase = room.phase
   setPhase(room, NEXT_PHASE[room.phase])
+
+  // After draw phase completes and we enter guess phase,
+  // trigger the AI guess automatically
+  if (completedPhase === 'draw' && room.aiMode) {
+    // Run async but don't await — the round continues normally
+    // The AI submits whenever Claude responds (~1-3 seconds)
+    autoSubmitAIGuess(room).catch((err) =>
+      console.error('[AI] Unhandled error in autoSubmitAIGuess:', err)
+    )
+  }
+
   return true
 }
+/**
+ * After the draw phase ends and the room advances to guess,
+ * the AI player automatically guesses the drawing it was assigned.
+ * The AI always guesses the host's drawing (the human player who created the room).
+ * If the guess fails, it falls back gracefully so the round is never blocked.
+ */
+async function autoSubmitAIGuess(room) {
+  const aiPlayer = room.players.find((p) => p.isAI)
+  if (!aiPlayer) return
+  if (room.phase !== 'guess') return
 
+  // Find the host's drawing for the AI to guess
+  const hostPlayer = room.players.find((p) => p.isHost && !p.isAI)
+  if (!hostPlayer) return
+
+  const drawingToGuess = room.drawings[hostPlayer.name]
+  if (!drawingToGuess) {
+    // Host never submitted a drawing — give a fallback guess
+    room.guesses[aiPlayer.name] = 'nothing'
+    room.guessTargets[aiPlayer.name] = hostPlayer.name
+    advanceIfPhaseComplete(room)
+    io.to(room.code).emit('room-update', room)
+    return
+  }
+
+  try {
+    console.log(`[AI] Generating guess for room ${room.code}...`)
+    const guess = await generateGuess(drawingToGuess)
+    console.log(`[AI] Guess: "${guess}"`)
+
+    // Only submit if the room is still in guess phase
+    // (could have advanced early if the human already guessed)
+    if (room.phase === 'guess') {
+      room.guesses[aiPlayer.name] = guess
+      room.guessTargets[aiPlayer.name] = hostPlayer.name
+      advanceIfPhaseComplete(room)
+      io.to(room.code).emit('room-update', room)
+    }
+  } catch (err) {
+    console.error('[AI] Guess failed:', err.message)
+    // Fallback so the AI never blocks the round
+    if (room.phase === 'guess') {
+      room.guesses[aiPlayer.name] = 'I have no idea'
+      room.guessTargets[aiPlayer.name] = hostPlayer.name
+      advanceIfPhaseComplete(room)
+      io.to(room.code).emit('room-update', room)
+    }
+  }
+}
 /**
  * Shared tail for every departure, however it was detected. An emptied room is
  * marked for cleanup; otherwise the round is unblocked and the survivors are
@@ -288,7 +359,7 @@ app.get('/', (_req, res) => {
 })
 
 app.post('/rooms/create', (req, res) => {
-  const { hostName } = req.body
+  const { hostName, aiMode = false } = req.body
   const roomCode = generateRoomCode()
 
   rooms[roomCode] = {
@@ -299,6 +370,9 @@ app.post('/rooms/create', (req, res) => {
     phaseEndsAt: null,
     round: 1,
     maxRounds: MAX_ROUNDS,
+    aiMode,
+    aiPrompt: null,
+    aiGuess: null,
     prompts: {},
     drawings: {},
     guesses: {},
