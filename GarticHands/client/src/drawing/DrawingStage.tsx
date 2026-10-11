@@ -564,6 +564,20 @@ export function DrawingStage({
     <div>
       <DrawingToolPicker tool={tool} onToolChange={handleToolChange} disabled={!drawingEnabled} />
 
+    <button
+      type="button"
+      onClick={() => setPenUp((previous) => !previous)}
+      disabled={!drawingEnabled}
+      aria-pressed={penUp}
+      aria-label={penUp ? 'Lower pen' : 'Lift pen'}
+      className={`ml-3 mt-2 rounded-full px-4 py-2 text-xs font-bold uppercase tracking-wide transition-colors ${
+        penUp
+          ? 'bg-red-600 text-white'
+          : 'bg-white text-black'
+      } disabled:opacity-50`}
+    >
+      {penUp ? 'Pen Up' : 'Pen Down'}
+    </button>
       <DrawingSettingsPicker
         settings={settings}
         eraserSize={eraserSize}
