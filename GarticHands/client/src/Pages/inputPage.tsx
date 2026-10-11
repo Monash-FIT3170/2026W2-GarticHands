@@ -3,6 +3,7 @@ import { useLocation, useNavigate } from 'react-router-dom';
 import { Card, Button, RoundHeader, CountdownTimer } from '../components/ui';
 import { submitPrompt, PhaseConflictStatus } from '../api/room';
 import { usePhaseAdvance } from '../hooks/usePhaseAdvance';
+import { usePromptSuggestions } from '../hooks/usePromptSuggestions';
 import type { DrawLocationState } from '../types/room';
 
 const MaxChars = 120;
@@ -19,6 +20,7 @@ export default function InputPage() {
   const [input, setInput] = useState('');
   const [submitted, setSubmitted] = useState(false);
   const [error, setError] = useState('');
+  const { suggestions, loading: loadingSuggestions, refresh } = usePromptSuggestions();
 
   useEffect(() => {
     if (!roomCode || !playerName) void navigate('/');
@@ -78,6 +80,35 @@ export default function InputPage() {
           disabled={submitted}
           placeholder="Start typing your prompt here..."
         />
+
+        <div className="mt-3" aria-live="polite">
+          <div className="flex items-center justify-between gap-2 mb-2">
+            <p className="text-xs font-extrabold uppercase tracking-[0.2em] text-[var(--text-muted)]">
+              Need an idea?
+            </p>
+            <button
+              type="button"
+              className="text-xs font-bold text-[var(--action)] hover:underline disabled:opacity-50 disabled:no-underline"
+              onClick={() => void refresh()}
+              disabled={submitted || loadingSuggestions}
+            >
+              {loadingSuggestions ? 'Loading...' : '↻ New ideas'}
+            </button>
+          </div>
+          <div className="flex flex-wrap gap-2">
+            {suggestions.map((suggestion) => (
+              <button
+                key={suggestion}
+                type="button"
+                className="px-3 py-1 rounded-full text-sm bg-[var(--surface-soft)] border border-[var(--surface-border)] text-[var(--text-primary)] hover:border-[var(--action)] disabled:opacity-50 disabled:hover:border-[var(--surface-border)]"
+                onClick={() => setInput(suggestion.slice(0, MaxChars))}
+                disabled={submitted}
+              >
+                {suggestion}
+              </button>
+            ))}
+          </div>
+        </div>
 
         <div className="flex items-center justify-between mt-3">
           <CountdownTimer
