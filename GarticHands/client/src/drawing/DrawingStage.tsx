@@ -534,14 +534,21 @@ export function DrawingStage({
             onClick={() => setPenUp((previous) => !previous)}
             disabled={!drawingEnabled}
             aria-pressed={penUp}
-            aria-label={penUp ? 'Lower pen' : 'Lift pen'}
+            aria-label={
+              tool === 'erase'
+              ? penUp ? 'Lower eraser' : 'Lift eraser'
+              : penUp ? 'Lower pen' : 'Lift pen'
+}
             className={`rounded-xl px-4 py-2 text-sm font-bold transition-colors ${
               penUp
                 ? 'bg-[var(--action)] text-white'
                 : 'bg-white text-[var(--text-primary)]'
             } disabled:opacity-50`}
           >
-            {penUp ? 'Pen Up' : 'Pen Down'}
+            {tool === 'erase'
+              ? penUp ? 'Eraser Up' : 'Eraser Down'
+              : penUp ? 'Pen Up' : 'Pen Down'}
+
           </button>
           <span className="hidden h-10 w-px shrink-0 bg-white/70 md:block" />
           <DrawingSettingsPicker
@@ -569,14 +576,21 @@ export function DrawingStage({
       onClick={() => setPenUp((previous) => !previous)}
       disabled={!drawingEnabled}
       aria-pressed={penUp}
-      aria-label={penUp ? 'Lower pen' : 'Lift pen'}
+      aria-label={
+        tool === 'erase'
+          ? penUp ? 'Lower eraser' : 'Lift eraser'
+          : penUp ? 'Lower pen' : 'Lift pen'
+      }
       className={`ml-3 mt-2 rounded-full px-4 py-2 text-xs font-bold uppercase tracking-wide transition-colors ${
         penUp
           ? 'bg-red-600 text-white'
           : 'bg-white text-black'
       } disabled:opacity-50`}
     >
-      {penUp ? 'Pen Up' : 'Pen Down'}
+      {tool === 'erase'
+        ? penUp ? 'Eraser Up' : 'Eraser Down'
+        : penUp ? 'Pen Up' : 'Pen Down'}
+        
     </button>
       <DrawingSettingsPicker
         settings={settings}
