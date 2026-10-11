@@ -3,6 +3,7 @@ import Canvas, { type CanvasHandle, type DrawingTool } from './Canvas';
 import { useDrawingContext } from '../DrawingContext';
 
 interface DrawingCameraCanvasProps {
+  penUp?: boolean;
   width?: number;
   height?: number;
   /** Stroke color (default 'black'). Switch to e.g. 'white' for camera overlay. */
@@ -27,6 +28,7 @@ interface DrawingCameraCanvasProps {
  * submitted first.
  */
 export default function DrawingCameraCanvas({
+  penUp,
   width,
   height,
   strokeColor,
@@ -47,6 +49,7 @@ export default function DrawingCameraCanvas({
 
   return (
     <Canvas
+      penUp={penUp}
       ref={canvasRef}
       width={width}
       height={height}
