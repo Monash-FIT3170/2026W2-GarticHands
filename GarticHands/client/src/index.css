@@ -10,6 +10,8 @@
 
 :root {
   --page-bg: #6fada0;
+  --page-gradient: linear-gradient(120deg, #b8f28b 0%, #145c3a 100%);
+  --ray-color: rgba(255, 255, 255, 0.22);
 
   --card-bg: #5e9990;
   --hero-bg: #559490;
@@ -58,11 +60,12 @@
 
 /* =========================================================
    Deuteranopia
-   Green/red distinctions are replaced with blue/orange.
    ========================================================= */
 
 :root[data-color-vision='deuteranopia'] {
   --page-bg: #5b8fa3;
+  --page-gradient: linear-gradient(120deg, #75e6f5 0%, #103c70 100%);
+  --ray-color: rgba(255, 255, 255, 0.22);
 
   --card-bg: #426f82;
   --hero-bg: #376579;
@@ -111,12 +114,12 @@
 
 /* =========================================================
    Protanopia
-   Gold/yellow is used for the main theme, with green/turquoise
-   used for buttons and success/ready states.
    ========================================================= */
 
 :root[data-color-vision='protanopia'] {
   --page-bg: #b89b45;
+  --page-gradient: linear-gradient(120deg, #f4cf55 0%, #b83d18 100%);
+  --ray-color: rgba(255, 255, 255, 0.22);
 
   --card-bg: #987e35;
   --hero-bg: #876e2d;
@@ -134,16 +137,13 @@
   --primary: #008b6a;
   --primary-hover: #006f55;
 
-  /* Gold main accent */
   --accent: #f0c419;
   --accent-hover: #d4a900;
   --accent-soft: #f8e7a3;
 
-  /* Orange for actions */
   --action: #d66f28;
   --action-strong: #e88b38;
 
-  /* Green/turquoise for success and buttons */
   --success: #008b6a;
   --success-hover: #006f55;
   --success-soft: #b8e1d5;
@@ -168,12 +168,12 @@
 
 /* =========================================================
    Tritanopia
-   Blue/yellow distinctions are reduced, so the palette shifts
-   toward purple/magenta for a stronger visual distinction.
    ========================================================= */
 
 :root[data-color-vision='tritanopia'] {
   --page-bg: #8a7fa3;
+  --page-gradient: linear-gradient(120deg, #f58acb 0%, #54205f 100%);
+  --ray-color: rgba(255, 255, 255, 0.22);
 
   --card-bg: #6e6287;
   --hero-bg: #5f5378;
@@ -220,6 +220,44 @@
   --empty-avatar-bg: #a8c5c1;
 }
 
+.room-slider {
+  height: 12px;
+  margin: 0;
+  appearance: none;
+  border-radius: 9999px;
+  background: var(--accent);
+  cursor: pointer;
+}
+
+.room-slider::-webkit-slider-thumb {
+  width: 38px;
+  height: 38px;
+  appearance: none;
+  border: 0;
+  border-radius: 50%;
+  background: var(--surface);
+  cursor: grab;
+}
+
+.room-slider::-moz-range-thumb {
+  width: 38px;
+  height: 38px;
+  border: 0;
+  border-radius: 50%;
+  background: var(--surface);
+  cursor: grab;
+}
+
+.room-slider:disabled {
+  background: var(--disabled-bg);
+  cursor: not-allowed;
+}
+
+.room-slider:disabled::-webkit-slider-thumb,
+.room-slider:disabled::-moz-range-thumb {
+  cursor: not-allowed;
+}
+
 /* =========================================================
    Global base styles
    ========================================================= */
@@ -237,7 +275,7 @@
 @layer components {
   .background {
     @apply min-h-screen flex flex-col items-center justify-center px-4 py-10 text-white;
-    background-color: var(--page-bg);
+    background: var(--page-gradient);
   }
 
   .rounds {
@@ -258,19 +296,92 @@
     color: var(--text-primary);
     opacity: 0.4;
   }
+
+  /* =======================================================
+     Decorative background rays
+     ======================================================= */
+
+  .background-rays {
+    position: absolute;
+    inset: 0;
+    pointer-events: none;
+    overflow: hidden;
+    z-index: 1;
+  }
+
+  .background-ray {
+    position: absolute;
+    width: 35vw;
+    height: 55vh;
+    background: var(--ray-color);
+    opacity: 1;
+  }
+
+  /* Top rays point toward the centre */
+
+  .background-ray-top-1 {
+    top: -5%;
+    left: -5%;
+    clip-path: polygon(0 0, 100% 0, 55% 100%);
+  }
+
+  .background-ray-top-2 {
+    top: -5%;
+    left: 22%;
+    width: 32vw;
+    clip-path: polygon(0 0, 100% 0, 50% 100%);
+  }
+
+  .background-ray-top-3 {
+    top: -5%;
+    right: 22%;
+    width: 32vw;
+    clip-path: polygon(0 0, 100% 0, 50% 100%);
+  }
+
+  .background-ray-top-4 {
+    top: -5%;
+    right: -5%;
+    clip-path: polygon(0 0, 100% 0, 45% 100%);
+  }
+
+  /* Bottom rays point toward the centre */
+
+  .background-ray-bottom-1 {
+    bottom: -5%;
+    left: -5%;
+    clip-path: polygon(0 100%, 100% 100%, 55% 0);
+  }
+
+  .background-ray-bottom-2 {
+    bottom: -5%;
+    left: 22%;
+    width: 32vw;
+    clip-path: polygon(0 100%, 100% 100%, 50% 0);
+  }
+
+  .background-ray-bottom-3 {
+    bottom: -5%;
+    right: 22%;
+    width: 32vw;
+    clip-path: polygon(0 100%, 100% 100%, 50% 0);
+  }
+
+  .background-ray-bottom-4 {
+    bottom: -5%;
+    right: -5%;
+    clip-path: polygon(0 100%, 100% 100%, 45% 0);
+  }
 }
 
 /* =========================================================
    Tailwind utility overrides
-   These allow existing page/component classes to respond
-   to the active colour-vision mode without changing every
-   page immediately.
    ========================================================= */
 
 /* Page backgrounds */
 
 [data-color-vision] .bg-\[\#6FADA0\] {
-  background-color: var(--page-bg);
+  background: var(--page-gradient);
 }
 
 /* Card backgrounds */

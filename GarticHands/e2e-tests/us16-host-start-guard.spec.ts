@@ -8,18 +8,15 @@ import { RoomApi } from './helpers/api'
  * UI: after a player joins but before readying, the host's start button is
  * disabled and labelled "Waiting for Players".
  *
- * Server: `PATCH /rooms/:code/start` *should* return 409 when not everyone is
- * ready, but `server/index.js` currently starts the game unconditionally —
- * a known bug. That assertion is marked `test.fail()` so it documents the bug
- * without breaking the suite; if it starts failing (in a good way, i.e. the
- * assertion now passes), remove `test.fail()`.
+ * Server: PATCH /rooms/:code/start returns 409 when not everyone is ready.
  */
 test('host cannot start the game via the UI while a player is not ready', async ({ browser }) => {
     const hostContext = await browser.newContext()
     const hostPage = await hostContext.newPage()
     await hostPage.goto('/')
     await hostPage.getByPlaceholder('Enter username...').fill('HostPlayer')
-    await hostPage.getByRole('button', { name: 'Host Game' }).click()
+    await hostPage.getByRole('button', { name: /Classic Play with friends/ }).click()
+    await hostPage.getByRole('button', { name: 'Host Game', exact: true }).click()
     await expect(hostPage).toHaveURL('/host')
 
     await hostPage.getByRole('button', { name: 'Copy Room Code' }).click()
@@ -29,7 +26,8 @@ test('host cannot start the game via the UI while a player is not ready', async 
     const playerPage = await playerContext.newPage()
     await playerPage.goto('/')
     await playerPage.getByPlaceholder('Enter username...').fill('JoinerPlayer')
-    await playerPage.getByRole('button', { name: 'Join Room' }).click()
+    await playerPage.getByRole('button', { name: /Classic Play with friends/ }).click()
+    await playerPage.getByRole('button', { name: 'Join Room', exact: true }).click()
     await playerPage.getByPlaceholder('ABC123').fill(roomCode)
     await playerPage.getByRole('button', { name: 'Join Game' }).click()
     await expect(playerPage).toHaveURL(`/joined/${roomCode}`)
@@ -42,8 +40,8 @@ test('host cannot start the game via the UI while a player is not ready', async 
     await playerContext.close()
 })
 
-test.fail(
-    'PATCH /rooms/:code/start rejects starting while a player is not ready (known bug)',
+test(
+    'PATCH /rooms/:code/start rejects starting while a player is not ready',
     async ({ request }) => {
         const api = new RoomApi(request)
         const created = await api.createRoom('HostPlayer')

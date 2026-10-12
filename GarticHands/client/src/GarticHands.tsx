@@ -7,6 +7,9 @@ import Game from './Pages/gamePage.tsx';
 import Input from './Pages/inputPage.tsx';
 import Draw from './Pages/drawPage.tsx';
 import Guess from './Pages/guessingPage.tsx';
+import Rating from './Pages/ratingPage.tsx';
+import RatingReveal from './Pages/ratingRevealPage.tsx';
+import Leaderboard from './Pages/leaderboardPage.tsx';
 import Playground from './Pages/playgroundPage.tsx';
 import Solo from './Pages/soloPage.tsx';
 import { RecordingsProvider } from './state/RecordingsContext.tsx';
@@ -26,6 +29,9 @@ export default function GarticHands() {
             <Route path="/input" element={<Input />} />
             <Route path="/draw" element={<Draw />} />
             <Route path="/guess" element={<Guess />} />
+            <Route path="/rating" element={<Rating />} />
+            <Route path="/rating-reveal" element={<RatingReveal />} />
+            <Route path="/leaderboard" element={<Leaderboard />} />
             <Route path="/playground" element={<Playground />} />
             <Route path="/solo" element={<Solo />} />
           </Routes>
