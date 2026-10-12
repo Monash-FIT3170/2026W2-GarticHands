@@ -32,7 +32,7 @@ export default function SoloPage() {
 
 function SoloInner() {
   const navigate = useNavigate();
-  const { getDrawingImage } = useDrawing();
+  const { getDrawingImage, clearDrawing } = useDrawing();
   const [mode, setMode] = useDrawingMode();
   const [prompt, setPrompt] = useState<string>(() => randomPrompt());
   const [results, setResults] = useState<SavedDrawing[]>([]);
@@ -45,6 +45,7 @@ function SoloInner() {
   }
 
   function handleNext() {
+    clearDrawing();
     setPrompt(randomPrompt());
     setTimerKey((k) => k + 1);
   }
