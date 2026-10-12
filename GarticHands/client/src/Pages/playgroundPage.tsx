@@ -8,11 +8,13 @@ import {
   useDrawingMode,
 } from '../drawing';
 import { Card, Button } from '../components/ui';
+import AiSketch from '../components/AiSketch';
 
 /**
  * Free-form sandbox — load MediaPipe, see your hand tracking, draw anything you
- * want, switch layouts. No timer, no networking, no submission. Useful for
- * testing the camera setup and experimenting with gestures before joining a game.
+ * want, switch layouts. No timer and no submission. Useful for testing the
+ * camera setup and experimenting with gestures before joining a game. The
+ * "Watch a bot draw" box is the only part that talks to the server.
  */
 export default function PlaygroundPage() {
   return (
@@ -73,6 +75,8 @@ function PlaygroundInner() {
             />
           </div>
         )}
+
+        <AiSketch />
       </Card>
     </div>
   );

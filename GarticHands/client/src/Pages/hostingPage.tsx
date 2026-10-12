@@ -1,6 +1,13 @@
 import { useEffect, useState, useCallback } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
-import { createRoom, getRoom, startRoom, updateRoomSettings } from '../api/room';
+import {
+  addBot,
+  createRoom,
+  getRoom,
+  leaveRoom as removePlayer,
+  startRoom,
+  updateRoomSettings,
+} from '../api/room';
 import { Page, Card, Button } from '../components/ui';
 import PlayerList from '../components/PlayerList';
 import RoomSettings from '../components/RoomSettings';
@@ -10,6 +17,8 @@ import type { GameMode, Player, DrawLocationState } from '../types/room';
 
 const MAX_PLAYERS_DISPLAY = 8;
 const MAX_PLAYERS = 8;
+/** Mirrors `MAX_BOTS` in `server/ai/bots.js`. */
+const MAX_BOTS = 5;
 
 export default function HostingPage() {
   const [roomCode, setRoomCode] = useState('');
@@ -24,11 +33,14 @@ export default function HostingPage() {
   const state = location.state as
     | (DrawLocationState & {
         mode?: GameMode;
+        /** Bots to add as soon as the room exists — set by the AI Mode quick start. */
+        bots?: number;
       })
     | null;
 
   const hostName = state?.playerName;
   const gameMode = state?.mode ?? 'classic';
+  const startingBots = state?.bots ?? 0;
 
   useEffect(() => {
     async function setupRoom() {
@@ -40,15 +52,21 @@ export default function HostingPage() {
       const data = await createRoom(hostName, gameMode);
 
       if (data.success && data.roomCode && data.room) {
+        let room = data.room;
+        for (let i = 0; i < startingBots; i += 1) {
+          const withBot = await addBot(data.roomCode, hostName);
+          if (withBot.success && withBot.room) room = withBot.room;
+        }
+
         setRoomCode(data.roomCode);
-        setPlayers(data.room.players);
+        setPlayers(room.players);
         setDrawTimeSeconds(data.room.drawTimeSeconds ?? 60);
         setMaxRounds(data.room.maxRounds);
       }
     }
 
     void setupRoom();
-  }, [hostName, gameMode, navigate]);
+  }, [hostName, gameMode, startingBots, navigate]);
 
   useEffect(() => {
     if (!roomCode || !hostName) return;
@@ -121,6 +139,27 @@ export default function HostingPage() {
     }
   }
 
+  const botCount = players.filter((player) => player.isBot).length;
+  const canAddBot = isHost && players.length < MAX_PLAYERS && botCount < MAX_BOTS;
+
+  async function handleAddBot() {
+    if (!roomCode || !hostName) return;
+
+    const data = await addBot(roomCode, hostName);
+    if (data.success && data.room) {
+      setPlayers(data.room.players);
+    } else {
+      setPopup(data.message ?? 'Unable to add a bot.');
+    }
+  }
+
+  async function handleRemoveBot(name: string) {
+    if (!roomCode) return;
+
+    const data = await removePlayer(roomCode, name);
+    if (data.success && data.room) setPlayers(data.room.players);
+  }
+
   async function handleStart() {
     if (!allReady || !hostName) return;
 
@@ -173,7 +212,26 @@ export default function HostingPage() {
               selfName={hostName}
               variant="lobby"
               padTo={MAX_PLAYERS_DISPLAY}
+              onRemoveBot={isHost ? (name) => void handleRemoveBot(name) : undefined}
             />
+
+            {isHost && (
+              <div className="mt-4 flex items-center justify-between gap-3">
+                <p className="text-xs font-semibold text-white/80">
+                  Short on players? Bots write prompts, draw and guess.
+                </p>
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={() => void handleAddBot()}
+                  disabled={!canAddBot}
+                  className="shrink-0"
+                >
+                  🤖 Add bot
+                </Button>
+              </div>
+            )}
+
             <RoomSettings
               drawTimeSeconds={drawTimeSeconds}
               maxRounds={maxRounds}

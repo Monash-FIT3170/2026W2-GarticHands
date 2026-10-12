@@ -14,6 +14,12 @@ export interface Player {
   isHost: boolean;
   ready: boolean;
   /**
+   * True for server-played bots. Bots are always ready, never host, and take
+   * their turns on the server — see `server/ai/bots.js`. Optional because
+   * rooms created before bots existed omit it.
+   */
+  isBot?: boolean;
+  /**
    * True when the player joined while a round was in progress. Mid-round
    * joiners sit out the rest of the current round (they don't gate phase
    * advancement) and become full participants when the next round starts.

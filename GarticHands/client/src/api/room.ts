@@ -192,3 +192,36 @@ export async function endRoom(roomCode: string) {
   });
   return (await res.json()) as RoomResponse;
 }
+
+/**
+ * Add a bot to the lobby. Host only — the server plays the bot's turns.
+ * Remove a bot with `leaveRoom(roomCode, botName)`, like any other player.
+ */
+export async function addBot(roomCode: string, playerName: string) {
+  const res = await fetch(`${API_URL}/rooms/${roomCode}/bots`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ playerName }),
+  });
+  return (await res.json()) as RoomResponse;
+}
+
+export interface AiDrawingResponse {
+  success: boolean;
+  message?: string;
+  prompt?: string;
+  /** `ai` when the LLM drew it, `template` when the offline fallback did. */
+  source?: 'ai' | 'template';
+  /** Animated SVG data URL, drawn in the same style as the game canvas. */
+  dataUrl?: string;
+}
+
+/** Ask the server to draw `prompt` the way a bot would. */
+export async function aiDraw(prompt: string) {
+  const res = await fetch(`${API_URL}/ai/draw`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ prompt }),
+  });
+  return (await res.json()) as AiDrawingResponse;
+}
