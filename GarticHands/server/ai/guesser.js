@@ -2,15 +2,8 @@ const { GoogleGenerativeAI } = require('@google/generative-ai')
 
 const client = new GoogleGenerativeAI(process.env.GEMINI_API_KEY)
 
-/**
- * Generates a creative drawing prompt for the player.
- * Called at the start of the prompt phase in AI Mode —
- * the player skips typing and gets a prompt automatically.
- *
- * @returns {Promise<string>} - A short, drawable prompt e.g. "a penguin on a skateboard"
- */
 async function generatePrompt() {
-  const model = client.getGenerativeModel({ model: 'gemini-1.5-flash' })
+  const model = client.getGenerativeModel({ model: 'gemini-3.8-flash' })
 
   const result = await model.generateContent(
     'Generate a single creative and drawable prompt for a Pictionary-style drawing game. ' +
@@ -23,18 +16,17 @@ async function generatePrompt() {
   return response.text().trim()
 }
 
-/**
- * Sends a drawing (as a base64 PNG data URL) to Gemini's vision API
- * and returns a short guess of what the drawing depicts.
- *
- * @param {string} dataUrl - The PNG data URL of the drawing
- * @returns {Promise<string>} - A 1-4 word guess
- */
 async function generateGuess(dataUrl) {
-  // Strip the data:image/png;base64, prefix
   const base64Data = dataUrl.replace(/^data:image\/\w+;base64,/, '')
 
-  const model = client.getGenerativeModel({ model: 'gemini-1.5-flash' })
+  console.log(`[AI] Image base64 length: ${base64Data.length}`)
+
+  if (base64Data.length < 1000) {
+    console.warn('[AI] Image appears blank or too small to guess')
+    return 'a blank canvas'
+  }
+
+  const model = client.getGenerativeModel({ model: 'gemini-3.8-flash' })
 
   const result = await model.generateContent([
     {
@@ -44,13 +36,16 @@ async function generateGuess(dataUrl) {
       },
     },
     'This is a hand-drawn sketch from a Pictionary-style drawing game. ' +
-    'The player drew it using hand tracking gestures so lines may be rough. ' +
-    'In 1-4 words only, what do you think this drawing is of? ' +
-    'Reply with only your guess, nothing else. No punctuation, no explanation.',
+    'The player drew it using hand tracking gestures so lines may be rough or incomplete. ' +
+    'Even if the drawing is unclear, make your best guess at what it could be. ' +
+    'Reply with only 1-4 words describing what you think it is. ' +
+    'Never say you cannot tell or that it is unclear — always guess something.',
   ])
 
   const response = await result.response
-  return response.text().trim()
+  const text = response.text().trim()
+  console.log(`[AI] Raw response: "${text}"`)
+  return text
 }
 
 module.exports = { generatePrompt, generateGuess }
