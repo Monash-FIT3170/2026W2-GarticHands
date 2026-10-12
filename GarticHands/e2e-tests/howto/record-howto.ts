@@ -136,7 +136,10 @@ test('gestures', async ({ page }) => {
     await drawSmiley(page);
     await pause(page, 700);
 
-    await page.getByRole('button', { name: /eraser/i }).first().click();
+    await page
+      .getByRole('button', { name: /eraser/i })
+      .first()
+      .click();
     await pause(page, 400);
     await stroke(
       page,

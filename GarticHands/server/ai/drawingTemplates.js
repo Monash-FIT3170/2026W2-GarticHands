@@ -83,11 +83,7 @@ const TEMPLATES = {
     line(36, 51, 30, 57),
     line(64, 51, 70, 57),
   ],
-  tree: [
-    rect(45, 48, 10, 24),
-    circle(50, 29, 21),
-    line(10, 72, 90, 72),
-  ],
+  tree: [rect(45, 48, 10, 24), circle(50, 29, 21), line(10, 72, 90, 72)],
   car: [
     poly(
       [
