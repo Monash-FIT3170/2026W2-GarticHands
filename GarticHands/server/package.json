@@ -6,7 +6,8 @@
   "type": "commonjs",
   "scripts": {
     "dev": "nodemon index.js",
-    "start": "node index.js"
+    "start": "node index.js",
+    "test": "node --test \"__tests__/**/*.test.js\""
   },
   "dependencies": {
     "cors": "^2.8.6",

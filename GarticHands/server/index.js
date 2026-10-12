@@ -2,6 +2,8 @@ const express = require('express');
 const http = require('http');
 const cors = require('cors');
 const { Server } = require('socket.io');
+const { drawPrompt, MAX_PROMPT_LENGTH } = require('./ai/drawer');
+const { MAX_BOTS, nextBotName, botPrompt, botGuess, botRating } = require('./ai/bots');
 
 const app = express();
 const server = http.createServer(app);
@@ -81,6 +83,13 @@ const FALLBACK_PROMPTS = [
 const phaseTimers = {}
 
 /**
+ * roomCode -> counter bumped on every phase change. A bot turn remembers the
+ * value it was scheduled under and does nothing if the room has moved on,
+ * even when the room has come back round to the same phase name.
+ */
+const phaseSeq = {}
+
+/**
  * A player whose client hasn't polled in this long is treated as gone.
  */
 const PLAYER_TIMEOUT_MS = (() => {
@@ -108,12 +117,14 @@ function generateRoomCode() {
   return Math.random().toString(36).substring(2, 8).toUpperCase();
 }
 
-function makePlayer(name, isHost, joinedMidRound = false) {
+function makePlayer(name, isHost, joinedMidRound = false, isBot = false) {
   return {
     name,
-    status: isHost ? 'host' : 'waiting',
+    status: isHost ? 'host' : isBot ? 'ready' : 'waiting',
     isHost,
-    ready: isHost,
+    // Bots are always ready, so they never hold up the host's Start button.
+    ready: isHost || isBot,
+    isBot,
     joinedMidRound,
     joinedAt: Date.now(),
     lastSeen: Date.now(),
@@ -148,6 +159,11 @@ function setPhase(room, phase) {
   clearPhaseTimer(room.code)
 
   room.phase = phase
+  phaseSeq[room.code] = (phaseSeq[room.code] || 0) + 1
+
+  // Bots act on timers of their own, so scheduling them here (before the
+  // deadline is stamped) is safe — each turn re-checks the phase when it fires.
+  scheduleBotTurns(room)
 
   const duration =
     phase === 'draw' && !process.env.DRAW_SECONDS
@@ -279,7 +295,12 @@ function createGuessTargets(room) {
         (index + guessOffset + step) % players.length
       const target = players[targetIndex]
 
-
+      // Drawer `d` draws the prompt written by `d + promptOffset`, so this
+      // player's own prompt was drawn by `index - promptOffset`. Guessing that
+      // drawing would mean guessing your own prompt.
+      const promptRecipient = players[
+        (index - promptOffset + players.length) % players.length
+      ]
 
       if (
         target.name !== player.name &&
@@ -412,11 +433,14 @@ function expirePhase(roomCode, expectedPhase) {
  * Hand the room to the longest-standing remaining player.
  */
 function promoteHost(room) {
-  if (room.players.length === 0) {
+  // A bot can't press Start or pace the reveal, so it never holds the role.
+  const humans = room.players.filter((p) => !p.isBot)
+
+  if (humans.length === 0) {
     return
   }
 
-  const next = room.players.reduce((a, b) =>
+  const next = humans.reduce((a, b) =>
     a.joinedAt <= b.joinedAt ? a : b,
   )
 
@@ -524,6 +548,11 @@ function advanceIfPhaseComplete(room) {
  * Shared tail for every departure.
  */
 function afterPlayersLeft(room) {
+  // Bots don't keep a room alive on their own — nobody is left to watch them.
+  if (!room.players.some((p) => !p.isBot)) {
+    room.players = []
+  }
+
   if (room.players.length === 0) {
     emptySince[room.code] = Date.now();
     return;
@@ -545,8 +574,9 @@ setInterval(() => {
   for (const code of Object.keys(rooms)) {
     const room = rooms[code];
 
+    // Bots never poll, so they are exempt from the presence check.
     const stale = room.players.filter(
-      (p) => now - p.lastSeen > PLAYER_TIMEOUT_MS,
+      (p) => !p.isBot && now - p.lastSeen > PLAYER_TIMEOUT_MS,
     )
 
     if (stale.length > 0) {
@@ -568,13 +598,256 @@ setInterval(() => {
       clearPhaseTimer(code);
       delete rooms[code];
       delete emptySince[code];
+      delete phaseSeq[code];
     }
   }
 }, PRESENCE_SWEEP_MS);
 
+/**
+ * Leaderboard scores for the round, rebuilt from every submitted rating.
+ * Used as the rating submission's `onAccepted` hook, for players and bots.
+ */
+function recalculateScores(room) {
+  room.ratingTargets = room.ratingTargets || {}
+  room.ratings = room.ratings || {}
+  room.scores = {}
+
+  for (const raterName of Object.keys(room.ratings)) {
+    const targetName = room.ratingTargets[raterName]
+    const playerRating = room.ratings[raterName]
+
+    if (
+      targetName &&
+      typeof playerRating === 'number'
+    ) {
+      room.scores[targetName] =
+        (room.scores[targetName] || 0) + playerRating
+    }
+  }
+}
+
+/* ---------------------------------------------------------------------------
+ * Bots
+ *
+ * Bots are ordinary players with `isBot: true`. The server plays their turns:
+ * every phase change schedules one turn per active bot, which waits a
+ * human-ish delay, works out its submission (see `ai/bots.js` and
+ * `ai/drawer.js`), then submits through `submitForPhase` like anyone else.
+ * ------------------------------------------------------------------------- */
+
+/** How long a bot "thinks" in each phase, in ms, before submitting. */
+const BOT_DELAYS_MS = {
+  prompt: [2000, 5000],
+  draw: [8000, 15000],
+  guess: [4000, 9000],
+  rating: [3000, 7000],
+}
+
+/** Multiplier on bot delays. `BOT_DELAY_SCALE=0` makes bots instant (tests). */
+const BOT_DELAY_SCALE = (() => {
+  const parsed = Number(process.env.BOT_DELAY_SCALE)
+  return Number.isFinite(parsed) && parsed >= 0 ? parsed : 1
+})()
+
+/** Bots aim to submit at least this long before the deadline. */
+const BOT_DEADLINE_MARGIN_MS = 3000
+
+function botDelay(room, phase) {
+  const [min, max] = BOT_DELAYS_MS[phase]
+  const wanted = (min + Math.random() * (max - min)) * BOT_DELAY_SCALE
+
+  if (!room.phaseEndsAt) {
+    return wanted
+  }
+
+  const latest = room.phaseEndsAt - Date.now() - BOT_DEADLINE_MARGIN_MS
+  return Math.max(0, Math.min(wanted, latest))
+}
+
+/** Work out what `botName` submits this phase, or null to sit it out. */
+async function botSubmission(room, botName, phase) {
+  // The prompt each drawer was handed: drawer -> author -> author's prompt.
+  const promptDrawnBy = (drawer) =>
+    room.prompts[room.promptTargets?.[drawer]] || ''
+
+  switch (phase) {
+    case 'prompt':
+      return botPrompt()
+
+    case 'draw': {
+      const prompt = promptDrawnBy(botName) || botPrompt()
+      const drawing = await drawPrompt(prompt)
+      return drawing.dataUrl
+    }
+
+    case 'guess': {
+      const target = room.guessTargets?.[botName]
+      if (!target) return null
+      return botGuess({
+        drawing: room.drawings[target] || '',
+        truth: promptDrawnBy(target),
+      })
+    }
+
+    case 'rating':
+      return room.ratingTargets?.[botName] ? botRating() : null
+
+    default:
+      return null
+  }
+}
+
+async function playBotTurn(roomCode, botName, phase) {
+  const room = rooms[roomCode]
+  if (!room) return
+
+  const seq = phaseSeq[roomCode]
+  const waited = new Promise((resolve) =>
+    setTimeout(resolve, botDelay(room, phase)),
+  )
+
+  let value
+  try {
+    // Think (e.g. call the LLM) while the delay runs, not after it.
+    const [submission] = await Promise.all([
+      botSubmission(room, botName, phase),
+      waited,
+    ])
+    value = submission
+  } catch (err) {
+    console.warn(`[bots] ${botName} failed its ${phase} turn: ${err.message}`)
+    return
+  }
+
+  // The room may have advanced, ended or emptied while the bot was thinking.
+  const live = rooms[roomCode]
+  if (!live || phaseSeq[roomCode] !== seq || live.phase !== phase) return
+  if (value === null || value === undefined) return
+
+  const bucket = PHASE_BUCKET[phase]
+  if (live[bucket] && live[bucket][botName] !== undefined) return
+
+  const result = submitForPhase(
+    roomCode,
+    botName,
+    value,
+    phase,
+    null,
+    phase === 'rating' ? recalculateScores : undefined,
+  )
+
+  if (result.error && result.error.status !== 404) {
+    console.warn(
+      `[bots] ${botName} could not submit ${phase}: ${result.error.body.message}`,
+    )
+  }
+}
+
+/** Called from `setPhase`: give every active bot its turn in the new phase. */
+function scheduleBotTurns(room) {
+  if (!BOT_DELAYS_MS[room.phase]) return
+
+  for (const bot of activePlayers(room)) {
+    if (bot.isBot) {
+      void playBotTurn(room.code, bot.name, room.phase)
+    }
+  }
+}
+
 app.get('/', (_req, res) => {
   res.json({ message: 'Gartic Hands server is running' });
 });
+
+/**
+ * Add a bot to a lobby. Host only. Bots join ready, never host, and are
+ * removed like anyone else via `DELETE /rooms/:code/players/:name`.
+ */
+app.post('/rooms/:roomCode/bots', (req, res) => {
+  const roomCode = req.params.roomCode.toUpperCase()
+  const { playerName } = req.body
+  const room = rooms[roomCode]
+
+  if (!room) {
+    return res.status(404).json({
+      success: false,
+      message: 'Room not found',
+    })
+  }
+
+  const host = room.players.find((p) => p.name === playerName)
+
+  if (!host || !host.isHost) {
+    return res.status(403).json({
+      success: false,
+      message: 'Only the host can add bots.',
+    })
+  }
+
+  if (room.status !== 'waiting' || room.phase !== 'lobby') {
+    return res.status(409).json({
+      success: false,
+      message: 'Bots can only be added in the lobby.',
+    })
+  }
+
+  const botCount = room.players.filter((p) => p.isBot).length
+  const name = nextBotName(room.players.map((p) => p.name))
+
+  if (room.players.length >= MAX_PLAYERS || botCount >= MAX_BOTS || !name) {
+    return res.status(409).json({
+      success: false,
+      message: 'No room for another bot.',
+    })
+  }
+
+  room.players.push(makePlayer(name, false, false, true))
+  host.lastSeen = Date.now()
+
+  io.to(room.code).emit('room-update', room)
+  res.json({
+    success: true,
+    room,
+  })
+})
+
+/** ip -> epoch ms of the last `/ai/draw` call. */
+const lastDrawRequest = {}
+const DRAW_REQUEST_GAP_MS = 2000
+
+/**
+ * Draw any prompt the way a bot would, outside a game. Powers the
+ * Playground's "watch the AI draw it" box and makes the drawer easy to try.
+ */
+app.post('/ai/draw', async (req, res) => {
+  const prompt = typeof req.body?.prompt === 'string' ? req.body.prompt.trim() : ''
+
+  if (!prompt || prompt.length > MAX_PROMPT_LENGTH) {
+    return res.status(400).json({
+      success: false,
+      message: `Prompt must be 1-${MAX_PROMPT_LENGTH} characters.`,
+    })
+  }
+
+  const now = Date.now()
+  const last = lastDrawRequest[req.ip] || 0
+
+  if (now - last < DRAW_REQUEST_GAP_MS) {
+    return res.status(429).json({
+      success: false,
+      message: 'Slow down — one drawing every couple of seconds.',
+    })
+  }
+
+  lastDrawRequest[req.ip] = now
+
+  const drawing = await drawPrompt(prompt)
+  res.json({
+    success: true,
+    prompt: drawing.prompt,
+    source: drawing.source,
+    dataUrl: drawing.dataUrl,
+  })
+})
 
 /**
  * Create a room.
@@ -1027,7 +1300,8 @@ app.patch('/rooms/:roomCode/end', (req, res) => {
   for (const p of room.players) {
     p.joinedMidRound = false
 
-    if (!p.isHost) {
+    // Bots stay ready between games.
+    if (!p.isHost && !p.isBot) {
       p.ready = false;
       p.status = 'waiting';
     }
@@ -1338,27 +1612,7 @@ app.post('/rooms/:roomCode/ratings', (req, res) => {
       Number.isInteger(v) &&
       v >= 0 &&
       v <= 100,
-    (room, player) => {
-      room.ratingTargets = room.ratingTargets || {}
-      room.ratings = room.ratings || {}
-      room.scores = {}
-
-      room.ratings[player.name] = numericRating
-
-      // Recalculate scores from all submitted ratings.
-      for (const raterName of Object.keys(room.ratings)) {
-        const targetName = room.ratingTargets[raterName]
-        const playerRating = room.ratings[raterName]
-
-        if (
-          targetName &&
-          typeof playerRating === 'number'
-        ) {
-          room.scores[targetName] =
-            (room.scores[targetName] || 0) + playerRating
-        }
-      }
-    },
+    recalculateScores,
   );
 
   if (result.error) {
