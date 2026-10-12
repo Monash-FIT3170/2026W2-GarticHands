@@ -19,6 +19,7 @@ export interface CanvasHandle {
 export type DrawingTool = 'draw' | 'erase';
 
 interface CanvasProps {
+  penUp?: boolean;
   width?: number;
   height?: number;
   ref?: Ref<CanvasHandle>;
@@ -38,6 +39,7 @@ interface CanvasProps {
 const INDEX_FINGERTIP = 8;
 
 const Canvas = ({
+  penUp = false,
   width = 640,
   height = 480,
   ref,
@@ -51,6 +53,7 @@ const Canvas = ({
   const drawCanvasRef = useRef<HTMLCanvasElement>(null);
   const overlayCanvasRef = useRef<HTMLCanvasElement>(null);
   const toolRef = useRef(tool);
+  const penUpRef = useRef(penUp);
   const { registerDrawCanvasElement } = useDrawingContext();
 
   // Publish the draw-canvas DOM node so the recorder can sample it per-frame.
@@ -145,6 +148,15 @@ const Canvas = ({
     toolRef.current = tool;
   }, [tool]);
 
+  useLayoutEffect(() => {
+    penUpRef.current = penUp;
+
+    if (penUp && stateRef.current) {
+      stateRef.current.active?.reset();
+      stateRef.current.active = null;
+    }
+  }, [penUp]);
+
   useImperativeHandle(
     ref,
     () => ({
@@ -156,7 +168,7 @@ const Canvas = ({
         // Only pinch performs an action. The latest selected tool determines
         // whether that pinch draws or erases.
         const next =
-          gesture === GestureType.PINCH
+          !penUpRef.current && gesture === GestureType.PINCH
             ? (state.ops.find((op) => op.name === toolRef.current) ?? null)
             : null;
 
