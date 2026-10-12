@@ -1,4 +1,4 @@
-import { useEffect, useState, useCallback } from 'react';
+import { useEffect, useMemo, useState, useCallback } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
 import {
   addBot,
@@ -99,7 +99,10 @@ export default function HostingPage() {
     };
   }, [roomCode, hostName]);
 
-  usePlayerDepartures(players, (names) => {
+  // Only announce people leaving — removing a bot is the host's own choice.
+  const humans = useMemo(() => players.filter((player) => !player.isBot), [players]);
+
+  usePlayerDepartures(humans, (names) => {
     setPopup(`${names.join(', ')} left the room`);
   });
 

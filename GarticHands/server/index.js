@@ -105,6 +105,11 @@ const EMPTY_ROOM_GRACE_MS = 60000;
 
 app.use(cors())
 
+// Render (and most hosts) sit one proxy in front of the server. Trusting that
+// hop makes `req.ip` the player's address rather than the proxy's, so the
+// `/ai/draw` throttle is per player instead of global.
+app.set('trust proxy', 1)
+
 // PNG data URLs from the drawing canvas can be a few hundred KB.
 app.use(express.json({ limit: '10mb' }))
 
@@ -161,10 +166,6 @@ function setPhase(room, phase) {
   room.phase = phase
   phaseSeq[room.code] = (phaseSeq[room.code] || 0) + 1
 
-  // Bots act on timers of their own, so scheduling them here (before the
-  // deadline is stamped) is safe — each turn re-checks the phase when it fires.
-  scheduleBotTurns(room)
-
   const duration =
     phase === 'draw' && !process.env.DRAW_SECONDS
       ? room.drawTimeSeconds || PHASE_DURATIONS.draw
@@ -181,6 +182,10 @@ function setPhase(room, phase) {
     () => expirePhase(room.code, phase),
     duration * 1000 + PHASE_GRACE_MS,
   );
+
+  // After the deadline is stamped: bots pace themselves against it. Bots only
+  // act in timed phases, so the untimed early return above never needs this.
+  scheduleBotTurns(room);
 }
 
 /**
@@ -839,6 +844,11 @@ app.post('/ai/draw', async (req, res) => {
   }
 
   lastDrawRequest[req.ip] = now
+
+  // Forget callers who have gone quiet so the map can't grow without bound.
+  for (const ip of Object.keys(lastDrawRequest)) {
+    if (now - lastDrawRequest[ip] > 60000) delete lastDrawRequest[ip]
+  }
 
   const drawing = await drawPrompt(prompt)
   res.json({
