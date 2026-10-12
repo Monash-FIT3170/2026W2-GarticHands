@@ -79,10 +79,6 @@ function SoloInner() {
         <DrawingModePicker mode={mode} onModeChange={setMode} />
         <DrawingStage mode={mode} />
 
-        <p className="text-xs text-[var(--text-muted)] mt-4 text-center">
-          Pinch to draw &middot; Open palm to erase
-        </p>
-
         <div className="flex items-end justify-end mt-4 gap-3">
           <Button variant="outline" size="sm" onClick={handleNext}>
             Skip Prompt
