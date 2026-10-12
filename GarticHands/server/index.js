@@ -262,41 +262,40 @@ function advanceIfPhaseComplete(room) {
 async function autoSubmitAIGuess(room) {
   if (room.phase !== 'guess') return
 
-  // Find the host's drawing — in AI Mode there is only one human player
-  const hostPlayer = room.players.find((p) => p.isHost)
-  if (!hostPlayer) return
+  const humanPlayers = activePlayers(room)
+  if (humanPlayers.length === 0) return
 
-  const drawingToGuess = room.drawings[hostPlayer.name]
-  if (!drawingToGuess) {
-    room.aiGuess = 'nothing'
-    // Store as a regular guess so reveal page can display it
-    room.guesses['AI Guesser'] = 'nothing'
-    room.guessTargets['AI Guesser'] = hostPlayer.name
-    advanceIfPhaseComplete(room)
-    io.to(room.code).emit('room-update', room)
-    return
-  }
+  console.log(`[AI] Generating guesses for ${humanPlayers.length} drawing(s)...`)
 
-  try {
-    console.log(`[AI] Generating guess for room ${room.code}...`)
-    const guess = await generateGuess(drawingToGuess)
-    console.log(`[AI] Guess: "${guess}"`)
+  await Promise.all(
+    humanPlayers.map(async (player) => {
+      const drawing = room.drawings[player.name]
 
-    room.aiGuess = guess
-    room.guesses['AI Guesser'] = guess
-    room.guessTargets['AI Guesser'] = hostPlayer.name
+      if (!drawing || drawing.length < 1000) {
+        room.guesses['AI Guesser'] = room.guesses['AI Guesser'] || {}
+        // Store per-player guess in guessTargets style
+        room.guesses[`AI:${player.name}`] = 'a blank canvas'
+        room.guessTargets[`AI:${player.name}`] = player.name
+        return
+      }
 
-    // Advance to reveal since AI is the only guesser in AI Mode
-    setPhase(room, 'reveal')
-    io.to(room.code).emit('room-update', room)
-  } catch (err) {
-    console.error('[AI] Guess failed:', err.message)
-    room.aiGuess = 'I have no idea'
-    room.guesses['AI Guesser'] = 'I have no idea'
-    room.guessTargets['AI Guesser'] = hostPlayer.name
-    setPhase(room, 'reveal')
-    io.to(room.code).emit('room-update', room)
-  }
+      try {
+        const guess = await generateGuess(drawing)
+        console.log(`[AI] Guess for ${player.name}'s drawing: "${guess}"`)
+        room.guesses[`AI:${player.name}`] = guess
+        room.guessTargets[`AI:${player.name}`] = player.name
+        // For single player, also store as aiGuess for the reveal banner
+        room.aiGuess = guess
+      } catch (err) {
+        console.error(`[AI] Guess failed for ${player.name}:`, err.message)
+        room.guesses[`AI:${player.name}`] = 'something mysterious'
+        room.guessTargets[`AI:${player.name}`] = player.name
+      }
+    }),
+  )
+
+  setPhase(room, 'reveal')
+  io.to(room.code).emit('room-update', room)
 }
 /**
  * Shared tail for every departure, however it was detected. An emptied room is
@@ -507,31 +506,32 @@ app.patch('/rooms/:roomCode/start', (req, res) => {
   // In AI Mode, generate a prompt automatically so the player
   // skips typing and goes straight to drawing
   if (room.aiMode) {
-    generatePrompt()
-      .then((prompt) => {
-        // Auto-submit the prompt for every active player
-        for (const player of activePlayers(room)) {
-          if (!room.prompts[player.name]) {
+    // Generate a unique prompt for each active player in parallel
+    const players = activePlayers(room)
+
+    Promise.all(
+      players.map((player) =>
+        generatePrompt()
+          .then((prompt) => {
             room.prompts[player.name] = prompt
-          }
-        }
-        room.aiPrompt = prompt
+            console.log(`[AI] Generated prompt for ${player.name}: "${prompt}"`)
+          })
+          .catch(() => {
+            const fallback = FALLBACK_PROMPTS[Math.floor(Math.random() * FALLBACK_PROMPTS.length)]
+            room.prompts[player.name] = fallback
+            console.log(`[AI] Fallback prompt for ${player.name}: "${fallback}"`)
+          }),
+      ),
+    )
+      .then(() => {
+        // Store first prompt as aiPrompt for display purposes
+        const firstPlayer = players[0]
+        if (firstPlayer) room.aiPrompt = room.prompts[firstPlayer.name]
         advanceIfPhaseComplete(room)
         io.to(room.code).emit('room-update', room)
-        console.log(`[AI] Generated prompt: "${prompt}"`)
       })
       .catch((err) => {
         console.error('[AI] Prompt generation failed:', err.message)
-        // Fall back to a random fallback prompt
-        const fallback = FALLBACK_PROMPTS[Math.floor(Math.random() * FALLBACK_PROMPTS.length)]
-        for (const player of activePlayers(room)) {
-          if (!room.prompts[player.name]) {
-            room.prompts[player.name] = fallback
-          }
-        }
-        room.aiPrompt = fallback
-        advanceIfPhaseComplete(room)
-        io.to(room.code).emit('room-update', room)
       })
   }
 
@@ -571,29 +571,29 @@ app.patch('/rooms/:roomCode/restart', (req, res) => {
 
   // Generate a fresh AI prompt for the new round
   if (room.aiMode) {
-    generatePrompt()
-      .then((prompt) => {
-        for (const player of activePlayers(room)) {
-          if (!room.prompts[player.name]) {
+    const players = activePlayers(room)
+
+    Promise.all(
+      players.map((player) =>
+        generatePrompt()
+          .then((prompt) => {
             room.prompts[player.name] = prompt
-          }
-        }
-        room.aiPrompt = prompt
+            console.log(`[AI] Generated prompt for ${player.name} round ${room.round}: "${prompt}"`)
+          })
+          .catch(() => {
+            const fallback = FALLBACK_PROMPTS[Math.floor(Math.random() * FALLBACK_PROMPTS.length)]
+            room.prompts[player.name] = fallback
+          }),
+      ),
+    )
+      .then(() => {
+        const firstPlayer = players[0]
+        if (firstPlayer) room.aiPrompt = room.prompts[firstPlayer.name]
         advanceIfPhaseComplete(room)
         io.to(room.code).emit('room-update', room)
-        console.log(`[AI] Generated prompt for round ${room.round}: "${prompt}"`)
       })
       .catch((err) => {
         console.error('[AI] Prompt generation failed:', err.message)
-        const fallback = FALLBACK_PROMPTS[Math.floor(Math.random() * FALLBACK_PROMPTS.length)]
-        for (const player of activePlayers(room)) {
-          if (!room.prompts[player.name]) {
-            room.prompts[player.name] = fallback
-          }
-        }
-        room.aiPrompt = fallback
-        advanceIfPhaseComplete(room)
-        io.to(room.code).emit('room-update', room)
       })
   }
 
