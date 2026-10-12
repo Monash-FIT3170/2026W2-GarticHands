@@ -271,14 +271,15 @@ function createGuessTargets(room) {
    * themselves nor the recipient of their prompt.
    */
   players.forEach((player, index) => {
-    for (let step = 1; step < players.length; step += 1) {
+    // Try every offset once. Every player rejects the same two offsets (0 and
+    // -promptOffset), so they all settle on the same one and each drawing
+    // gets exactly one guesser.
+    for (let step = 0; step < players.length; step += 1) {
       const targetIndex =
-        (index + guessOffset + step - 1) % players.length
+        (index + guessOffset + step) % players.length
       const target = players[targetIndex]
 
-      const promptRecipient = players[
-        (index + promptOffset) % players.length
-      ]
+
 
       if (
         target.name !== player.name &&
