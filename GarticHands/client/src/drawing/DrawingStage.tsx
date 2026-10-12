@@ -365,7 +365,7 @@ function ClearDrawingButton({ disabled = false, gameStyle = false }: ClearDrawin
       title="Clear Canvas"
       className={`${
         gameStyle
-          ? 'flex h-10 w-10 items-center justify-center rounded-xl border-2 text-xl border-[var(--action)] bg-white text-[var(--text-primary)] hover:bg-black/5'
+          ? 'flex h-10 w-10 items-center justify-center rounded-xl border-2 text-xl border-[var(--action)] bg-white text-[var(--text-primary)]'
           : 'px-3 py-1.5 rounded-full text-xs font-bold uppercase tracking-[0.12em] text-[var(--text-primary)] hover:bg-black/5'
       } font-bold transition-colors ${disabled ? 'opacity-50 cursor-not-allowed' : ''}`}
     >
@@ -571,9 +571,13 @@ export function DrawingStage({
 
   return (
     <div>
-      <DrawingToolPicker tool={tool} onToolChange={handleToolChange} disabled={!drawingEnabled} />
+      <div className="flex items-center gap-2">
+        <DrawingToolPicker tool={tool} onToolChange={handleToolChange} disabled={!drawingEnabled} />
 
-      <ClearDrawingButton disabled={!drawingEnabled} />
+        <div className="inline-flex rounded-full bg-[var(--surface)] p-1">
+          <ClearDrawingButton disabled={!drawingEnabled} />
+        </div>
+      </div>
 
       <DrawingSettingsPicker
         settings={settings}
