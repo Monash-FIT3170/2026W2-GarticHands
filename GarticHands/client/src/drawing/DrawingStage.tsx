@@ -2,6 +2,7 @@ import { useEffect, useState, type ReactNode } from 'react';
 import DrawingCameraInput from './components/DrawingCameraInput';
 import DrawingCameraCanvas from './components/DrawingCameraCanvas';
 import type { DrawingTool } from './components/Canvas';
+import { useDrawing } from './DrawingContext';
 
 export type DrawMode = 'split' | 'overlay' | 'both';
 
@@ -347,6 +348,32 @@ function DrawingToolPicker({
   );
 }
 
+interface ClearDrawingButtonProps {
+  disabled?: boolean;
+  gameStyle?: boolean;
+}
+
+function ClearDrawingButton({ disabled = false, gameStyle = false }: ClearDrawingButtonProps) {
+  const { clearDrawing } = useDrawing();
+
+  return (
+    <button
+      type="button"
+      onClick={clearDrawing}
+      disabled={disabled}
+      aria-label="Clear Canvas"
+      title="Clear Canvas"
+      className={`${
+        gameStyle
+          ? 'flex h-10 w-10 items-center justify-center rounded-xl border-2 text-xl border-[var(--action)] bg-white text-[var(--text-primary)]'
+          : 'px-3 py-1.5 rounded-full text-xs font-bold uppercase tracking-[0.12em] text-[var(--text-primary)] hover:bg-black/5'
+      } font-bold transition-colors ${disabled ? 'opacity-50 cursor-not-allowed' : ''}`}
+    >
+      {gameStyle ? '🗑️' : '🗑️ Clear'}
+    </button>
+  );
+}
+
 const MODE_STORAGE_KEY = 'gartichands:drawMode';
 const VALID_MODES = new Set<DrawMode>(['split', 'overlay', 'both']);
 
@@ -524,6 +551,7 @@ export function DrawingStage({
             disabled={!drawingEnabled}
             gameStyle
           />
+          <ClearDrawingButton disabled={!drawingEnabled} gameStyle />
           <span className="hidden h-10 w-px shrink-0 bg-white/70 md:block" />
           <DrawingSettingsPicker
             settings={settings}
@@ -543,7 +571,13 @@ export function DrawingStage({
 
   return (
     <div>
-      <DrawingToolPicker tool={tool} onToolChange={handleToolChange} disabled={!drawingEnabled} />
+      <div className="flex items-center gap-2">
+        <DrawingToolPicker tool={tool} onToolChange={handleToolChange} disabled={!drawingEnabled} />
+
+        <div className="inline-flex rounded-full bg-[var(--surface)] p-1">
+          <ClearDrawingButton disabled={!drawingEnabled} />
+        </div>
+      </div>
 
       <DrawingSettingsPicker
         settings={settings}
