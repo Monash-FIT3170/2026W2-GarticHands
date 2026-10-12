@@ -215,7 +215,17 @@ export default function JoinedPage() {
                 disabled={starting}
                 className="mt-4"
               >
-                {ready ? 'Ready' : 'Ready Up'}
+                {ready ? (
+                  <span className="flex items-center justify-center gap-2">
+                    Ready
+                    <span aria-hidden="true">✓</span>
+                  </span>
+                ) : (
+                  <span className="flex items-center justify-center gap-2">
+                    Ready Up
+                    <span aria-hidden="true">✕</span>
+                  </span>
+                )}
               </Button>
             )}
 
