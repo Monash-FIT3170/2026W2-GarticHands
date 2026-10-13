@@ -165,11 +165,11 @@ describe('InputPage', () => {
     fireEvent.click(screen.getByText('Submit'));
 
     await waitFor(() => {
-      expect(mockSubmitPrompt).toHaveBeenCalledWith('ABC123', 'Ash', 'a flying cat')
-    })
-    expect(screen.getByPlaceholderText('What should they draw?')).toBeDisabled()
-    expect(screen.getByText('Submit')).toBeDisabled()
-  })
+      expect(mockSubmitPrompt).toHaveBeenCalledWith('ABC123', 'Ash', 'a flying cat');
+    });
+    expect(screen.getByPlaceholderText('What should they draw?')).toBeDisabled();
+    expect(screen.getByText('Submit')).toBeDisabled();
+  });
 
   test('navigates to draw once the submission moves the room into the draw phase', async () => {
     mockSubmitPrompt.mockResolvedValue({
@@ -205,11 +205,11 @@ describe('InputPage', () => {
     fireEvent.click(screen.getByText('Submit'));
 
     await waitFor(() => {
-      expect(screen.getByText('Room is full.')).toBeInTheDocument()
-    })
-    expect(screen.getByText('Submit')).not.toBeDisabled()
-    expect(screen.getByPlaceholderText('What should they draw?')).not.toBeDisabled()
-  })
+      expect(screen.getByText('Room is full.')).toBeInTheDocument();
+    });
+    expect(screen.getByText('Submit')).not.toBeDisabled();
+    expect(screen.getByPlaceholderText('What should they draw?')).not.toBeDisabled();
+  });
 
   test('shows a waiting message with correct pluralisation after submitting', async () => {
     mockUsePhaseAdvance.mockReturnValue({
@@ -326,7 +326,7 @@ describe('InputPage', () => {
 
       fireEvent.click(await screen.findByText('a bear eating pancakes'));
 
-      expect(screen.getByPlaceholderText('Start typing your prompt here...')).toHaveValue(
+      expect(screen.getByPlaceholderText('What should they draw?')).toHaveValue(
         'a bear eating pancakes',
       );
       expect(mockSubmitPrompt).not.toHaveBeenCalled();
@@ -366,7 +366,7 @@ describe('InputPage', () => {
       render(<InputPage />);
       await screen.findByText('a dog flying a kite');
 
-      fireEvent.change(screen.getByPlaceholderText('Start typing your prompt here...'), {
+      fireEvent.change(screen.getByPlaceholderText('What should they draw?'), {
         target: { value: 'a flying cat' },
       });
       fireEvent.click(screen.getByText('Submit'));
