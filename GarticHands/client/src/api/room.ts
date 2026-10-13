@@ -1,4 +1,4 @@
-import type { Room } from '../types/room';
+import type { GameMode, Room } from '../types/room';
 
 const API_URL = import.meta.env.VITE_API_URL ?? 'http://localhost:3000';
 
@@ -32,11 +32,11 @@ async function withStatus(res: Response): Promise<SubmitResponse> {
   return { ...((await res.json()) as RoomResponse), status: res.status };
 }
 
-export async function createRoom(hostName: string) {
+export async function createRoom(hostName: string, mode: GameMode = 'classic') {
   const res = await fetch(`${API_URL}/rooms/create`, {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({ hostName }),
+    body: JSON.stringify({ hostName, mode }),
   });
 
   return (await res.json()) as RoomResponse;
@@ -89,6 +89,20 @@ export async function updateReady(roomCode: string, playerName: string, ready: b
   return (await res.json()) as RoomResponse;
 }
 
+export async function updateRoomSettings(
+  roomCode: string,
+  playerName: string,
+  settings: { drawTimeSeconds?: number; maxRounds?: number },
+) {
+  const res = await fetch(`${API_URL}/rooms/${roomCode}/settings`, {
+    method: 'PATCH',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ playerName, ...settings }),
+  });
+
+  return (await res.json()) as RoomResponse;
+}
+
 export async function startRoom(roomCode: string) {
   const res = await fetch(`${API_URL}/rooms/${roomCode}/start`, {
     method: 'PATCH',
@@ -132,6 +146,34 @@ export async function submitGuess(
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify({ playerName, guess, of }),
   });
+  return withStatus(res);
+}
+
+/**
+ * Move a Leaderboard room from the rating reveal into the leaderboard phase.
+ * This is host-paced because the leaderboard phase has no automatic timer.
+ */
+export async function advanceRatingReveal(roomCode: string) {
+  const res = await fetch(`${API_URL}/rooms/${roomCode}/rating-reveal`, {
+    method: 'PATCH',
+    headers: { 'Content-Type': 'application/json' },
+  });
+
+  return (await res.json()) as RoomResponse;
+}
+
+/**
+ * Submit a rating for the drawing assigned to this player.
+ * The server determines the rating target, so the client cannot rate
+ * a different player's drawing.
+ */
+export async function submitRating(roomCode: string, playerName: string, rating: number) {
+  const res = await fetch(`${API_URL}/rooms/${roomCode}/ratings`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ playerName, rating }),
+  });
+
   return withStatus(res);
 }
 
