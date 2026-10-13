@@ -15,11 +15,11 @@ const io = new Server(server, {
   },
 });
 
-const PORT = process.env.PORT || 3000
-const MAX_ROUNDS = 4
-const MAX_PLAYERS = 8
-const DRAW_TIME_OPTIONS = [30, 45, 60, 90, 120, 150, 180, 240, 300, 360]
-const ROUND_OPTIONS = [1, 2, 3, 4, 5, 6, 7, 8]
+const PORT = process.env.PORT || 3000;
+const MAX_ROUNDS = 4;
+const MAX_PLAYERS = 8;
+const DRAW_TIME_OPTIONS = [30, 45, 60, 90, 120, 150, 180, 240, 300, 360];
+const ROUND_OPTIONS = [1, 2, 3, 4, 5, 6, 7, 8];
 
 /** Env override — lets a demo or test run through a phase without waiting a full minute. */
 function phaseSeconds(envName, fallback) {
@@ -36,7 +36,7 @@ const PHASE_DURATIONS = {
   draw: phaseSeconds('DRAW_SECONDS', 60),
   guess: phaseSeconds('GUESS_SECONDS', 60),
   rating: phaseSeconds('RATING_SECONDS', 60),
-}
+};
 
 /**
  * Extra time the server waits past phaseEndsAt before forcing the advance,
@@ -152,21 +152,24 @@ function clearPhaseTimer(roomCode) {
  * Every phase transition goes through this function.
  */
 function setPhase(room, phase) {
-  clearPhaseTimer(room.code)
+  clearPhaseTimer(room.code);
 
-  room.phase = phase
+  room.phase = phase;
+
+  if (phase === 'prompt') stashPromptsFor(room);
+  if (phase === 'draw') recordPromptHistory(room);
 
   const duration =
     phase === 'draw' && !process.env.DRAW_SECONDS
       ? room.drawTimeSeconds || PHASE_DURATIONS.draw
-      : PHASE_DURATIONS[phase]
+      : PHASE_DURATIONS[phase];
 
   if (!duration) {
     room.phaseEndsAt = null;
     return;
   }
 
-  room.phaseEndsAt = Date.now() + duration * 1000
+  room.phaseEndsAt = Date.now() + duration * 1000;
 
   phaseTimers[room.code] = setTimeout(
     () => expirePhase(room.code, phase),
@@ -227,11 +230,11 @@ function defaultSubmission(phase, room) {
   if (phase === 'prompt') return fallbackPromptFor(room);
   // Draw and guess degrade to "nothing submitted" — the reveal screen renders
   // an empty drawing/guess rather than blocking the round.
-  
+
   if (phase === 'rating') {
-    return 0
+    return 0;
   }
-  
+
   return '';
 }
 
@@ -246,12 +249,12 @@ function defaultSubmission(phase, room) {
  * same prompt source where possible.
  */
 function createPromptTargets(room) {
-  const players = activePlayers(room)
+  const players = activePlayers(room);
 
-  room.promptTargets = {}
+  room.promptTargets = {};
 
   if (players.length < 2) {
-    return
+    return;
   }
 
   /*
@@ -264,14 +267,12 @@ function createPromptTargets(room) {
    * Bob -> receives Charlie's prompt
    * Charlie -> receives Alice's prompt
    */
-  const offset =
-    ((room.round - 1) % (players.length - 1)) + 1
+  const offset = ((room.round - 1) % (players.length - 1)) + 1;
 
   players.forEach((player, index) => {
-    const promptAuthorIndex = (index + offset) % players.length
-    room.promptTargets[player.name] =
-      players[promptAuthorIndex].name
-  })
+    const promptAuthorIndex = (index + offset) % players.length;
+    room.promptTargets[player.name] = players[promptAuthorIndex].name;
+  });
 }
 
 /**
@@ -288,12 +289,12 @@ function createPromptTargets(room) {
  * that they gave their prompt to.
  */
 function createGuessTargets(room) {
-  const players = activePlayers(room)
+  const players = activePlayers(room);
 
-  room.guessTargets = {}
+  room.guessTargets = {};
 
   if (players.length < 3) {
-    return
+    return;
   }
 
   /*
@@ -305,14 +306,12 @@ function createGuessTargets(room) {
    * For larger rooms, the offset changes with the round where possible while
    * still avoiding the prompt recipient and the guesser themselves.
    */
-  const promptOffset =
-    ((room.round - 1) % (players.length - 1)) + 1
+  const promptOffset = ((room.round - 1) % (players.length - 1)) + 1;
 
-  let guessOffset =
-    (promptOffset + 1) % players.length
+  let guessOffset = (promptOffset + 1) % players.length;
 
   if (guessOffset === 0) {
-    guessOffset = 1
+    guessOffset = 1;
   }
 
   /*
@@ -322,23 +321,17 @@ function createGuessTargets(room) {
    */
   players.forEach((player, index) => {
     for (let step = 1; step < players.length; step += 1) {
-      const targetIndex =
-        (index + guessOffset + step - 1) % players.length
-      const target = players[targetIndex]
+      const targetIndex = (index + guessOffset + step - 1) % players.length;
+      const target = players[targetIndex];
 
-      const promptRecipient = players[
-        (index + promptOffset) % players.length
-      ]
+      const promptRecipient = players[(index + promptOffset) % players.length];
 
-      if (
-        target.name !== player.name &&
-        target.name !== promptRecipient.name
-      ) {
-        room.guessTargets[player.name] = target.name
-        return
+      if (target.name !== player.name && target.name !== promptRecipient.name) {
+        room.guessTargets[player.name] = target.name;
+        return;
       }
     }
-  })
+  });
 }
 
 /**
@@ -349,15 +342,15 @@ function createGuessTargets(room) {
  * uses the players who actually participated in the prompt phase.
  */
 function startDrawPhase(room) {
-  createPromptTargets(room)
+  createPromptTargets(room);
 
   if (room.mode === 'classic') {
-    createGuessTargets(room)
+    createGuessTargets(room);
   } else {
-    room.guessTargets = {}
+    room.guessTargets = {};
   }
 
-  setPhase(room, 'draw')
+  setPhase(room, 'draw');
 }
 
 /**
@@ -370,12 +363,12 @@ function startDrawPhase(room) {
  * the same target where possible.
  */
 function createRatingTargets(room) {
-  const players = activePlayers(room)
+  const players = activePlayers(room);
 
-  room.ratingTargets = {}
+  room.ratingTargets = {};
 
   if (players.length < 2) {
-    return
+    return;
   }
 
   /*
@@ -388,13 +381,12 @@ function createRatingTargets(room) {
    *
    * and works for both even and odd player counts.
    */
-  const offset =
-    ((room.round - 1) % (players.length - 1)) + 1
+  const offset = ((room.round - 1) % (players.length - 1)) + 1;
 
   players.forEach((player, index) => {
-    const targetIndex = (index + offset) % players.length
-    room.ratingTargets[player.name] = players[targetIndex].name
-  })
+    const targetIndex = (index + offset) % players.length;
+    room.ratingTargets[player.name] = players[targetIndex].name;
+  });
 }
 
 /**
@@ -404,8 +396,8 @@ function createRatingTargets(room) {
  * so they are based on the players who actually made it to the rating phase.
  */
 function startRatingPhase(room) {
-  createRatingTargets(room)
-  setPhase(room, 'rating')
+  createRatingTargets(room);
+  setPhase(room, 'rating');
 }
 
 /**
@@ -416,45 +408,42 @@ function startRatingPhase(room) {
 function expirePhase(roomCode, expectedPhase) {
   delete phaseTimers[roomCode];
 
-  const room = rooms[roomCode]
+  const room = rooms[roomCode];
 
   if (!room || room.phase !== expectedPhase) {
-    return
+    return;
   }
 
-  const bucket = PHASE_BUCKET[expectedPhase]
+  const bucket = PHASE_BUCKET[expectedPhase];
 
   if (!bucket) {
-    return
+    return;
   }
 
-  room[bucket] = room[bucket] || {}
+  room[bucket] = room[bucket] || {};
 
   for (const player of activePlayers(room)) {
-    const submission = room[bucket][player.name]
+    const submission = room[bucket][player.name];
 
     if (submission === undefined || submission === null) {
-      room[bucket][player.name] = defaultSubmission(expectedPhase);
+      room[bucket][player.name] = defaultSubmission(expectedPhase, room);
     }
   }
 
   if (expectedPhase === 'prompt') {
-    startDrawPhase(room)
-  } else if (
-    room.mode === 'leaderboard' &&
-    expectedPhase === 'draw'
-  ) {
-    startRatingPhase(room)
+    startDrawPhase(room);
+  } else if (room.mode === 'leaderboard' && expectedPhase === 'draw') {
+    startRatingPhase(room);
   } else {
-    setPhase(room, NEXT_PHASE[expectedPhase])
+    setPhase(room, NEXT_PHASE[expectedPhase]);
   }
 
   io.to(room.code).emit('phase-timeout', {
     code: room.code,
     phase: expectedPhase,
-  })
+  });
 
-  io.to(room.code).emit('room-update', room)
+  io.to(room.code).emit('room-update', room);
 }
 
 /**
@@ -462,70 +451,68 @@ function expirePhase(roomCode, expectedPhase) {
  */
 function promoteHost(room) {
   if (room.players.length === 0) {
-    return
+    return;
   }
 
-  const next = room.players.reduce((a, b) =>
-    a.joinedAt <= b.joinedAt ? a : b,
-  )
+  const next = room.players.reduce((a, b) => (a.joinedAt <= b.joinedAt ? a : b));
 
-  next.isHost = true
-  next.status = 'host'
-  next.ready = true
+  next.isHost = true;
+  next.status = 'host';
+  next.ready = true;
 }
 
 /**
  * Drop a player and everything keyed by their name.
  */
 function removePlayer(room, playerName) {
-  const index = room.players.findIndex((p) => p.name === playerName)
+  const index = room.players.findIndex((p) => p.name === playerName);
 
   if (index === -1) {
-    return false
+    return false;
   }
 
-  const [gone] = room.players.splice(index, 1)
+  const [gone] = room.players.splice(index, 1);
 
-  delete room.prompts[playerName]
-  delete room.drawings[playerName]
-  delete room.guesses[playerName]
-  delete room.ratings[playerName]
+  delete room.prompts[playerName];
+  delete room.drawings[playerName];
+  delete room.guesses[playerName];
+  delete room.ratings[playerName];
 
   if (room.promptTargets) {
-    delete room.promptTargets[playerName]
+    delete room.promptTargets[playerName];
 
     for (const recipient of Object.keys(room.promptTargets)) {
       if (room.promptTargets[recipient] === playerName) {
-        delete room.promptTargets[recipient]
+        delete room.promptTargets[recipient];
       }
     }
   }
 
   if (room.guessTargets) {
-    delete room.guessTargets[playerName]
+    delete room.guessTargets[playerName];
 
     for (const guesser of Object.keys(room.guessTargets)) {
       if (room.guessTargets[guesser] === playerName) {
-        delete room.guessTargets[guesser]
+        delete room.guessTargets[guesser];
       }
     }
   }
 
   if (room.ratingTargets) {
-    delete room.ratingTargets[playerName]
+    delete room.ratingTargets[playerName];
 
     for (const rater of Object.keys(room.ratingTargets)) {
       if (room.ratingTargets[rater] === playerName) {
-        delete room.ratingTargets[rater]
+        delete room.ratingTargets[rater];
       }
     }
   }
 
   if (gone.isHost) {
-    promoteHost(room)
+    promoteHost(room);
   }
 
-  return true
+  return true;
 }
 
 /**
@@ -533,40 +520,35 @@ function removePlayer(room, playerName) {
  * has submitted.
  */
 function advanceIfPhaseComplete(room) {
-  const bucket = PHASE_BUCKET[room.phase]
+  const bucket = PHASE_BUCKET[room.phase];
 
   if (!bucket) {
-    return false
+    return false;
   }
 
-  const active = activePlayers(room)
+  const active = activePlayers(room);
 
   if (active.length === 0) {
-    return false
+    return false;
   }
 
   const everyoneSubmitted = active.every(
-    (p) =>
-      room[bucket][p.name] !== undefined &&
-      room[bucket][p.name] !== null,
-  )
+    (p) => room[bucket][p.name] !== undefined && room[bucket][p.name] !== null,
+  );
 
   if (!everyoneSubmitted) {
-    return false
+    return false;
   }
 
   if (room.phase === 'prompt') {
-    startDrawPhase(room)
-  } else if (
-    room.mode === 'leaderboard' &&
-    room.phase === 'draw'
-  ) {
-    startRatingPhase(room)
+    startDrawPhase(room);
+  } else if (room.mode === 'leaderboard' && room.phase === 'draw') {
+    startRatingPhase(room);
   } else {
-    setPhase(room, NEXT_PHASE[room.phase])
+    setPhase(room, NEXT_PHASE[room.phase]);
   }
 
-  return true
+  return true;
 }
 
 /**
@@ -578,11 +560,11 @@ function afterPlayersLeft(room) {
     return;
   }
 
-  delete emptySince[room.code]
+  delete emptySince[room.code];
 
-  advanceIfPhaseComplete(room)
+  advanceIfPhaseComplete(room);
 
-  io.to(room.code).emit('room-update', room)
+  io.to(room.code).emit('room-update', room);
 }
 
 /**
@@ -594,24 +576,22 @@ setInterval(() => {
   for (const code of Object.keys(rooms)) {
     const room = rooms[code];
 
-    const stale = room.players.filter(
-      (p) => now - p.lastSeen > PLAYER_TIMEOUT_MS,
-    )
+    const stale = room.players.filter((p) => now - p.lastSeen > PLAYER_TIMEOUT_MS);
 
     if (stale.length > 0) {
       for (const p of stale) {
-        removePlayer(room, p.name)
+        removePlayer(room, p.name);
       }
 
       io.to(room.code).emit('players-left', {
         code: room.code,
         names: stale.map((p) => p.name),
-      })
+      });
 
-      afterPlayersLeft(room)
+      afterPlayersLeft(room);
     }
 
-    const emptiedAt = emptySince[code]
+    const emptiedAt = emptySince[code];
 
     if (emptiedAt && now - emptiedAt > EMPTY_ROOM_GRACE_MS) {
       clearPhaseTimer(code);
@@ -635,17 +615,13 @@ app.get('/', (_req, res) => {
  * `maxRounds` and `drawTimeSeconds` are configurable from the host lobby.
  */
 app.post('/rooms/create', (req, res) => {
-  const { hostName, mode, maxRounds } = req.body
+  const { hostName, mode, maxRounds } = req.body;
 
-  const roomCode = generateRoomCode()
+  const roomCode = generateRoomCode();
 
-  const selectedMode =
-    mode === 'leaderboard' ? 'leaderboard' : 'classic'
+  const selectedMode = mode === 'leaderboard' ? 'leaderboard' : 'classic';
 
-  const selectedMaxRounds =
-    ROUND_OPTIONS.includes(maxRounds)
-      ? maxRounds
-      : MAX_ROUNDS
+  const selectedMaxRounds = ROUND_OPTIONS.includes(maxRounds) ? maxRounds : MAX_ROUNDS;
 
   rooms[roomCode] = {
     code: roomCode,
@@ -679,46 +655,46 @@ app.post('/rooms/create', (req, res) => {
     success: true,
     roomCode,
     room: rooms[roomCode],
-  })
-})
+  });
+});
 
 app.patch('/rooms/:roomCode/settings', (req, res) => {
-  const roomCode = req.params.roomCode.toUpperCase()
-  const { playerName, drawTimeSeconds, maxRounds } = req.body
-  const room = rooms[roomCode]
+  const roomCode = req.params.roomCode.toUpperCase();
+  const { playerName, drawTimeSeconds, maxRounds } = req.body;
+  const room = rooms[roomCode];
 
   if (!room) {
     return res.status(404).json({
       success: false,
       message: 'Room not found',
-    })
+    });
   }
 
-  const player = room.players.find((p) => p.name === playerName)
+  const player = room.players.find((p) => p.name === playerName);
 
   if (!player) {
     return res.status(404).json({
       success: false,
       message: 'Player not found',
-    })
+    });
   }
 
   if (!player.isHost) {
     return res.status(403).json({
       success: false,
       message: 'Only the host can update room settings.',
-    })
+    });
   }
 
   if (room.status !== 'waiting' || room.phase !== 'lobby') {
     return res.status(409).json({
       success: false,
       message: 'Room settings cannot be changed after the game starts.',
-    })
+    });
   }
 
-  const hasDrawTime = Object.hasOwn(req.body, 'drawTimeSeconds')
-  const hasRounds = Object.hasOwn(req.body, 'maxRounds')
+  const hasDrawTime = Object.hasOwn(req.body, 'drawTimeSeconds');
+  const hasRounds = Object.hasOwn(req.body, 'maxRounds');
 
   if (
     (!hasDrawTime && !hasRounds) ||
@@ -728,20 +704,20 @@ app.patch('/rooms/:roomCode/settings', (req, res) => {
     return res.status(400).json({
       success: false,
       message: 'Invalid room settings.',
-    })
+    });
   }
 
-  if (hasDrawTime) room.drawTimeSeconds = drawTimeSeconds
-  if (hasRounds) room.maxRounds = maxRounds
-  player.lastSeen = Date.now()
+  if (hasDrawTime) room.drawTimeSeconds = drawTimeSeconds;
+  if (hasRounds) room.maxRounds = maxRounds;
+  player.lastSeen = Date.now();
 
-  io.to(room.code).emit('room-update', room)
+  io.to(room.code).emit('room-update', room);
 
   res.json({
     success: true,
     room,
-  })
-})
+  });
+});
 
 app.post('/rooms/join', (req, res) => {
   const { roomCode, playerName } = req.body;
@@ -753,13 +729,13 @@ app.post('/rooms/join', (req, res) => {
     });
   }
 
-  const room = rooms[roomCode.toUpperCase()]
+  const room = rooms[roomCode.toUpperCase()];
 
   if (!room) {
     return res.status(404).json({
       success: false,
       message: 'Room not found',
-    })
+    });
   }
 
   if (room.players.length >= MAX_PLAYERS) {
@@ -779,55 +755,47 @@ app.post('/rooms/join', (req, res) => {
   // Joining a game that already started is allowed: the player is flagged as a
   // mid-round joiner so the current round can finish without waiting on them.
   // The flag is cleared when the next round starts (/start, /restart, /end).
-  room.players.push(
-    makePlayer(
-      playerName,
-      false,
-      room.status === 'started',
-    ),
-  )
+  room.players.push(makePlayer(playerName, false, room.status === 'started'));
 
-  delete emptySince[room.code]
+  delete emptySince[room.code];
 
   // A room can be rejoined after it emptied (within the grace window), at which
   // point nobody holds the host role — and a hostless lobby is deadlocked,
   // because only the host sees the Start button. Nothing else re-establishes a
   // host on join, so do it here whenever the role is vacant.
   if (!room.players.some((p) => p.isHost)) {
-    promoteHost(room)
+    promoteHost(room);
   }
 
-  io.to(room.code).emit('room-update', room)
+  io.to(room.code).emit('room-update', room);
 
   res.json({
     success: true,
     room,
-  })
-})
+  });
+});
 
 app.get('/rooms/:roomCode', (req, res) => {
-  const roomCode = req.params.roomCode.toUpperCase()
-  const room = rooms[roomCode]
+  const roomCode = req.params.roomCode.toUpperCase();
+  const room = rooms[roomCode];
 
   if (!room) {
     return res.status(404).json({
       success: false,
       message: 'Room not found',
-    })
+    });
   }
 
   // Doubles as the presence heartbeat. Every in-game page already polls this
   // once per second, so identifying the caller costs no extra request — and a
   // player who stops polling is exactly the player who has gone.
-  const { playerName } = req.query
+  const { playerName } = req.query;
 
   if (playerName) {
-    const player = room.players.find(
-      (p) => p.name === playerName,
-    )
+    const player = room.players.find((p) => p.name === playerName);
 
     if (player) {
-      player.lastSeen = Date.now()
+      player.lastSeen = Date.now();
     }
   }
 
@@ -838,67 +806,65 @@ app.get('/rooms/:roomCode', (req, res) => {
     success: true,
     room,
     serverTime: Date.now(),
-  })
-})
+  });
+});
 
 /**
  * Leave a room.
  */
 app.delete('/rooms/:roomCode/players/:playerName', (req, res) => {
-  const roomCode = req.params.roomCode.toUpperCase()
-  const room = rooms[roomCode]
+  const roomCode = req.params.roomCode.toUpperCase();
+  const room = rooms[roomCode];
 
   if (!room) {
     return res.status(404).json({
       success: false,
       message: 'Room not found',
-    })
+    });
   }
 
-  const { playerName } = req.params
+  const { playerName } = req.params;
 
   if (!removePlayer(room, playerName)) {
     return res.status(404).json({
       success: false,
       message: 'Player not found',
-    })
+    });
   }
 
   io.to(room.code).emit('players-left', {
     code: room.code,
     names: [playerName],
-  })
+  });
 
-  afterPlayersLeft(room)
+  afterPlayersLeft(room);
 
   res.json({
     success: true,
     room,
-  })
-})
+  });
+});
 
 app.patch('/rooms/:roomCode/ready', (req, res) => {
   const roomCode = req.params.roomCode.toUpperCase();
   const { playerName, ready: newReady } = req.body;
 
-  const room = rooms[roomCode]
+  const room = rooms[roomCode];
 
   if (!room) {
     return res.status(404).json({
       success: false,
       message: 'Room not found',
-    })
+    });
   }
 
-  const player = room.players.find(
-    (p) => p.name === playerName,
-  )
+  const player = room.players.find((p) => p.name === playerName);
 
   if (!player) {
     return res.status(404).json({
       success: false,
       message: 'Player not found',
-    })
+    });
   }
 
   player.lastSeen = Date.now();
@@ -908,13 +874,13 @@ app.patch('/rooms/:roomCode/ready', (req, res) => {
     player.status = newReady ? 'ready' : 'waiting';
   }
 
-  io.to(room.code).emit('room-update', room)
+  io.to(room.code).emit('room-update', room);
 
   res.json({
     success: true,
     room,
-  })
-})
+  });
+});
 
 /**
  * Start a game.
@@ -923,17 +889,17 @@ app.patch('/rooms/:roomCode/ready', (req, res) => {
  * Leaderboard requires at least 2 players.
  */
 app.patch('/rooms/:roomCode/start', (req, res) => {
-  const roomCode = req.params.roomCode.toUpperCase()
-  const room = rooms[roomCode]
+  const roomCode = req.params.roomCode.toUpperCase();
+  const room = rooms[roomCode];
 
   if (!room) {
     return res.status(404).json({
       success: false,
       message: 'Room not found',
-    })
+    });
   }
 
-  const playerCount = room.players.length
+  const playerCount = room.players.length;
 
   if (room.mode === 'classic' && playerCount < 3) {
     return res.status(409).json({
@@ -941,7 +907,7 @@ app.patch('/rooms/:roomCode/start', (req, res) => {
       message: 'Classic Mode needs at least 3 players to start.',
       code: 'CLASSIC_MIN_PLAYERS',
       minPlayers: 3,
-    })
+    });
   }
 
   if (room.mode === 'leaderboard' && playerCount < 2) {
@@ -950,39 +916,39 @@ app.patch('/rooms/:roomCode/start', (req, res) => {
       message: 'Leaderboard Mode needs at least 2 players to start.',
       code: 'LEADERBOARD_MIN_PLAYERS',
       minPlayers: 2,
-    })
+    });
   }
 
-  room.status = 'started'
-  room.round = 1
+  room.status = 'started';
+  room.round = 1;
 
-  room.prompts = {}
-  room.promptTargets = {}
-  room.drawings = {}
+  room.prompts = {};
+  room.promptTargets = {};
+  room.drawings = {};
 
   // Classic
-  room.guesses = {}
-  room.guessTargets = {}
+  room.guesses = {};
+  room.guessTargets = {};
 
   // Leaderboard
-  room.ratings = {}
-  room.ratingTargets = {}
-  room.scores = {}
+  room.ratings = {};
+  room.ratingTargets = {};
+  room.scores = {};
 
   for (const p of room.players) {
     p.joinedMidRound = false;
   }
 
-  setPhase(room, 'prompt')
+  setPhase(room, 'prompt');
 
-  io.to(room.code).emit('game-start', room)
-  io.to(room.code).emit('room-update', room)
+  io.to(room.code).emit('game-start', room);
+  io.to(room.code).emit('room-update', room);
 
   res.json({
     success: true,
     room,
-  })
-})
+  });
+});
 
 /**
  * Start the next round.
@@ -991,14 +957,14 @@ app.patch('/rooms/:roomCode/start', (req, res) => {
  * here so future round-selector changes automatically work with Leaderboard.
  */
 app.patch('/rooms/:roomCode/restart', (req, res) => {
-  const roomCode = req.params.roomCode.toUpperCase()
-  const room = rooms[roomCode]
+  const roomCode = req.params.roomCode.toUpperCase();
+  const room = rooms[roomCode];
 
   if (!room) {
     return res.status(404).json({
       success: false,
       message: 'Room not found',
-    })
+    });
   }
 
   if ((room.round || 1) >= room.maxRounds) {
@@ -1006,40 +972,40 @@ app.patch('/rooms/:roomCode/restart', (req, res) => {
       success: false,
       message: `Cannot start round ${(room.round || 1) + 1} — max rounds is ${room.maxRounds}. Use /end to return to the lobby.`,
       maxRounds: room.maxRounds,
-    })
+    });
   }
 
-  room.status = 'started'
+  room.status = 'started';
 
-  room.prompts = {}
-  room.promptTargets = {}
-  room.drawings = {}
+  room.prompts = {};
+  room.promptTargets = {};
+  room.drawings = {};
 
   // Classic
-  room.guesses = {}
-  room.guessTargets = {}
+  room.guesses = {};
+  room.guessTargets = {};
 
   // Leaderboard
-  room.ratings = {}
-  room.ratingTargets = {}
+  room.ratings = {};
+  room.ratingTargets = {};
 
-  room.round = (room.round || 1) + 1
+  room.round = (room.round || 1) + 1;
 
   // A new round starts — mid-round joiners become full participants.
   for (const p of room.players) {
     p.joinedMidRound = false;
   }
 
-  setPhase(room, 'prompt')
+  setPhase(room, 'prompt');
 
-  io.to(room.code).emit('room-update', room)
+  io.to(room.code).emit('room-update', room);
 
   res.json({
     success: true,
     room,
     maxRounds: room.maxRounds,
-  })
-})
+  });
+});
 
 /**
  * End the current game and return to the lobby.
@@ -1047,36 +1013,36 @@ app.patch('/rooms/:roomCode/restart', (req, res) => {
  * Scores are cleared because this starts a fresh game.
  */
 app.patch('/rooms/:roomCode/end', (req, res) => {
-  const roomCode = req.params.roomCode.toUpperCase()
-  const room = rooms[roomCode]
+  const roomCode = req.params.roomCode.toUpperCase();
+  const room = rooms[roomCode];
 
   if (!room) {
     return res.status(404).json({
       success: false,
       message: 'Room not found',
-    })
+    });
   }
 
-  room.status = 'waiting'
-  room.round = 1
+  room.status = 'waiting';
+  room.round = 1;
 
-  room.prompts = {}
-  room.promptTargets = {}
-  room.drawings = {}
+  room.prompts = {};
+  room.promptTargets = {};
+  room.drawings = {};
 
   // Classic
-  room.guesses = {}
-  room.guessTargets = {}
+  room.guesses = {};
+  room.guessTargets = {};
 
   // Leaderboard
-  room.ratings = {}
-  room.ratingTargets = {}
-  room.scores = {}
+  room.ratings = {};
+  room.ratingTargets = {};
+  room.scores = {};
 
-  setPhase(room, 'lobby')
+  setPhase(room, 'lobby');
 
   for (const p of room.players) {
-    p.joinedMidRound = false
+    p.joinedMidRound = false;
 
     if (!p.isHost) {
       p.ready = false;
@@ -1084,13 +1050,13 @@ app.patch('/rooms/:roomCode/end', (req, res) => {
     }
   }
 
-  io.to(room.code).emit('room-update', room)
+  io.to(room.code).emit('room-update', room);
 
   res.json({
     success: true,
     room,
-  })
-})
+  });
+});
 
 /**
  * Move a Leaderboard room from the rating reveal to its leaderboard page.
@@ -1099,48 +1065,38 @@ app.patch('/rooms/:roomCode/end', (req, res) => {
  * before the host moves everyone to the leaderboard.
  */
 app.patch('/rooms/:roomCode/rating-reveal', (req, res) => {
-  const roomCode = req.params.roomCode.toUpperCase()
-  const room = rooms[roomCode]
+  const roomCode = req.params.roomCode.toUpperCase();
+  const room = rooms[roomCode];
 
   if (!room) {
     return res.status(404).json({
       success: false,
       message: 'Room not found',
-    })
+    });
   }
 
-  if (
-    room.mode !== 'leaderboard' ||
-    room.phase !== 'ratingReveal'
-  ) {
+  if (room.mode !== 'leaderboard' || room.phase !== 'ratingReveal') {
     return res.status(409).json({
       success: false,
       message: `Cannot show leaderboard during '${room.phase}' phase`,
-    })
+    });
   }
 
-  setPhase(room, 'leaderboard')
+  setPhase(room, 'leaderboard');
 
-  io.to(room.code).emit('room-update', room)
+  io.to(room.code).emit('room-update', room);
 
   res.json({
     success: true,
     room,
-  })
-})
+  });
+});
 
 /**
  * Shared body of submission endpoints.
  */
-function submitForPhase(
-  roomCode,
-  playerName,
-  value,
-  expectedPhase,
-  validate,
-  onAccepted,
-) {
-  const room = rooms[roomCode]
+function submitForPhase(roomCode, playerName, value, expectedPhase, validate, onAccepted) {
+  const room = rooms[roomCode];
 
   if (!room) {
     return {
@@ -1151,12 +1107,10 @@ function submitForPhase(
           message: 'Room not found',
         },
       },
-    }
+    };
   }
 
-  const player = room.players.find(
-    (p) => p.name === playerName,
-  )
+  const player = room.players.find((p) => p.name === playerName);
 
   if (!player) {
     return {
@@ -1167,7 +1121,7 @@ function submitForPhase(
           message: 'Player not found',
         },
       },
-    }
+    };
   }
 
   if (room.phase !== expectedPhase) {
@@ -1188,11 +1142,10 @@ function submitForPhase(
         status: 409,
         body: {
           success: false,
-          message:
-            'You joined mid-round — you can play from the next round',
+          message: 'You joined mid-round — you can play from the next round',
         },
-      }
-    }
+      },
+    };
   }
 
   if (validate && !validate(value)) {
@@ -1203,19 +1156,19 @@ function submitForPhase(
           success: false,
           message: 'Invalid submission',
         },
-      }
-    }
+      },
+    };
   }
 
-  const bucket = PHASE_BUCKET[expectedPhase]
+  const bucket = PHASE_BUCKET[expectedPhase];
 
-  room[bucket] = room[bucket] || {}
-  room[bucket][playerName] = value
+  room[bucket] = room[bucket] || {};
+  room[bucket][playerName] = value;
 
-  player.lastSeen = Date.now()
+  player.lastSeen = Date.now();
 
   if (onAccepted) {
-    onAccepted(room, player)
+    onAccepted(room, player);
   }
 
   // Everyone active beat the clock — advance early; `advanceIfPhaseComplete`
@@ -1224,40 +1177,36 @@ function submitForPhase(
   // the next phase is untimed).
   advanceIfPhaseComplete(room);
 
-  io.to(room.code).emit('room-update', room)
+  io.to(room.code).emit('room-update', room);
 
   return {
     room,
-  }
+  };
 }
 
 app.post('/rooms/:roomCode/prompts', (req, res) => {
-  const roomCode = req.params.roomCode.toUpperCase()
-  const { playerName, prompt } = req.body
+  const roomCode = req.params.roomCode.toUpperCase();
+  const { playerName, prompt } = req.body;
 
-  const trimmed = (prompt || '').trim()
+  const trimmed = (prompt || '').trim();
 
   const result = submitForPhase(
     roomCode,
     playerName,
     trimmed,
     'prompt',
-    (v) =>
-      typeof v === 'string' &&
-      v.length > 0,
-  )
+    (v) => typeof v === 'string' && v.length > 0,
+  );
 
   if (result.error) {
-    return res
-      .status(result.error.status)
-      .json(result.error.body)
+    return res.status(result.error.status).json(result.error.body);
   }
 
   res.json({
     success: true,
     room: result.room,
-  })
-})
+  });
+});
 
 app.post('/rooms/:roomCode/drawings', (req, res) => {
   const roomCode = req.params.roomCode.toUpperCase();
@@ -1268,22 +1217,18 @@ app.post('/rooms/:roomCode/drawings', (req, res) => {
     playerName,
     dataUrl || '',
     'draw',
-    (v) =>
-      typeof v === 'string' &&
-      v.startsWith('data:image/'),
-  )
+    (v) => typeof v === 'string' && v.startsWith('data:image/'),
+  );
 
   if (result.error) {
-    return res
-      .status(result.error.status)
-      .json(result.error.body)
+    return res.status(result.error.status).json(result.error.body);
   }
 
   res.json({
     success: true,
     room: result.room,
-  })
-})
+  });
+});
 
 /**
  * Classic guess submission.
@@ -1292,27 +1237,27 @@ app.post('/rooms/:roomCode/drawings', (req, res) => {
  * The client cannot choose a different drawing to guess.
  */
 app.post('/rooms/:roomCode/guesses', (req, res) => {
-  const roomCode = req.params.roomCode.toUpperCase()
-  const { playerName, guess } = req.body
+  const roomCode = req.params.roomCode.toUpperCase();
+  const { playerName, guess } = req.body;
 
-  const trimmed = (guess || '').trim()
+  const trimmed = (guess || '').trim();
 
-  const room = rooms[roomCode]
+  const room = rooms[roomCode];
 
   if (!room) {
     return res.status(404).json({
       success: false,
       message: 'Room not found',
-    })
+    });
   }
 
-  const target = room.guessTargets?.[playerName]
+  const target = room.guessTargets?.[playerName];
 
   if (!target) {
     return res.status(409).json({
       success: false,
       message: 'No drawing has been assigned to this player.',
-    })
+    });
   }
 
   const result = submitForPhase(
@@ -1322,8 +1267,8 @@ app.post('/rooms/:roomCode/guesses', (req, res) => {
     'guess',
     (v) => typeof v === 'string',
     (room, player) => {
-      room.guessTargets = room.guessTargets || {}
-      room.guessTargets[player.name] = target
+      room.guessTargets = room.guessTargets || {};
+      room.guessTargets[player.name] = target;
     },
   );
 
@@ -1375,17 +1320,8 @@ app.post('/ai/prompts', async (req, res) => {
     ? await generatePrompts(options)
     : await generatePrompts({ ...options, forceFallback: true });
 
-  if (result.error) {
-    return res
-      .status(result.error.status)
-      .json(result.error.body)
-  }
-
-  res.json({
-    success: true,
-    room: result.room,
-  })
-})
+  res.json({ success: true, ...result });
+});
 
 /**
  * Leaderboard rating submission.
@@ -1393,34 +1329,34 @@ app.post('/ai/prompts', async (req, res) => {
  * Each player may only rate the drawing assigned to them by the server.
  */
 app.post('/rooms/:roomCode/ratings', (req, res) => {
-  const roomCode = req.params.roomCode.toUpperCase()
-  const { playerName, rating } = req.body
+  const roomCode = req.params.roomCode.toUpperCase();
+  const { playerName, rating } = req.body;
 
-  const numericRating = Number(rating)
+  const numericRating = Number(rating);
 
-  const room = rooms[roomCode]
+  const room = rooms[roomCode];
 
   if (!room) {
     return res.status(404).json({
       success: false,
       message: 'Room not found',
-    })
+    });
   }
 
   if (room.mode !== 'leaderboard') {
     return res.status(409).json({
       success: false,
       message: 'Ratings are only available in Leaderboard Mode.',
-    })
+    });
   }
 
-  const target = room.ratingTargets?.[playerName]
+  const target = room.ratingTargets?.[playerName];
 
   if (!target) {
     return res.status(409).json({
       success: false,
       message: 'No drawing has been assigned to this player.',
-    })
+    });
   }
 
   /*
@@ -1433,37 +1369,28 @@ app.post('/rooms/:roomCode/ratings', (req, res) => {
     playerName,
     numericRating,
     'rating',
-    (v) =>
-      Number.isInteger(v) &&
-      v >= 0 &&
-      v <= 100,
+    (v) => Number.isInteger(v) && v >= 0 && v <= 100,
     (room, player) => {
-      room.ratingTargets = room.ratingTargets || {}
-      room.ratings = room.ratings || {}
-      room.scores = {}
+      room.ratingTargets = room.ratingTargets || {};
+      room.ratings = room.ratings || {};
+      room.scores = {};
 
-      room.ratings[player.name] = numericRating
+      room.ratings[player.name] = numericRating;
 
       // Recalculate scores from all submitted ratings.
       for (const raterName of Object.keys(room.ratings)) {
-        const targetName = room.ratingTargets[raterName]
-        const playerRating = room.ratings[raterName]
+        const targetName = room.ratingTargets[raterName];
+        const playerRating = room.ratings[raterName];
 
-        if (
-          targetName &&
-          typeof playerRating === 'number'
-        ) {
-          room.scores[targetName] =
-            (room.scores[targetName] || 0) + playerRating
+        if (targetName && typeof playerRating === 'number') {
+          room.scores[targetName] = (room.scores[targetName] || 0) + playerRating;
         }
       }
     },
   );
 
   if (result.error) {
-    return res
-      .status(result.error.status)
-      .json(result.error.body)
+    return res.status(result.error.status).json(result.error.body);
   }
 
   /*
@@ -1473,51 +1400,41 @@ app.post('/rooms/:roomCode/ratings', (req, res) => {
   res.json({
     success: true,
     room: result.room,
-  })
-})
+  });
+});
 
 io.on('connection', (socket) => {
   console.log('Socket connected:', socket.id);
 
   socket.on('room-subscribe', (roomCode) => {
     if (!roomCode) {
-      return
+      return;
     }
 
-    const code = roomCode.toUpperCase()
+    const code = roomCode.toUpperCase();
 
-    socket.join(code)
+    socket.join(code);
 
-    const room = rooms[code]
+    const room = rooms[code];
 
     if (room) {
-      socket.emit('room-update', room)
+      socket.emit('room-update', room);
     }
-  })
+  });
 
   socket.on('hand-tracking-data', (data) => {
     if (data && data.roomCode) {
-      socket
-        .to(data.roomCode.toUpperCase())
-        .emit('hand-tracking-update', data)
+      socket.to(data.roomCode.toUpperCase()).emit('hand-tracking-update', data);
     } else {
-      socket.broadcast.emit(
-        'hand-tracking-update',
-        data,
-      )
+      socket.broadcast.emit('hand-tracking-update', data);
     }
   });
 
   socket.on('drawing-event', (data) => {
     if (data && data.roomCode) {
-      socket
-        .to(data.roomCode.toUpperCase())
-        .emit('drawing-update', data)
+      socket.to(data.roomCode.toUpperCase()).emit('drawing-update', data);
     } else {
-      socket.broadcast.emit(
-        'drawing-update',
-        data,
-      )
+      socket.broadcast.emit('drawing-update', data);
     }
   });
 
@@ -1527,7 +1444,5 @@ io.on('connection', (socket) => {
 });
 
 server.listen(PORT, () => {
-  console.log(
-    `Gartic Hands server listening on http://localhost:${PORT}`,
-  )
-})
+  console.log(`Gartic Hands server listening on http://localhost:${PORT}`);
+});
