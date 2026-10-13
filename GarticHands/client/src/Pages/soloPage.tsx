@@ -37,6 +37,7 @@ function SoloInner() {
   const [prompt, setPrompt] = useState<string>(() => randomPrompt());
   const [results, setResults] = useState<SavedDrawing[]>([]);
   const [timerKey, setTimerKey] = useState(0);
+  const [drawingKey, setDrawingKey] = useState(0);
 
   function handleSave() {
     const image = getDrawingImage();
@@ -48,6 +49,7 @@ function SoloInner() {
     clearDrawing();
     setPrompt(randomPrompt());
     setTimerKey((k) => k + 1);
+    setDrawingKey((k) => k + 1);
   }
 
   function handleSaveAndNext() {
@@ -77,7 +79,7 @@ function SoloInner() {
         </div>
 
         <DrawingModePicker mode={mode} onModeChange={setMode} />
-        <DrawingStage mode={mode} />
+        <DrawingStage key={drawingKey} mode={mode} />
 
         <div className="flex items-end justify-end mt-4 gap-3">
           <Button variant="outline" size="sm" onClick={handleNext}>

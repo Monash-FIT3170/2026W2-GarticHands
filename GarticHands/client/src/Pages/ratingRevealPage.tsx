@@ -26,12 +26,13 @@ export default function RatingRevealPage() {
       return;
     }
 
+    const currentRoomCode = roomCode;
     const currentPlayerName = playerName;
 
     let cancelled = false;
 
     async function loadRoom() {
-      const data = await getRoom(roomCode);
+      const data = await getRoom(currentRoomCode);
 
       if (cancelled || !data.success || !data.room) {
         return;
@@ -49,6 +50,7 @@ export default function RatingRevealPage() {
       const drawingEntry = Object.entries(room.drawings).find(
         ([name]) => name === currentPlayerName,
       );
+
       const playerDrawing: string = drawingEntry?.[1] ?? '';
 
       setDrawing(playerDrawing);
@@ -64,7 +66,7 @@ export default function RatingRevealPage() {
       if (room.phase === 'leaderboard') {
         void navigate('/leaderboard', {
           state: {
-            roomCode,
+            roomCode: currentRoomCode,
             playerName: currentPlayerName,
           },
         });
@@ -113,7 +115,9 @@ export default function RatingRevealPage() {
           <div className="flex w-full flex-col items-center text-center">
             <h1 className="text-3xl font-extrabold text-white">Rating Results</h1>
 
-            <p className="mt-2 text-sm font-semibold text-white/70">Your drawing received:</p>
+            <p className="mt-2 text-sm font-semibold text-white/70">
+              Your drawing received:
+            </p>
 
             <div className="mt-6 flex min-h-[300px] w-full items-center justify-center overflow-hidden rounded-xl bg-white p-4">
               {drawing ? (
@@ -123,14 +127,18 @@ export default function RatingRevealPage() {
                   className="max-h-[500px] max-w-full object-contain"
                 />
               ) : (
-                <p className="text-sm font-semibold text-gray-500">Drawing unavailable.</p>
+                <p className="text-sm font-semibold text-gray-500">
+                  Drawing unavailable.
+                </p>
               )}
             </div>
 
             <p className="mt-5 text-sm font-bold text-white/60">Your drawing</p>
 
             <div className="mt-3 rounded-2xl bg-white px-8 py-4 text-center">
-              <p className="text-sm font-bold uppercase tracking-wider text-gray-500">Score</p>
+              <p className="text-sm font-bold uppercase tracking-wider text-gray-500">
+                Score
+              </p>
 
               <p className="mt-1 text-5xl font-extrabold text-[var(--action)]">
                 {rating !== null ? rating : '—'}
@@ -141,7 +149,11 @@ export default function RatingRevealPage() {
 
             <div className="mt-6 flex w-full max-w-sm flex-col items-center">
               {isHost ? (
-                <Button variant="start" size="full" onClick={() => void handleContinue()}>
+                <Button
+                  variant="start"
+                  size="full"
+                  onClick={() => void handleContinue()}
+                >
                   Continue to Leaderboard
                 </Button>
               ) : (
@@ -151,7 +163,11 @@ export default function RatingRevealPage() {
               )}
             </div>
 
-            {error && <p className="mt-4 text-center text-sm text-[var(--action)]">{error}</p>}
+            {error && (
+              <p className="mt-4 text-center text-sm text-[var(--action)]">
+                {error}
+              </p>
+            )}
           </div>
         </Card>
       </div>

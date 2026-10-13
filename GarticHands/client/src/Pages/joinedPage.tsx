@@ -21,7 +21,6 @@ export default function JoinedPage() {
   const [players, setPlayers] = useState<Player[]>(state?.room?.players ?? []);
   const [drawTimeSeconds, setDrawTimeSeconds] = useState(state?.room?.drawTimeSeconds ?? 60);
   const [maxRounds, setMaxRounds] = useState(state?.room?.maxRounds ?? 4);
-
   const [gameMode, setGameMode] = useState<GameMode>(state?.room?.mode ?? 'classic');
 
   const [ready, setReady] = useState(false);
@@ -32,7 +31,6 @@ export default function JoinedPage() {
   const isHost = me?.isHost ?? false;
 
   const readyCount = players.filter((p) => p.ready || p.isHost).length;
-
   const allReady = players.length > 0 && players.every((p) => p.ready || p.isHost);
 
   const copyCode = useCallback(() => {
@@ -43,11 +41,13 @@ export default function JoinedPage() {
   }, [roomCode]);
 
   useEffect(() => {
-    if (!roomCode) return;
+    if (!roomCode || !playerName) return;
 
     let alreadyStarted = false;
 
     async function loadRoom() {
+      if (!roomCode || !playerName) return;
+
       const data = await getRoom(roomCode, playerName);
 
       if (!data.success || !data.room) return;
@@ -125,7 +125,6 @@ export default function JoinedPage() {
     if (!roomCode || !playerName) return;
 
     const next = !ready;
-
     const data = await updateReady(roomCode, playerName, next);
 
     if (data.success && data.room) {
@@ -139,6 +138,7 @@ export default function JoinedPage() {
 
     try {
       const data = await updateRoomSettings(roomCode, playerName, settings);
+
       if (!data.success || !data.room) {
         setPopup(data.message ?? 'Unable to update room settings.');
         return;
@@ -199,6 +199,7 @@ export default function JoinedPage() {
               variant="lobby"
               padTo={MAX_PLAYERS_DISPLAY}
             />
+
             <RoomSettings
               drawTimeSeconds={drawTimeSeconds}
               maxRounds={maxRounds}
@@ -216,7 +217,9 @@ export default function JoinedPage() {
 
           <section className="flex flex-col items-center">
             <div className="color-vision-lobby-section flex w-full flex-col items-center rounded-xl p-6">
-              <h2 className="mb-5 text-2xl font-extrabold tracking-wide text-white">GAMEMODE</h2>
+              <h2 className="mb-5 text-2xl font-extrabold tracking-wide text-white">
+                GAMEMODE
+              </h2>
 
               <div className="flex w-full max-w-[200px] flex-col items-center justify-center rounded-lg border-4 border-[var(--accent)] bg-[var(--surface)] shadow-sm">
                 {isLeaderboard ? (

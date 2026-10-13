@@ -26,10 +26,12 @@ export default function LeaderboardPage() {
       return;
     }
 
+    const currentRoomCode = roomCode;
+    const currentPlayerName = playerName;
     let cancelled = false;
 
     async function loadRoom() {
-      const data = await getRoom(roomCode, playerName);
+      const data = await getRoom(currentRoomCode, currentPlayerName);
 
       if (cancelled || !data.success || !data.room) {
         return;
@@ -42,14 +44,17 @@ export default function LeaderboardPage() {
       setRound(room.round ?? 1);
       setMaxRounds(room.maxRounds ?? 4);
 
-      const me = room.players.find((player) => player.name === playerName);
+      const me = room.players.find((player) => player.name === currentPlayerName);
 
       setIsHost(me?.isHost ?? false);
 
       if (room.phase !== 'leaderboard') {
         if (room.phase === 'prompt') {
           void navigate('/input', {
-            state: { roomCode, playerName },
+            state: {
+              roomCode: currentRoomCode,
+              playerName: currentPlayerName,
+            },
           });
         }
       }
@@ -99,7 +104,9 @@ export default function LeaderboardPage() {
     void navigate('/');
   }
 
-  const sortedPlayers = [...players].sort((a, b) => (scores[b.name] ?? 0) - (scores[a.name] ?? 0));
+  const sortedPlayers = [...players].sort(
+    (a, b) => (scores[b.name] ?? 0) - (scores[a.name] ?? 0),
+  );
 
   const isFinalRound = round >= maxRounds;
 
@@ -114,7 +121,9 @@ export default function LeaderboardPage() {
 
         <Card variant="lobby" className="!max-w-3xl !rounded-[22px] !p-6 md:!p-8">
           <div className="flex flex-col items-center">
-            <h1 className="text-center text-3xl font-extrabold text-white">Leaderboard</h1>
+            <h1 className="text-center text-3xl font-extrabold text-white">
+              Leaderboard
+            </h1>
 
             <p className="mt-2 text-center text-sm font-semibold text-white/70">
               {isFinalRound ? 'Final scores' : `Scores after Round ${round}`}
@@ -146,7 +155,9 @@ export default function LeaderboardPage() {
                     </div>
 
                     <div className="text-right">
-                      <p className="text-2xl font-extrabold text-[var(--action)]">{score}</p>
+                      <p className="text-2xl font-extrabold text-[var(--action)]">
+                        {score}
+                      </p>
 
                       <p className="text-xs font-semibold text-gray-400">points</p>
                     </div>
@@ -158,12 +169,20 @@ export default function LeaderboardPage() {
             {isHost && (
               <div className="mt-6 flex w-full max-w-sm translate-x-0 flex-col gap-3 md:translate-x-6">
                 {!isFinalRound && (
-                  <Button variant="start" size="full" onClick={() => void handleNextRound()}>
+                  <Button
+                    variant="start"
+                    size="full"
+                    onClick={() => void handleNextRound()}
+                  >
                     Start Round {round + 1}
                   </Button>
                 )}
 
-                <Button variant="leave" size="full" onClick={() => void handleEndGame()}>
+                <Button
+                  variant="leave"
+                  size="full"
+                  onClick={() => void handleEndGame()}
+                >
                   End Game
                 </Button>
               </div>
@@ -177,7 +196,11 @@ export default function LeaderboardPage() {
               </p>
             )}
 
-            {error && <p className="mt-4 text-center text-sm text-[var(--action)]">{error}</p>}
+            {error && (
+              <p className="mt-4 text-center text-sm text-[var(--action)]">
+                {error}
+              </p>
+            )}
           </div>
         </Card>
       </div>
