@@ -5,8 +5,7 @@
  *
  * InputPage is the first round screen where a player types the prompt
  * that another player will later draw. Submitting posts the prompt,
- * disables further input, and shows a waiting message until the room
- * moves into the draw phase, at which point the page navigates to
+ * disables further input, and shows a waiting message until the room moves into the draw phase, at which point the page navigates to
  * /draw. If the countdown expires before the player submits, it auto
  * submits whatever prompt has been typed so far.
  *
@@ -149,7 +148,7 @@ describe('InputPage', () => {
   test('clicking submit with a whitespace only input does not call submitPrompt', () => {
     render(<InputPage />);
 
-    fireEvent.change(screen.getByPlaceholderText('Start typing your prompt here...'), {
+    fireEvent.change(screen.getByPlaceholderText('What should they draw?'), {
       target: { value: '   ' },
     });
     fireEvent.click(screen.getByText('Submit'));
@@ -160,17 +159,17 @@ describe('InputPage', () => {
   test('submitting sends the trimmed prompt and disables the input', async () => {
     render(<InputPage />);
 
-    fireEvent.change(screen.getByPlaceholderText('Start typing your prompt here...'), {
+    fireEvent.change(screen.getByPlaceholderText('What should they draw?'), {
       target: { value: '  a flying cat  ' },
     });
     fireEvent.click(screen.getByText('Submit'));
 
     await waitFor(() => {
-      expect(mockSubmitPrompt).toHaveBeenCalledWith('ABC123', 'Ash', 'a flying cat');
-    });
-    expect(screen.getByPlaceholderText('Start typing your prompt here...')).toBeDisabled();
-    expect(screen.getByText('Submit')).toBeDisabled();
-  });
+      expect(mockSubmitPrompt).toHaveBeenCalledWith('ABC123', 'Ash', 'a flying cat')
+    })
+    expect(screen.getByPlaceholderText('What should they draw?')).toBeDisabled()
+    expect(screen.getByText('Submit')).toBeDisabled()
+  })
 
   test('navigates to draw once the submission moves the room into the draw phase', async () => {
     mockSubmitPrompt.mockResolvedValue({
@@ -180,7 +179,7 @@ describe('InputPage', () => {
 
     render(<InputPage />);
 
-    fireEvent.change(screen.getByPlaceholderText('Start typing your prompt here...'), {
+    fireEvent.change(screen.getByPlaceholderText('What should they draw?'), {
       target: { value: 'a flying cat' },
     });
     fireEvent.click(screen.getByText('Submit'));
@@ -200,17 +199,17 @@ describe('InputPage', () => {
 
     render(<InputPage />);
 
-    fireEvent.change(screen.getByPlaceholderText('Start typing your prompt here...'), {
+    fireEvent.change(screen.getByPlaceholderText('What should they draw?'), {
       target: { value: 'a flying cat' },
     });
     fireEvent.click(screen.getByText('Submit'));
 
     await waitFor(() => {
-      expect(screen.getByText('Room is full.')).toBeInTheDocument();
-    });
-    expect(screen.getByText('Submit')).not.toBeDisabled();
-    expect(screen.getByPlaceholderText('Start typing your prompt here...')).not.toBeDisabled();
-  });
+      expect(screen.getByText('Room is full.')).toBeInTheDocument()
+    })
+    expect(screen.getByText('Submit')).not.toBeDisabled()
+    expect(screen.getByPlaceholderText('What should they draw?')).not.toBeDisabled()
+  })
 
   test('shows a waiting message with correct pluralisation after submitting', async () => {
     mockUsePhaseAdvance.mockReturnValue({
@@ -220,7 +219,7 @@ describe('InputPage', () => {
 
     render(<InputPage />);
 
-    fireEvent.change(screen.getByPlaceholderText('Start typing your prompt here...'), {
+    fireEvent.change(screen.getByPlaceholderText('What should they draw?'), {
       target: { value: 'a flying cat' },
     });
     fireEvent.click(screen.getByText('Submit'));
@@ -238,7 +237,7 @@ describe('InputPage', () => {
 
     render(<InputPage />);
 
-    fireEvent.change(screen.getByPlaceholderText('Start typing your prompt here...'), {
+    fireEvent.change(screen.getByPlaceholderText('What should they draw?'), {
       target: { value: 'a flying cat' },
     });
     fireEvent.click(screen.getByText('Submit'));
@@ -256,7 +255,7 @@ describe('InputPage', () => {
 
     render(<InputPage />);
 
-    fireEvent.change(screen.getByPlaceholderText('Start typing your prompt here...'), {
+    fireEvent.change(screen.getByPlaceholderText('What should they draw?'), {
       target: { value: 'a flying cat' },
     });
     fireEvent.click(screen.getByText('Submit'));
@@ -269,7 +268,7 @@ describe('InputPage', () => {
   test('the timer expiring auto submits the typed prompt', async () => {
     render(<InputPage />);
 
-    fireEvent.change(screen.getByPlaceholderText('Start typing your prompt here...'), {
+    fireEvent.change(screen.getByPlaceholderText('What should they draw?'), {
       target: { value: 'a flying cat' },
     });
     fireEvent.click(screen.getByTestId('expire-timer'));
@@ -290,7 +289,7 @@ describe('InputPage', () => {
   test('the timer expiring after submission does not submit again', async () => {
     render(<InputPage />);
 
-    fireEvent.change(screen.getByPlaceholderText('Start typing your prompt here...'), {
+    fireEvent.change(screen.getByPlaceholderText('What should they draw?'), {
       target: { value: 'a flying cat' },
     });
     fireEvent.click(screen.getByText('Submit'));
@@ -304,7 +303,7 @@ describe('InputPage', () => {
   test('limits the prompt input to the configured maximum length', () => {
     render(<InputPage />);
 
-    expect(screen.getByPlaceholderText('Start typing your prompt here...')).toHaveAttribute(
+    expect(screen.getByPlaceholderText('What should they draw?')).toHaveAttribute(
       'maxLength',
       '120',
     );

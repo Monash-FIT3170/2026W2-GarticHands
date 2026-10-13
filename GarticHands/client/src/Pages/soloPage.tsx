@@ -33,11 +33,12 @@ export default function SoloPage() {
 
 function SoloInner() {
   const navigate = useNavigate();
-  const { getDrawingImage } = useDrawing();
+  const { getDrawingImage, clearDrawing } = useDrawing();
   const [mode, setMode] = useDrawingMode();
   const { prompt, next: nextPrompt } = usePromptQueue();
   const [results, setResults] = useState<SavedDrawing[]>([]);
   const [timerKey, setTimerKey] = useState(0);
+  const [drawingKey, setDrawingKey] = useState(0);
 
   function handleSave() {
     const image = getDrawingImage();
@@ -46,8 +47,10 @@ function SoloInner() {
   }
 
   function handleNext() {
+    clearDrawing();
     nextPrompt();
     setTimerKey((k) => k + 1);
+    setDrawingKey((k) => k + 1);
   }
 
   function handleSaveAndNext() {
@@ -77,11 +80,7 @@ function SoloInner() {
         </div>
 
         <DrawingModePicker mode={mode} onModeChange={setMode} />
-        <DrawingStage mode={mode} />
-
-        <p className="text-xs text-[var(--text-muted)] mt-4 text-center">
-          Pinch to draw &middot; Open palm to erase
-        </p>
+        <DrawingStage key={drawingKey} mode={mode} />
 
         <div className="flex items-end justify-end mt-4 gap-3">
           <Button variant="outline" size="sm" onClick={handleNext}>
