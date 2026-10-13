@@ -33,6 +33,8 @@ export interface Room {
   aiMode?: boolean;
   aiPrompt?: string | null;
   aiGuess?: string | null;
+  /** Per-player AI guesses in AI Mode. Maps player name → AI's guess of their drawing. */
+  aiGuesses?: Record<string, string>;
   prompts: Record<string, string>;
   drawings: Record<string, string>;
   guesses: Record<string, string>;
@@ -46,3 +48,4 @@ export interface DrawLocationState {
   room?: Room;
   joinedLate?: boolean;
 }
+

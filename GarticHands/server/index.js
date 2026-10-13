@@ -267,29 +267,26 @@ async function autoSubmitAIGuess(room) {
 
   console.log(`[AI] Generating guesses for ${humanPlayers.length} drawing(s)...`)
 
+  // Store per-player AI guesses separately so each player sees their own result
+  room.aiGuesses = room.aiGuesses || {}
+
   await Promise.all(
     humanPlayers.map(async (player) => {
       const drawing = room.drawings[player.name]
 
       if (!drawing || drawing.length < 1000) {
-        room.guesses['AI Guesser'] = room.guesses['AI Guesser'] || {}
-        // Store per-player guess in guessTargets style
-        room.guesses[`AI:${player.name}`] = 'a blank canvas'
-        room.guessTargets[`AI:${player.name}`] = player.name
+        room.aiGuesses[player.name] = 'a blank canvas'
+        console.log(`[AI] ${player.name}'s drawing appears blank`)
         return
       }
 
       try {
         const guess = await generateGuess(drawing)
         console.log(`[AI] Guess for ${player.name}'s drawing: "${guess}"`)
-        room.guesses[`AI:${player.name}`] = guess
-        room.guessTargets[`AI:${player.name}`] = player.name
-        // For single player, also store as aiGuess for the reveal banner
-        room.aiGuess = guess
+        room.aiGuesses[player.name] = guess
       } catch (err) {
         console.error(`[AI] Guess failed for ${player.name}:`, err.message)
-        room.guesses[`AI:${player.name}`] = 'something mysterious'
-        room.guessTargets[`AI:${player.name}`] = player.name
+        room.aiGuesses[player.name] = 'something mysterious'
       }
     }),
   )
@@ -363,6 +360,7 @@ app.post('/rooms/create', (req, res) => {
     aiMode,
     aiPrompt: null,
     aiGuess: null,
+    aiGuesses: {},  // add this
     prompts: {},
     drawings: {},
     guesses: {},
@@ -494,6 +492,7 @@ app.patch('/rooms/:roomCode/start', (req, res) => {
   room.guessTargets = {}
   room.aiPrompt = null
   room.aiGuess = null
+  room.aiGuesses = {}
 
   for (const p of room.players) {
     p.joinedMidRound = false
@@ -561,6 +560,7 @@ app.patch('/rooms/:roomCode/restart', (req, res) => {
   room.aiPrompt = null
   room.aiGuess = null
   room.round = (room.round || 1) + 1
+  room.aiGuesses = {}
 
   for (const p of room.players) {
     p.joinedMidRound = false
