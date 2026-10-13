@@ -496,6 +496,35 @@ export default function InputPage() {
             placeholder="What should they draw?"
           />
 
+          <div className="mt-4" aria-live="polite">
+            <div className="flex items-center justify-between gap-2 mb-2">
+              <p className="text-xs font-extrabold uppercase tracking-[0.2em] text-white/70">
+                Need an idea?
+              </p>
+              <button
+                type="button"
+                className="text-xs font-bold text-white/80 hover:text-white hover:underline disabled:opacity-50 disabled:no-underline"
+                onClick={() => void refresh()}
+                disabled={submitted || loadingSuggestions}
+              >
+                {loadingSuggestions ? 'Loading...' : '↻ New ideas'}
+              </button>
+            </div>
+            <div className="flex flex-wrap gap-2">
+              {suggestions.map((suggestion) => (
+                <button
+                  key={suggestion}
+                  type="button"
+                  className="px-3 py-1 rounded-full text-sm font-semibold bg-white/15 border border-white/25 text-white hover:bg-white/25 disabled:opacity-50 disabled:hover:bg-white/15"
+                  onClick={() => setInput(suggestion.slice(0, MaxChars))}
+                  disabled={submitted}
+                >
+                  {suggestion}
+                </button>
+              ))}
+            </div>
+          </div>
+
           <div className="flex items-center justify-between mt-5 gap-4">
             <CountdownTimer
               seconds={TotalTime}
