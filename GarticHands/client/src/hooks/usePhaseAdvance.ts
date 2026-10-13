@@ -19,7 +19,7 @@ interface UsePhaseAdvanceOptions {
   /** Route to navigate to once the phase transitions. */
   to: string;
   /** Bucket name to count how many players have submitted. */
-  countBucket?: 'prompts' | 'drawings' | 'guesses';
+  countBucket?: 'prompts' | 'drawings' | 'guesses' | 'ratings';
   /** Polling cadence in ms. Default: 1000. */
   intervalMs?: number;
 }
@@ -59,7 +59,8 @@ export function usePhaseAdvance({
   const [waitingFor, setWaitingFor] = useState(0);
   const [room, setRoom] = useState<Room | null>(null);
   const [secondsLeft, setSecondsLeft] = useState<number | null>(null);
-  // Deadline expressed on the *local* clock. A ref rather than state so the
+
+  // Deadline expressed on the local clock. A ref rather than state so the
   // ticker below doesn't restart on every poll.
   const deadlineRef = useRef<number | null>(null);
 
@@ -70,6 +71,7 @@ export function usePhaseAdvance({
 
     async function tick() {
       if (!roomCode) return;
+
       // Passing the name doubles as this player's presence heartbeat.
       const data = await getRoom(roomCode, playerName);
       if (cancelled || !data.success) return;
@@ -91,6 +93,7 @@ export function usePhaseAdvance({
         const submitted = Object.values(fresh[countBucket] || {}).filter(
           (v) => v !== undefined && v !== null && v !== '',
         ).length;
+
         // Mid-round joiners sit out the current round, so they're never
         // counted among the players we're waiting on.
         const activePlayers = fresh.players.filter((p) => !p.joinedMidRound).length;
@@ -104,9 +107,11 @@ export function usePhaseAdvance({
     }
 
     void tick();
+
     const interval = setInterval(() => {
       void tick();
     }, intervalMs);
+
     return () => {
       cancelled = true;
       clearInterval(interval);
@@ -116,12 +121,14 @@ export function usePhaseAdvance({
   useEffect(() => {
     function update() {
       const deadline = deadlineRef.current;
+
       setSecondsLeft(
         deadline === null ? null : Math.max(0, Math.ceil((deadline - Date.now()) / 1000)),
       );
     }
 
     update();
+
     const ticker = setInterval(update, TickMs);
     return () => clearInterval(ticker);
   }, []);
@@ -146,6 +153,7 @@ function syncDeadline(
 
   const next = Date.now() + (phaseEndsAt - serverTime);
   const current = deadlineRef.current;
+
   if (current === null || Math.abs(next - current) > DriftToleranceMs) {
     deadlineRef.current = next;
   }

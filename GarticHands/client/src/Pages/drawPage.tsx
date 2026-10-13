@@ -13,7 +13,8 @@ import { Card, Button, RoundHeader, CountdownTimer } from '../components/ui';
 import { getRoom, submitDrawing, PhaseConflictStatus } from '../api/room';
 import { usePhaseAdvance } from '../hooks/usePhaseAdvance';
 import { useRecordings } from '../state/RecordingsContext';
-import type { DrawLocationState } from '../types/room';
+import type { DrawLocationState, GameMode } from '../types/room';
+import BackgroundRays from '../components/ui/BackgroundRays';
 
 /** Shown until the room's server-owned deadline arrives. Real limit: `PHASE_DURATIONS` in `server/index.js`. */
 const TotalTime = 60;
@@ -44,6 +45,7 @@ function DrawPageInner() {
   const [error, setError] = useState('');
   const [prompt, setPrompt] = useState<string>('');
   const [roundNum, setRoundNum] = useState<number | null>(null);
+  const [gameMode, setGameMode] = useState<GameMode>('classic');
   const startedRef = useRef(false);
 
   useEffect(() => {
@@ -54,8 +56,16 @@ function DrawPageInner() {
 
     void getRoom(roomCode).then((data) => {
       if (data.success && data.room) {
-        if (data.room.prompts) setPrompt(data.room.prompts[playerName] || '');
+        const promptAuthor = data.room.promptTargets?.[playerName];
+
+        if (promptAuthor && data.room.prompts) {
+          setPrompt(data.room.prompts[promptAuthor] || '');
+        } else {
+          setPrompt('');
+        }
+
         setRoundNum(data.room.round ?? 1);
+        setGameMode(data.room.mode ?? 'classic');
       }
     });
   }, [roomCode, playerName, navigate]);
@@ -70,18 +80,24 @@ function DrawPageInner() {
     if (startedRef.current) return;
     if (roundNum === null) return;
     if (!recorder.isSupported) return;
+
     startedRef.current = true;
+
     const t = setTimeout(() => void recorder.start(), 400);
+
     return () => clearTimeout(t);
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [roundNum]);
+
+  const nextPhase = gameMode === 'leaderboard' ? 'rating' : 'guess';
+  const nextPage = gameMode === 'leaderboard' ? '/rating' : '/guess';
 
   const { waitingFor, room, secondsLeft } = usePhaseAdvance({
     roomCode,
     playerName,
     enabled: submitted,
-    whenPhase: 'guess',
-    to: '/guess',
+    whenPhase: nextPhase,
+    to: nextPage,
     countBucket: 'drawings',
   });
 
@@ -89,6 +105,7 @@ function DrawPageInner() {
     if (submitted || !roomCode || !playerName) return;
 
     const dataUrl = getDrawingImage();
+
     if (!dataUrl) {
       setError('Canvas is not ready yet.');
       return;
@@ -113,13 +130,22 @@ function DrawPageInner() {
 
     if (!data.success) {
       if (data.status === PhaseConflictStatus) return;
+
       setError(data.message || 'Failed to submit drawing.');
       setSubmitted(false);
       return;
     }
 
     if (data.room?.phase === 'guess') {
-      void navigate('/guess', { state: { roomCode, playerName } });
+      void navigate('/guess', {
+        state: { roomCode, playerName },
+      });
+    }
+
+    if (data.room?.phase === 'rating') {
+      void navigate('/rating', {
+        state: { roomCode, playerName },
+      });
     }
   }
 
@@ -139,7 +165,9 @@ function DrawPageInner() {
 
   return (
     <div className="background !justify-start">
-      <Card variant="lobby" className="!max-w-5xl !rounded-[22px] !p-4 md:!p-6">
+      <BackgroundRays />
+
+      <Card variant="lobby" className="relative z-10 !max-w-5xl !rounded-[22px] !p-4 md:!p-6">
         <div className="mb-3 flex flex-col items-stretch justify-between gap-3 md:flex-row md:items-center">
           <div className="flex justify-center md:justify-start">
             <RoundHeader round={room?.round ?? 1} totalRounds={room?.maxRounds ?? 4} />
@@ -155,6 +183,7 @@ function DrawPageInner() {
           <div className="flex justify-center md:justify-end">
             <div className="flex items-center gap-1 rounded-full bg-white px-4 py-1.5 text-xs font-bold text-[var(--action)]">
               <span>Time left:</span>
+
               <CountdownTimer
                 seconds={TotalTime}
                 secondsLeft={secondsLeft}
@@ -188,6 +217,7 @@ function DrawPageInner() {
               >
                 {actionLabel}
               </Button>
+
               <Button
                 variant="submit"
                 size="sm"
@@ -205,7 +235,9 @@ function DrawPageInner() {
           <p className="mt-3 text-center text-sm text-[var(--text-muted)]">
             {waitingFor > 0
               ? `Waiting for ${waitingFor} other player${waitingFor === 1 ? '' : 's'}...`
-              : 'Starting guessing phase...'}
+              : gameMode === 'leaderboard'
+                ? 'Starting rating phase...'
+                : 'Starting guessing phase...'}
           </p>
         )}
 
