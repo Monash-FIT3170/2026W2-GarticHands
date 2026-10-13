@@ -1,7 +1,10 @@
+require('dotenv').config();
 const express = require('express');
 const http = require('http');
 const cors = require('cors');
 const { Server } = require('socket.io');
+const { generatePrompts, DIFFICULTIES } = require('./ai/promptGenerator');
+const { MEDIUM_PROMPTS } = require('./data/promptBank');
 
 const app = express();
 const server = http.createServer(app);
@@ -53,32 +56,38 @@ const NEXT_PHASE = {
   draw: 'guess',
   guess: 'reveal',
   rating: 'ratingReveal',
-}
+};
 
 const PHASE_BUCKET = {
   prompt: 'prompts',
   draw: 'drawings',
   guess: 'guesses',
   rating: 'ratings',
-}
+};
 
 /**
- * Handed to players who run out of time in the prompt phase so the drawing
- * phase always has something to draw.
+ * Handed to players who run out of time in the `prompt` phase so the drawing
+ * phase always has something to draw — the last resort when no AI-generated
+ * prompt is waiting in `promptStash`. Lives in `data/promptBank.js`, which is
+ * deliberately duplicated rather than shared with `client/src/data/prompts.ts`:
+ * the server is plain CommonJS and must not import client code.
  */
-const FALLBACK_PROMPTS = [
-  'a cat wearing a crown',
-  'a rocket made of bananas',
-  'a robot walking a dog',
-  'a haunted teapot',
-  'a penguin on a skateboard',
-  'a tree growing lightbulbs',
-  'a snail racing a train',
-  'a castle floating on a cloud',
-];
+const FALLBACK_PROMPTS = MEDIUM_PROMPTS;
 
-/** roomCode -> Timeout. Kept out of the room object so rooms stay JSON-serialisable. */
-const phaseTimers = {}
+/** roomCode → Timeout. Kept out of the room object so rooms stay JSON-serialisable. */
+const phaseTimers = {};
+
+/**
+ * roomCode → { id, prompts } — AI prompts generated when a prompt phase opens,
+ * ready for any player who runs out of time. Generated up front so the deadline
+ * handler stays synchronous and never waits on the network.
+ */
+const promptStash = {};
+let promptStashSeq = 0;
+
+/** roomCode → prompts used in earlier rounds, so generated prompts don't repeat. */
+const promptHistory = {};
+const PROMPT_HISTORY_LIMIT = 100;
 
 /**
  * A player whose client hasn't polled in this long is treated as gone.
@@ -94,15 +103,14 @@ const PRESENCE_SWEEP_MS = 3000;
 /** How long an emptied room is kept before it's dropped from memory. */
 const EMPTY_ROOM_GRACE_MS = 60000;
 
-app.use(cors())
-
-// PNG data URLs from the drawing canvas can be a few hundred KB.
-app.use(express.json({ limit: '10mb' }))
+app.use(cors());
+// PNG data URLs from the drawing canvas can be a few hundred KB; default is 100KB.
+app.use(express.json({ limit: '10mb' }));
 
 const rooms = {};
 
-/** roomCode -> epoch ms the room lost its last player. */
-const emptySince = {}
+/** roomCode → epoch ms the room lost its last player. Kept off the room object. */
+const emptySince = {};
 
 function generateRoomCode() {
   return Math.random().toString(36).substring(2, 8).toUpperCase();
@@ -131,8 +139,7 @@ function activePlayers(room) {
 }
 
 function clearPhaseTimer(roomCode) {
-  const timer = phaseTimers[roomCode]
-
+  const timer = phaseTimers[roomCode];
   if (timer) {
     clearTimeout(timer);
     delete phaseTimers[roomCode];
@@ -168,21 +175,64 @@ function setPhase(room, phase) {
 }
 
 /**
- * What a player who never submitted gets recorded as when the deadline passes.
+ * Start generating fallback prompts for a prompt phase that just opened: one per
+ * active player, avoiding prompts from earlier rounds. Fire-and-forget — the
+ * generator never throws, and a result for a round that has since moved on is
+ * discarded via the sequence id.
  */
-function defaultSubmission(phase) {
-  if (phase === 'prompt') {
-    return FALLBACK_PROMPTS[
-      Math.floor(Math.random() * FALLBACK_PROMPTS.length)
-    ]
-  }
+function stashPromptsFor(room) {
+  const id = ++promptStashSeq;
+  promptStash[room.code] = { id, prompts: [] };
 
+  void generatePrompts({
+    difficulty: 'medium',
+    count: Math.max(1, activePlayers(room).length),
+    exclude: promptHistory[room.code] || [],
+  }).then(({ prompts }) => {
+    const stash = promptStash[room.code];
+    if (stash && stash.id === id) stash.prompts = prompts;
+  });
+}
+
+/** Remember this round's prompts so the next round's generated ones are new. */
+function recordPromptHistory(room) {
+  const used = Object.values(room.prompts || {})
+    .filter((p) => typeof p === 'string' && p.trim())
+    .map((p) => p.toLowerCase().trim());
+  const history = [...(promptHistory[room.code] || []), ...used];
+  promptHistory[room.code] = history.slice(-PROMPT_HISTORY_LIMIT);
+}
+
+/**
+ * A prompt for a player who ran out of time: an AI-generated one from the stash
+ * when available, otherwise a random static fallback. Skips anything another
+ * player already wrote this round.
+ */
+function fallbackPromptFor(room) {
+  const taken = new Set(
+    Object.values(room.prompts || {}).map((p) => String(p).toLowerCase().trim()),
+  );
+  const stash = promptStash[room.code];
+  if (stash) {
+    while (stash.prompts.length > 0) {
+      const next = stash.prompts.shift();
+      if (!taken.has(next)) return next;
+    }
+  }
+  return FALLBACK_PROMPTS[Math.floor(Math.random() * FALLBACK_PROMPTS.length)];
+}
+
+/** What a player who never submitted gets recorded as when the deadline passes. */
+function defaultSubmission(phase, room) {
+  if (phase === 'prompt') return fallbackPromptFor(room);
+  // Draw and guess degrade to "nothing submitted" — the reveal screen renders
+  // an empty drawing/guess rather than blocking the round.
+  
   if (phase === 'rating') {
     return 0
   }
-
-  // Draw and guess degrade to "nothing submitted".
-  return ''
+  
+  return '';
 }
 
 /**
@@ -567,6 +617,8 @@ setInterval(() => {
       clearPhaseTimer(code);
       delete rooms[code];
       delete emptySince[code];
+      delete promptStash[code];
+      delete promptHistory[code];
     }
   }
 }, PRESENCE_SWEEP_MS);
@@ -1170,7 +1222,7 @@ function submitForPhase(
   // counts only active players (mid-round joiners don't owe content this
   // round) and `setPhase` inside re-arms the next deadline (or clears it when
   // the next phase is untimed).
-  advanceIfPhaseComplete(room)
+  advanceIfPhaseComplete(room);
 
   io.to(room.code).emit('room-update', room)
 
@@ -1273,7 +1325,55 @@ app.post('/rooms/:roomCode/guesses', (req, res) => {
       room.guessTargets = room.guessTargets || {}
       room.guessTargets[player.name] = target
     },
-  )
+  );
+
+  if (result.error) return res.status(result.error.status).json(result.error.body);
+  res.json({ success: true, room: result.room });
+});
+
+/**
+ * Per-IP request budget for the AI endpoints. The provider's free tier is shared
+ * by everyone on this server, so one noisy client mustn't burn it. Over budget
+ * isn't an error: the generator is simply told to skip the model.
+ */
+const AI_RATE_LIMIT = { windowMs: 60000, max: 20 };
+const aiRequestLog = {};
+
+function withinAiBudget(ip) {
+  const now = Date.now();
+  const entry = aiRequestLog[ip];
+  if (!entry || now - entry.windowStart > AI_RATE_LIMIT.windowMs) {
+    aiRequestLog[ip] = { windowStart: now, count: 1 };
+    return true;
+  }
+  entry.count += 1;
+  return entry.count <= AI_RATE_LIMIT.max;
+}
+
+// Forget old rate-limit windows so the log doesn't grow forever.
+setInterval(() => {
+  const now = Date.now();
+  for (const ip of Object.keys(aiRequestLog)) {
+    if (now - aiRequestLog[ip].windowStart > AI_RATE_LIMIT.windowMs) delete aiRequestLog[ip];
+  }
+}, AI_RATE_LIMIT.windowMs).unref();
+
+/**
+ * Generate drawing prompts. Body (all optional):
+ *   { theme: string, difficulty: 'easy'|'medium'|'hard', count: 1-20, exclude: string[] }
+ * Always 200 with `count` prompts; `source` says whether they came from the
+ * model ('ai'), the static bank ('fallback'), or both ('mixed').
+ */
+app.post('/ai/prompts', async (req, res) => {
+  const body = req.body || {};
+  const { theme, count, exclude } = body;
+  const difficulty = DIFFICULTIES.includes(body.difficulty) ? body.difficulty : 'easy';
+  const excludeList = Array.isArray(exclude) ? exclude.slice(-200) : [];
+
+  const options = { theme, difficulty, count, exclude: excludeList };
+  const result = withinAiBudget(req.ip)
+    ? await generatePrompts(options)
+    : await generatePrompts({ ...options, forceFallback: true });
 
   if (result.error) {
     return res

@@ -3,6 +3,7 @@ import { useLocation, useNavigate } from 'react-router-dom';
 import { Button, RoundHeader, CountdownTimer } from '../components/ui';
 import { submitPrompt, PhaseConflictStatus } from '../api/room';
 import { usePhaseAdvance } from '../hooks/usePhaseAdvance';
+import { usePromptSuggestions } from '../hooks/usePromptSuggestions';
 import type { DrawLocationState } from '../types/room';
 import BackgroundRays from '../components/ui/BackgroundRays';
 
@@ -20,6 +21,7 @@ export default function InputPage() {
   const [input, setInput] = useState('');
   const [submitted, setSubmitted] = useState(false);
   const [error, setError] = useState('');
+  const { suggestions, loading: loadingSuggestions, refresh } = usePromptSuggestions();
 
   useEffect(() => {
     if (!roomCode || !playerName) void navigate('/');
