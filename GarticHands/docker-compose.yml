@@ -9,6 +9,10 @@ services:
     environment:
       NODE_ENV: production
       PORT: "3000"
+      # AI is optional: with no key the server uses its static prompt lists.
+      GROQ_API_KEY: "${GROQ_API_KEY:-}"
+      LLM_PROVIDER: "${LLM_PROVIDER:-groq}"
+      AI_ENABLED: "${AI_ENABLED:-true}"
     # Exposed on the host for debugging only. The web app reaches the server
     # through the nginx proxy (same-origin), not this port.
     ports:

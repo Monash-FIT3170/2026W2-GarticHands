@@ -1,7 +1,10 @@
+require('dotenv').config();
 const express = require('express');
 const http = require('http');
 const cors = require('cors');
 const { Server } = require('socket.io');
+const { generatePrompts, DIFFICULTIES } = require('./ai/promptGenerator');
+const { MEDIUM_PROMPTS } = require('./data/promptBank');
 const { drawPrompt, MAX_PROMPT_LENGTH } = require('./ai/drawer');
 const { MAX_BOTS, nextBotName, botPrompt, botGuess, botRating } = require('./ai/bots');
 
@@ -14,11 +17,11 @@ const io = new Server(server, {
   },
 });
 
-const PORT = process.env.PORT || 3000
-const MAX_ROUNDS = 4
-const MAX_PLAYERS = 8
-const DRAW_TIME_OPTIONS = [30, 45, 60, 90, 120, 150, 180, 240, 300, 360]
-const ROUND_OPTIONS = [1, 2, 3, 4, 5, 6, 7, 8]
+const PORT = process.env.PORT || 3000;
+const MAX_ROUNDS = 4;
+const MAX_PLAYERS = 8;
+const DRAW_TIME_OPTIONS = [30, 45, 60, 90, 120, 150, 180, 240, 300, 360];
+const ROUND_OPTIONS = [1, 2, 3, 4, 5, 6, 7, 8];
 
 /** Env override — lets a demo or test run through a phase without waiting a full minute. */
 function phaseSeconds(envName, fallback) {
@@ -35,7 +38,7 @@ const PHASE_DURATIONS = {
   draw: phaseSeconds('DRAW_SECONDS', 60),
   guess: phaseSeconds('GUESS_SECONDS', 60),
   rating: phaseSeconds('RATING_SECONDS', 60),
-}
+};
 
 /**
  * Extra time the server waits past phaseEndsAt before forcing the advance,
@@ -55,39 +58,45 @@ const NEXT_PHASE = {
   draw: 'guess',
   guess: 'reveal',
   rating: 'ratingReveal',
-}
+};
 
 const PHASE_BUCKET = {
   prompt: 'prompts',
   draw: 'drawings',
   guess: 'guesses',
   rating: 'ratings',
-}
+};
 
 /**
- * Handed to players who run out of time in the prompt phase so the drawing
- * phase always has something to draw.
+ * Handed to players who run out of time in the `prompt` phase so the drawing
+ * phase always has something to draw — the last resort when no AI-generated
+ * prompt is waiting in `promptStash`. Lives in `data/promptBank.js`, which is
+ * deliberately duplicated rather than shared with `client/src/data/prompts.ts`:
+ * the server is plain CommonJS and must not import client code.
  */
-const FALLBACK_PROMPTS = [
-  'a cat wearing a crown',
-  'a rocket made of bananas',
-  'a robot walking a dog',
-  'a haunted teapot',
-  'a penguin on a skateboard',
-  'a tree growing lightbulbs',
-  'a snail racing a train',
-  'a castle floating on a cloud',
-];
+const FALLBACK_PROMPTS = MEDIUM_PROMPTS;
 
-/** roomCode -> Timeout. Kept out of the room object so rooms stay JSON-serialisable. */
-const phaseTimers = {}
+/** roomCode → Timeout. Kept out of the room object so rooms stay JSON-serialisable. */
+const phaseTimers = {};
+
+/**
+ * roomCode → { id, prompts } — AI prompts generated when a prompt phase opens,
+ * ready for any player who runs out of time. Generated up front so the deadline
+ * handler stays synchronous and never waits on the network.
+ */
+const promptStash = {};
+let promptStashSeq = 0;
+
+/** roomCode → prompts used in earlier rounds, so generated prompts don't repeat. */
+const promptHistory = {};
+const PROMPT_HISTORY_LIMIT = 100;
 
 /**
  * roomCode -> counter bumped on every phase change. A bot turn remembers the
  * value it was scheduled under and does nothing if the room has moved on,
  * even when the room has come back round to the same phase name.
  */
-const phaseSeq = {}
+const phaseSeq = {};
 
 /**
  * A player whose client hasn't polled in this long is treated as gone.
@@ -103,20 +112,20 @@ const PRESENCE_SWEEP_MS = 3000;
 /** How long an emptied room is kept before it's dropped from memory. */
 const EMPTY_ROOM_GRACE_MS = 60000;
 
-app.use(cors())
+app.use(cors());
 
 // Render (and most hosts) sit one proxy in front of the server. Trusting that
 // hop makes `req.ip` the player's address rather than the proxy's, so the
 // `/ai/draw` throttle is per player instead of global.
-app.set('trust proxy', 1)
+app.set('trust proxy', 1);
 
-// PNG data URLs from the drawing canvas can be a few hundred KB.
-app.use(express.json({ limit: '10mb' }))
+// PNG data URLs from the drawing canvas can be a few hundred KB; default is 100KB.
+app.use(express.json({ limit: '10mb' }));
 
 const rooms = {};
 
-/** roomCode -> epoch ms the room lost its last player. */
-const emptySince = {}
+/** roomCode → epoch ms the room lost its last player. Kept off the room object. */
+const emptySince = {};
 
 function generateRoomCode() {
   return Math.random().toString(36).substring(2, 8).toUpperCase();
@@ -147,8 +156,7 @@ function activePlayers(room) {
 }
 
 function clearPhaseTimer(roomCode) {
-  const timer = phaseTimers[roomCode]
-
+  const timer = phaseTimers[roomCode];
   if (timer) {
     clearTimeout(timer);
     delete phaseTimers[roomCode];
@@ -161,22 +169,25 @@ function clearPhaseTimer(roomCode) {
  * Every phase transition goes through this function.
  */
 function setPhase(room, phase) {
-  clearPhaseTimer(room.code)
+  clearPhaseTimer(room.code);
 
-  room.phase = phase
-  phaseSeq[room.code] = (phaseSeq[room.code] || 0) + 1
+  room.phase = phase;
+  phaseSeq[room.code] = (phaseSeq[room.code] || 0) + 1;
+
+  if (phase === 'prompt') stashPromptsFor(room);
+  if (phase === 'draw') recordPromptHistory(room);
 
   const duration =
     phase === 'draw' && !process.env.DRAW_SECONDS
       ? room.drawTimeSeconds || PHASE_DURATIONS.draw
-      : PHASE_DURATIONS[phase]
+      : PHASE_DURATIONS[phase];
 
   if (!duration) {
     room.phaseEndsAt = null;
     return;
   }
 
-  room.phaseEndsAt = Date.now() + duration * 1000
+  room.phaseEndsAt = Date.now() + duration * 1000;
 
   phaseTimers[room.code] = setTimeout(
     () => expirePhase(room.code, phase),
@@ -189,21 +200,64 @@ function setPhase(room, phase) {
 }
 
 /**
- * What a player who never submitted gets recorded as when the deadline passes.
+ * Start generating fallback prompts for a prompt phase that just opened: one per
+ * active player, avoiding prompts from earlier rounds. Fire-and-forget — the
+ * generator never throws, and a result for a round that has since moved on is
+ * discarded via the sequence id.
  */
-function defaultSubmission(phase) {
-  if (phase === 'prompt') {
-    return FALLBACK_PROMPTS[
-      Math.floor(Math.random() * FALLBACK_PROMPTS.length)
-    ]
+function stashPromptsFor(room) {
+  const id = ++promptStashSeq;
+  promptStash[room.code] = { id, prompts: [] };
+
+  void generatePrompts({
+    difficulty: 'medium',
+    count: Math.max(1, activePlayers(room).length),
+    exclude: promptHistory[room.code] || [],
+  }).then(({ prompts }) => {
+    const stash = promptStash[room.code];
+    if (stash && stash.id === id) stash.prompts = prompts;
+  });
+}
+
+/** Remember this round's prompts so the next round's generated ones are new. */
+function recordPromptHistory(room) {
+  const used = Object.values(room.prompts || {})
+    .filter((p) => typeof p === 'string' && p.trim())
+    .map((p) => p.toLowerCase().trim());
+  const history = [...(promptHistory[room.code] || []), ...used];
+  promptHistory[room.code] = history.slice(-PROMPT_HISTORY_LIMIT);
+}
+
+/**
+ * A prompt for a player who ran out of time: an AI-generated one from the stash
+ * when available, otherwise a random static fallback. Skips anything another
+ * player already wrote this round.
+ */
+function fallbackPromptFor(room) {
+  const taken = new Set(
+    Object.values(room.prompts || {}).map((p) => String(p).toLowerCase().trim()),
+  );
+  const stash = promptStash[room.code];
+  if (stash) {
+    while (stash.prompts.length > 0) {
+      const next = stash.prompts.shift();
+      if (!taken.has(next)) return next;
+    }
   }
+  return FALLBACK_PROMPTS[Math.floor(Math.random() * FALLBACK_PROMPTS.length)];
+}
+
+/** What a player who never submitted gets recorded as when the deadline passes. */
+function defaultSubmission(phase, room) {
+  if (phase === 'prompt') return fallbackPromptFor(room);
+  // Draw and guess degrade to "nothing submitted" — the reveal screen renders
+  // an empty drawing/guess rather than blocking the round.
 
   if (phase === 'rating') {
-    return 0
+    return 0;
   }
 
-  // Draw and guess degrade to "nothing submitted".
-  return ''
+  return '';
 }
 
 /**
@@ -217,12 +271,12 @@ function defaultSubmission(phase) {
  * same prompt source where possible.
  */
 function createPromptTargets(room) {
-  const players = activePlayers(room)
+  const players = activePlayers(room);
 
-  room.promptTargets = {}
+  room.promptTargets = {};
 
   if (players.length < 2) {
-    return
+    return;
   }
 
   /*
@@ -235,14 +289,12 @@ function createPromptTargets(room) {
    * Bob -> receives Charlie's prompt
    * Charlie -> receives Alice's prompt
    */
-  const offset =
-    ((room.round - 1) % (players.length - 1)) + 1
+  const offset = ((room.round - 1) % (players.length - 1)) + 1;
 
   players.forEach((player, index) => {
-    const promptAuthorIndex = (index + offset) % players.length
-    room.promptTargets[player.name] =
-      players[promptAuthorIndex].name
-  })
+    const promptAuthorIndex = (index + offset) % players.length;
+    room.promptTargets[player.name] = players[promptAuthorIndex].name;
+  });
 }
 
 /**
@@ -259,12 +311,12 @@ function createPromptTargets(room) {
  * that they gave their prompt to.
  */
 function createGuessTargets(room) {
-  const players = activePlayers(room)
+  const players = activePlayers(room);
 
-  room.guessTargets = {}
+  room.guessTargets = {};
 
   if (players.length < 3) {
-    return
+    return;
   }
 
   /*
@@ -276,14 +328,12 @@ function createGuessTargets(room) {
    * For larger rooms, the offset changes with the round where possible while
    * still avoiding the prompt recipient and the guesser themselves.
    */
-  const promptOffset =
-    ((room.round - 1) % (players.length - 1)) + 1
+  const promptOffset = ((room.round - 1) % (players.length - 1)) + 1;
 
-  let guessOffset =
-    (promptOffset + 1) % players.length
+  let guessOffset = (promptOffset + 1) % players.length;
 
   if (guessOffset === 0) {
-    guessOffset = 1
+    guessOffset = 1;
   }
 
   /*
@@ -296,26 +346,20 @@ function createGuessTargets(room) {
     // -promptOffset), so they all settle on the same one and each drawing
     // gets exactly one guesser.
     for (let step = 0; step < players.length; step += 1) {
-      const targetIndex =
-        (index + guessOffset + step) % players.length
-      const target = players[targetIndex]
+      const targetIndex = (index + guessOffset + step) % players.length;
+      const target = players[targetIndex];
 
       // Drawer `d` draws the prompt written by `d + promptOffset`, so this
       // player's own prompt was drawn by `index - promptOffset`. Guessing that
       // drawing would mean guessing your own prompt.
-      const promptRecipient = players[
-        (index - promptOffset + players.length) % players.length
-      ]
+      const promptRecipient = players[(index - promptOffset + players.length) % players.length];
 
-      if (
-        target.name !== player.name &&
-        target.name !== promptRecipient.name
-      ) {
-        room.guessTargets[player.name] = target.name
-        return
+      if (target.name !== player.name && target.name !== promptRecipient.name) {
+        room.guessTargets[player.name] = target.name;
+        return;
       }
     }
-  })
+  });
 }
 
 /**
@@ -326,15 +370,15 @@ function createGuessTargets(room) {
  * uses the players who actually participated in the prompt phase.
  */
 function startDrawPhase(room) {
-  createPromptTargets(room)
+  createPromptTargets(room);
 
   if (room.mode === 'classic') {
-    createGuessTargets(room)
+    createGuessTargets(room);
   } else {
-    room.guessTargets = {}
+    room.guessTargets = {};
   }
 
-  setPhase(room, 'draw')
+  setPhase(room, 'draw');
 }
 
 /**
@@ -347,12 +391,12 @@ function startDrawPhase(room) {
  * the same target where possible.
  */
 function createRatingTargets(room) {
-  const players = activePlayers(room)
+  const players = activePlayers(room);
 
-  room.ratingTargets = {}
+  room.ratingTargets = {};
 
   if (players.length < 2) {
-    return
+    return;
   }
 
   /*
@@ -365,13 +409,12 @@ function createRatingTargets(room) {
    *
    * and works for both even and odd player counts.
    */
-  const offset =
-    ((room.round - 1) % (players.length - 1)) + 1
+  const offset = ((room.round - 1) % (players.length - 1)) + 1;
 
   players.forEach((player, index) => {
-    const targetIndex = (index + offset) % players.length
-    room.ratingTargets[player.name] = players[targetIndex].name
-  })
+    const targetIndex = (index + offset) % players.length;
+    room.ratingTargets[player.name] = players[targetIndex].name;
+  });
 }
 
 /**
@@ -381,8 +424,8 @@ function createRatingTargets(room) {
  * so they are based on the players who actually made it to the rating phase.
  */
 function startRatingPhase(room) {
-  createRatingTargets(room)
-  setPhase(room, 'rating')
+  createRatingTargets(room);
+  setPhase(room, 'rating');
 }
 
 /**
@@ -393,45 +436,42 @@ function startRatingPhase(room) {
 function expirePhase(roomCode, expectedPhase) {
   delete phaseTimers[roomCode];
 
-  const room = rooms[roomCode]
+  const room = rooms[roomCode];
 
   if (!room || room.phase !== expectedPhase) {
-    return
+    return;
   }
 
-  const bucket = PHASE_BUCKET[expectedPhase]
+  const bucket = PHASE_BUCKET[expectedPhase];
 
   if (!bucket) {
-    return
+    return;
   }
 
-  room[bucket] = room[bucket] || {}
+  room[bucket] = room[bucket] || {};
 
   for (const player of activePlayers(room)) {
-    const submission = room[bucket][player.name]
+    const submission = room[bucket][player.name];
 
     if (submission === undefined || submission === null) {
-      room[bucket][player.name] = defaultSubmission(expectedPhase);
+      room[bucket][player.name] = defaultSubmission(expectedPhase, room);
     }
   }
 
   if (expectedPhase === 'prompt') {
-    startDrawPhase(room)
-  } else if (
-    room.mode === 'leaderboard' &&
-    expectedPhase === 'draw'
-  ) {
-    startRatingPhase(room)
+    startDrawPhase(room);
+  } else if (room.mode === 'leaderboard' && expectedPhase === 'draw') {
+    startRatingPhase(room);
   } else {
-    setPhase(room, NEXT_PHASE[expectedPhase])
+    setPhase(room, NEXT_PHASE[expectedPhase]);
   }
 
   io.to(room.code).emit('phase-timeout', {
     code: room.code,
     phase: expectedPhase,
-  })
+  });
 
-  io.to(room.code).emit('room-update', room)
+  io.to(room.code).emit('room-update', room);
 }
 
 /**
@@ -439,73 +479,71 @@ function expirePhase(roomCode, expectedPhase) {
  */
 function promoteHost(room) {
   // A bot can't press Start or pace the reveal, so it never holds the role.
-  const humans = room.players.filter((p) => !p.isBot)
+  const humans = room.players.filter((p) => !p.isBot);
 
   if (humans.length === 0) {
-    return
+    return;
   }
 
-  const next = humans.reduce((a, b) =>
-    a.joinedAt <= b.joinedAt ? a : b,
-  )
+  const next = humans.reduce((a, b) => (a.joinedAt <= b.joinedAt ? a : b));
 
-  next.isHost = true
-  next.status = 'host'
-  next.ready = true
+  next.isHost = true;
+  next.status = 'host';
+  next.ready = true;
 }
 
 /**
  * Drop a player and everything keyed by their name.
  */
 function removePlayer(room, playerName) {
-  const index = room.players.findIndex((p) => p.name === playerName)
+  const index = room.players.findIndex((p) => p.name === playerName);
 
   if (index === -1) {
-    return false
+    return false;
   }
 
-  const [gone] = room.players.splice(index, 1)
+  const [gone] = room.players.splice(index, 1);
 
-  delete room.prompts[playerName]
-  delete room.drawings[playerName]
-  delete room.guesses[playerName]
-  delete room.ratings[playerName]
+  delete room.prompts[playerName];
+  delete room.drawings[playerName];
+  delete room.guesses[playerName];
+  delete room.ratings[playerName];
 
   if (room.promptTargets) {
-    delete room.promptTargets[playerName]
+    delete room.promptTargets[playerName];
 
     for (const recipient of Object.keys(room.promptTargets)) {
       if (room.promptTargets[recipient] === playerName) {
-        delete room.promptTargets[recipient]
+        delete room.promptTargets[recipient];
       }
     }
   }
 
   if (room.guessTargets) {
-    delete room.guessTargets[playerName]
+    delete room.guessTargets[playerName];
 
     for (const guesser of Object.keys(room.guessTargets)) {
       if (room.guessTargets[guesser] === playerName) {
-        delete room.guessTargets[guesser]
+        delete room.guessTargets[guesser];
       }
     }
   }
 
   if (room.ratingTargets) {
-    delete room.ratingTargets[playerName]
+    delete room.ratingTargets[playerName];
 
     for (const rater of Object.keys(room.ratingTargets)) {
       if (room.ratingTargets[rater] === playerName) {
-        delete room.ratingTargets[rater]
+        delete room.ratingTargets[rater];
       }
     }
   }
 
   if (gone.isHost) {
-    promoteHost(room)
+    promoteHost(room);
   }
 
-  return true
+  return true;
 }
 
 /**
@@ -513,40 +551,35 @@ function removePlayer(room, playerName) {
  * has submitted.
  */
 function advanceIfPhaseComplete(room) {
-  const bucket = PHASE_BUCKET[room.phase]
+  const bucket = PHASE_BUCKET[room.phase];
 
   if (!bucket) {
-    return false
+    return false;
   }
 
-  const active = activePlayers(room)
+  const active = activePlayers(room);
 
   if (active.length === 0) {
-    return false
+    return false;
   }
 
   const everyoneSubmitted = active.every(
-    (p) =>
-      room[bucket][p.name] !== undefined &&
-      room[bucket][p.name] !== null,
-  )
+    (p) => room[bucket][p.name] !== undefined && room[bucket][p.name] !== null,
+  );
 
   if (!everyoneSubmitted) {
-    return false
+    return false;
   }
 
   if (room.phase === 'prompt') {
-    startDrawPhase(room)
-  } else if (
-    room.mode === 'leaderboard' &&
-    room.phase === 'draw'
-  ) {
-    startRatingPhase(room)
+    startDrawPhase(room);
+  } else if (room.mode === 'leaderboard' && room.phase === 'draw') {
+    startRatingPhase(room);
   } else {
-    setPhase(room, NEXT_PHASE[room.phase])
+    setPhase(room, NEXT_PHASE[room.phase]);
   }
 
-  return true
+  return true;
 }
 
 /**
@@ -555,7 +588,7 @@ function advanceIfPhaseComplete(room) {
 function afterPlayersLeft(room) {
   // Bots don't keep a room alive on their own — nobody is left to watch them.
   if (!room.players.some((p) => !p.isBot)) {
-    room.players = []
+    room.players = [];
   }
 
   if (room.players.length === 0) {
@@ -563,11 +596,11 @@ function afterPlayersLeft(room) {
     return;
   }
 
-  delete emptySince[room.code]
+  delete emptySince[room.code];
 
-  advanceIfPhaseComplete(room)
+  advanceIfPhaseComplete(room);
 
-  io.to(room.code).emit('room-update', room)
+  io.to(room.code).emit('room-update', room);
 }
 
 /**
@@ -580,30 +613,30 @@ setInterval(() => {
     const room = rooms[code];
 
     // Bots never poll, so they are exempt from the presence check.
-    const stale = room.players.filter(
-      (p) => !p.isBot && now - p.lastSeen > PLAYER_TIMEOUT_MS,
-    )
+    const stale = room.players.filter((p) => !p.isBot && now - p.lastSeen > PLAYER_TIMEOUT_MS);
 
     if (stale.length > 0) {
       for (const p of stale) {
-        removePlayer(room, p.name)
+        removePlayer(room, p.name);
       }
 
       io.to(room.code).emit('players-left', {
         code: room.code,
         names: stale.map((p) => p.name),
-      })
+      });
 
-      afterPlayersLeft(room)
+      afterPlayersLeft(room);
     }
 
-    const emptiedAt = emptySince[code]
+    const emptiedAt = emptySince[code];
 
     if (emptiedAt && now - emptiedAt > EMPTY_ROOM_GRACE_MS) {
       clearPhaseTimer(code);
       delete rooms[code];
       delete emptySince[code];
       delete phaseSeq[code];
+      delete promptStash[code];
+      delete promptHistory[code];
     }
   }
 }, PRESENCE_SWEEP_MS);
@@ -613,20 +646,16 @@ setInterval(() => {
  * Used as the rating submission's `onAccepted` hook, for players and bots.
  */
 function recalculateScores(room) {
-  room.ratingTargets = room.ratingTargets || {}
-  room.ratings = room.ratings || {}
-  room.scores = {}
+  room.ratingTargets = room.ratingTargets || {};
+  room.ratings = room.ratings || {};
+  room.scores = {};
 
   for (const raterName of Object.keys(room.ratings)) {
-    const targetName = room.ratingTargets[raterName]
-    const playerRating = room.ratings[raterName]
+    const targetName = room.ratingTargets[raterName];
+    const playerRating = room.ratings[raterName];
 
-    if (
-      targetName &&
-      typeof playerRating === 'number'
-    ) {
-      room.scores[targetName] =
-        (room.scores[targetName] || 0) + playerRating
+    if (targetName && typeof playerRating === 'number') {
+      room.scores[targetName] = (room.scores[targetName] || 0) + playerRating;
     }
   }
 }
@@ -646,91 +675,85 @@ const BOT_DELAYS_MS = {
   draw: [8000, 15000],
   guess: [4000, 9000],
   rating: [3000, 7000],
-}
+};
 
 /** Multiplier on bot delays. `BOT_DELAY_SCALE=0` makes bots instant (tests). */
 const BOT_DELAY_SCALE = (() => {
-  const parsed = Number(process.env.BOT_DELAY_SCALE)
-  return Number.isFinite(parsed) && parsed >= 0 ? parsed : 1
-})()
+  const parsed = Number(process.env.BOT_DELAY_SCALE);
+  return Number.isFinite(parsed) && parsed >= 0 ? parsed : 1;
+})();
 
 /** Bots aim to submit at least this long before the deadline. */
-const BOT_DEADLINE_MARGIN_MS = 3000
+const BOT_DEADLINE_MARGIN_MS = 3000;
 
 function botDelay(room, phase) {
-  const [min, max] = BOT_DELAYS_MS[phase]
-  const wanted = (min + Math.random() * (max - min)) * BOT_DELAY_SCALE
+  const [min, max] = BOT_DELAYS_MS[phase];
+  const wanted = (min + Math.random() * (max - min)) * BOT_DELAY_SCALE;
 
   if (!room.phaseEndsAt) {
-    return wanted
+    return wanted;
   }
 
-  const latest = room.phaseEndsAt - Date.now() - BOT_DEADLINE_MARGIN_MS
-  return Math.max(0, Math.min(wanted, latest))
+  const latest = room.phaseEndsAt - Date.now() - BOT_DEADLINE_MARGIN_MS;
+  return Math.max(0, Math.min(wanted, latest));
 }
 
 /** Work out what `botName` submits this phase, or null to sit it out. */
 async function botSubmission(room, botName, phase) {
   // The prompt each drawer was handed: drawer -> author -> author's prompt.
-  const promptDrawnBy = (drawer) =>
-    room.prompts[room.promptTargets?.[drawer]] || ''
+  const promptDrawnBy = (drawer) => room.prompts[room.promptTargets?.[drawer]] || '';
 
   switch (phase) {
     case 'prompt':
-      return botPrompt()
+      return botPrompt();
 
     case 'draw': {
-      const prompt = promptDrawnBy(botName) || botPrompt()
-      const drawing = await drawPrompt(prompt)
-      return drawing.dataUrl
+      const prompt = promptDrawnBy(botName) || botPrompt();
+      const drawing = await drawPrompt(prompt);
+      return drawing.dataUrl;
     }
 
     case 'guess': {
-      const target = room.guessTargets?.[botName]
-      if (!target) return null
+      const target = room.guessTargets?.[botName];
+      if (!target) return null;
       return botGuess({
         drawing: room.drawings[target] || '',
         truth: promptDrawnBy(target),
-      })
+      });
     }
 
     case 'rating':
-      return room.ratingTargets?.[botName] ? botRating() : null
+      return room.ratingTargets?.[botName] ? botRating() : null;
 
     default:
-      return null
+      return null;
   }
 }
 
 async function playBotTurn(roomCode, botName, phase) {
-  const room = rooms[roomCode]
-  if (!room) return
+  const room = rooms[roomCode];
+  if (!room) return;
 
-  const seq = phaseSeq[roomCode]
-  const waited = new Promise((resolve) =>
-    setTimeout(resolve, botDelay(room, phase)),
-  )
+  const seq = phaseSeq[roomCode];
+  const waited = new Promise((resolve) => setTimeout(resolve, botDelay(room, phase)));
 
-  let value
+  let value;
   try {
     // Think (e.g. call the LLM) while the delay runs, not after it.
-    const [submission] = await Promise.all([
-      botSubmission(room, botName, phase),
-      waited,
-    ])
-    value = submission
+    const [submission] = await Promise.all([botSubmission(room, botName, phase), waited]);
+    value = submission;
   } catch (err) {
-    console.warn(`[bots] ${botName} failed its ${phase} turn: ${err.message}`)
-    return
+    console.warn(`[bots] ${botName} failed its ${phase} turn: ${err.message}`);
+    return;
   }
 
   // The room may have advanced, ended or emptied while the bot was thinking.
-  const live = rooms[roomCode]
-  if (!live || phaseSeq[roomCode] !== seq || live.phase !== phase) return
-  if (value === null || value === undefined) return
+  const live = rooms[roomCode];
+  if (!live || phaseSeq[roomCode] !== seq || live.phase !== phase) return;
+  if (value === null || value === undefined) return;
 
-  const bucket = PHASE_BUCKET[phase]
-  if (live[bucket] && live[bucket][botName] !== undefined) return
+  const bucket = PHASE_BUCKET[phase];
+  if (live[bucket] && live[bucket][botName] !== undefined) return;
 
   const result = submitForPhase(
     roomCode,
@@ -739,22 +762,20 @@ async function playBotTurn(roomCode, botName, phase) {
     phase,
     null,
     phase === 'rating' ? recalculateScores : undefined,
-  )
+  );
 
   if (result.error && result.error.status !== 404) {
-    console.warn(
-      `[bots] ${botName} could not submit ${phase}: ${result.error.body.message}`,
-    )
+    console.warn(`[bots] ${botName} could not submit ${phase}: ${result.error.body.message}`);
   }
 }
 
 /** Called from `setPhase`: give every active bot its turn in the new phase. */
 function scheduleBotTurns(room) {
-  if (!BOT_DELAYS_MS[room.phase]) return
+  if (!BOT_DELAYS_MS[room.phase]) return;
 
   for (const bot of activePlayers(room)) {
     if (bot.isBot) {
-      void playBotTurn(room.code, bot.name, room.phase)
+      void playBotTurn(room.code, bot.name, room.phase);
     }
   }
 }
@@ -768,96 +789,96 @@ app.get('/', (_req, res) => {
  * removed like anyone else via `DELETE /rooms/:code/players/:name`.
  */
 app.post('/rooms/:roomCode/bots', (req, res) => {
-  const roomCode = req.params.roomCode.toUpperCase()
-  const { playerName } = req.body
-  const room = rooms[roomCode]
+  const roomCode = req.params.roomCode.toUpperCase();
+  const { playerName } = req.body;
+  const room = rooms[roomCode];
 
   if (!room) {
     return res.status(404).json({
       success: false,
       message: 'Room not found',
-    })
+    });
   }
 
-  const host = room.players.find((p) => p.name === playerName)
+  const host = room.players.find((p) => p.name === playerName);
 
   if (!host || !host.isHost) {
     return res.status(403).json({
       success: false,
       message: 'Only the host can add bots.',
-    })
+    });
   }
 
   if (room.status !== 'waiting' || room.phase !== 'lobby') {
     return res.status(409).json({
       success: false,
       message: 'Bots can only be added in the lobby.',
-    })
+    });
   }
 
-  const botCount = room.players.filter((p) => p.isBot).length
-  const name = nextBotName(room.players.map((p) => p.name))
+  const botCount = room.players.filter((p) => p.isBot).length;
+  const name = nextBotName(room.players.map((p) => p.name));
 
   if (room.players.length >= MAX_PLAYERS || botCount >= MAX_BOTS || !name) {
     return res.status(409).json({
       success: false,
       message: 'No room for another bot.',
-    })
+    });
   }
 
-  room.players.push(makePlayer(name, false, false, true))
-  host.lastSeen = Date.now()
+  room.players.push(makePlayer(name, false, false, true));
+  host.lastSeen = Date.now();
 
-  io.to(room.code).emit('room-update', room)
+  io.to(room.code).emit('room-update', room);
   res.json({
     success: true,
     room,
-  })
-})
+  });
+});
 
 /** ip -> epoch ms of the last `/ai/draw` call. */
-const lastDrawRequest = {}
-const DRAW_REQUEST_GAP_MS = 2000
+const lastDrawRequest = {};
+const DRAW_REQUEST_GAP_MS = 2000;
 
 /**
  * Draw any prompt the way a bot would, outside a game. Powers the
  * Playground's "watch the AI draw it" box and makes the drawer easy to try.
  */
 app.post('/ai/draw', async (req, res) => {
-  const prompt = typeof req.body?.prompt === 'string' ? req.body.prompt.trim() : ''
+  const prompt = typeof req.body?.prompt === 'string' ? req.body.prompt.trim() : '';
 
   if (!prompt || prompt.length > MAX_PROMPT_LENGTH) {
     return res.status(400).json({
       success: false,
       message: `Prompt must be 1-${MAX_PROMPT_LENGTH} characters.`,
-    })
+    });
   }
 
-  const now = Date.now()
-  const last = lastDrawRequest[req.ip] || 0
+  const now = Date.now();
+  const last = lastDrawRequest[req.ip] || 0;
 
   if (now - last < DRAW_REQUEST_GAP_MS) {
     return res.status(429).json({
       success: false,
       message: 'Slow down — one drawing every couple of seconds.',
-    })
+    });
   }
 
-  lastDrawRequest[req.ip] = now
+  lastDrawRequest[req.ip] = now;
 
   // Forget callers who have gone quiet so the map can't grow without bound.
   for (const ip of Object.keys(lastDrawRequest)) {
-    if (now - lastDrawRequest[ip] > 60000) delete lastDrawRequest[ip]
+    if (now - lastDrawRequest[ip] > 60000) delete lastDrawRequest[ip];
   }
 
-  const drawing = await drawPrompt(prompt)
+  const drawing = await drawPrompt(prompt);
   res.json({
     success: true,
     prompt: drawing.prompt,
     source: drawing.source,
     dataUrl: drawing.dataUrl,
-  })
-})
+  });
+});
 
 /**
  * Create a room.
@@ -867,17 +888,13 @@ app.post('/ai/draw', async (req, res) => {
  * `maxRounds` and `drawTimeSeconds` are configurable from the host lobby.
  */
 app.post('/rooms/create', (req, res) => {
-  const { hostName, mode, maxRounds } = req.body
+  const { hostName, mode, maxRounds } = req.body;
 
-  const roomCode = generateRoomCode()
+  const roomCode = generateRoomCode();
 
-  const selectedMode =
-    mode === 'leaderboard' ? 'leaderboard' : 'classic'
+  const selectedMode = mode === 'leaderboard' ? 'leaderboard' : 'classic';
 
-  const selectedMaxRounds =
-    ROUND_OPTIONS.includes(maxRounds)
-      ? maxRounds
-      : MAX_ROUNDS
+  const selectedMaxRounds = ROUND_OPTIONS.includes(maxRounds) ? maxRounds : MAX_ROUNDS;
 
   rooms[roomCode] = {
     code: roomCode,
@@ -911,46 +928,46 @@ app.post('/rooms/create', (req, res) => {
     success: true,
     roomCode,
     room: rooms[roomCode],
-  })
-})
+  });
+});
 
 app.patch('/rooms/:roomCode/settings', (req, res) => {
-  const roomCode = req.params.roomCode.toUpperCase()
-  const { playerName, drawTimeSeconds, maxRounds } = req.body
-  const room = rooms[roomCode]
+  const roomCode = req.params.roomCode.toUpperCase();
+  const { playerName, drawTimeSeconds, maxRounds } = req.body;
+  const room = rooms[roomCode];
 
   if (!room) {
     return res.status(404).json({
       success: false,
       message: 'Room not found',
-    })
+    });
   }
 
-  const player = room.players.find((p) => p.name === playerName)
+  const player = room.players.find((p) => p.name === playerName);
 
   if (!player) {
     return res.status(404).json({
       success: false,
       message: 'Player not found',
-    })
+    });
   }
 
   if (!player.isHost) {
     return res.status(403).json({
       success: false,
       message: 'Only the host can update room settings.',
-    })
+    });
   }
 
   if (room.status !== 'waiting' || room.phase !== 'lobby') {
     return res.status(409).json({
       success: false,
       message: 'Room settings cannot be changed after the game starts.',
-    })
+    });
   }
 
-  const hasDrawTime = Object.hasOwn(req.body, 'drawTimeSeconds')
-  const hasRounds = Object.hasOwn(req.body, 'maxRounds')
+  const hasDrawTime = Object.hasOwn(req.body, 'drawTimeSeconds');
+  const hasRounds = Object.hasOwn(req.body, 'maxRounds');
 
   if (
     (!hasDrawTime && !hasRounds) ||
@@ -960,20 +977,20 @@ app.patch('/rooms/:roomCode/settings', (req, res) => {
     return res.status(400).json({
       success: false,
       message: 'Invalid room settings.',
-    })
+    });
   }
 
-  if (hasDrawTime) room.drawTimeSeconds = drawTimeSeconds
-  if (hasRounds) room.maxRounds = maxRounds
-  player.lastSeen = Date.now()
+  if (hasDrawTime) room.drawTimeSeconds = drawTimeSeconds;
+  if (hasRounds) room.maxRounds = maxRounds;
+  player.lastSeen = Date.now();
 
-  io.to(room.code).emit('room-update', room)
+  io.to(room.code).emit('room-update', room);
 
   res.json({
     success: true,
     room,
-  })
-})
+  });
+});
 
 app.post('/rooms/join', (req, res) => {
   const { roomCode, playerName } = req.body;
@@ -985,13 +1002,13 @@ app.post('/rooms/join', (req, res) => {
     });
   }
 
-  const room = rooms[roomCode.toUpperCase()]
+  const room = rooms[roomCode.toUpperCase()];
 
   if (!room) {
     return res.status(404).json({
       success: false,
       message: 'Room not found',
-    })
+    });
   }
 
   if (room.players.length >= MAX_PLAYERS) {
@@ -1011,55 +1028,47 @@ app.post('/rooms/join', (req, res) => {
   // Joining a game that already started is allowed: the player is flagged as a
   // mid-round joiner so the current round can finish without waiting on them.
   // The flag is cleared when the next round starts (/start, /restart, /end).
-  room.players.push(
-    makePlayer(
-      playerName,
-      false,
-      room.status === 'started',
-    ),
-  )
+  room.players.push(makePlayer(playerName, false, room.status === 'started'));
 
-  delete emptySince[room.code]
+  delete emptySince[room.code];
 
   // A room can be rejoined after it emptied (within the grace window), at which
   // point nobody holds the host role — and a hostless lobby is deadlocked,
   // because only the host sees the Start button. Nothing else re-establishes a
   // host on join, so do it here whenever the role is vacant.
   if (!room.players.some((p) => p.isHost)) {
-    promoteHost(room)
+    promoteHost(room);
   }
 
-  io.to(room.code).emit('room-update', room)
+  io.to(room.code).emit('room-update', room);
 
   res.json({
     success: true,
     room,
-  })
-})
+  });
+});
 
 app.get('/rooms/:roomCode', (req, res) => {
-  const roomCode = req.params.roomCode.toUpperCase()
-  const room = rooms[roomCode]
+  const roomCode = req.params.roomCode.toUpperCase();
+  const room = rooms[roomCode];
 
   if (!room) {
     return res.status(404).json({
       success: false,
       message: 'Room not found',
-    })
+    });
   }
 
   // Doubles as the presence heartbeat. Every in-game page already polls this
   // once per second, so identifying the caller costs no extra request — and a
   // player who stops polling is exactly the player who has gone.
-  const { playerName } = req.query
+  const { playerName } = req.query;
 
   if (playerName) {
-    const player = room.players.find(
-      (p) => p.name === playerName,
-    )
+    const player = room.players.find((p) => p.name === playerName);
 
     if (player) {
-      player.lastSeen = Date.now()
+      player.lastSeen = Date.now();
     }
   }
 
@@ -1070,67 +1079,65 @@ app.get('/rooms/:roomCode', (req, res) => {
     success: true,
     room,
     serverTime: Date.now(),
-  })
-})
+  });
+});
 
 /**
  * Leave a room.
  */
 app.delete('/rooms/:roomCode/players/:playerName', (req, res) => {
-  const roomCode = req.params.roomCode.toUpperCase()
-  const room = rooms[roomCode]
+  const roomCode = req.params.roomCode.toUpperCase();
+  const room = rooms[roomCode];
 
   if (!room) {
     return res.status(404).json({
       success: false,
       message: 'Room not found',
-    })
+    });
   }
 
-  const { playerName } = req.params
+  const { playerName } = req.params;
 
   if (!removePlayer(room, playerName)) {
     return res.status(404).json({
       success: false,
       message: 'Player not found',
-    })
+    });
   }
 
   io.to(room.code).emit('players-left', {
     code: room.code,
     names: [playerName],
-  })
+  });
 
-  afterPlayersLeft(room)
+  afterPlayersLeft(room);
 
   res.json({
     success: true,
     room,
-  })
-})
+  });
+});
 
 app.patch('/rooms/:roomCode/ready', (req, res) => {
   const roomCode = req.params.roomCode.toUpperCase();
   const { playerName, ready: newReady } = req.body;
 
-  const room = rooms[roomCode]
+  const room = rooms[roomCode];
 
   if (!room) {
     return res.status(404).json({
       success: false,
       message: 'Room not found',
-    })
+    });
   }
 
-  const player = room.players.find(
-    (p) => p.name === playerName,
-  )
+  const player = room.players.find((p) => p.name === playerName);
 
   if (!player) {
     return res.status(404).json({
       success: false,
       message: 'Player not found',
-    })
+    });
   }
 
   player.lastSeen = Date.now();
@@ -1140,13 +1147,13 @@ app.patch('/rooms/:roomCode/ready', (req, res) => {
     player.status = newReady ? 'ready' : 'waiting';
   }
 
-  io.to(room.code).emit('room-update', room)
+  io.to(room.code).emit('room-update', room);
 
   res.json({
     success: true,
     room,
-  })
-})
+  });
+});
 
 /**
  * Start a game.
@@ -1155,17 +1162,17 @@ app.patch('/rooms/:roomCode/ready', (req, res) => {
  * Leaderboard requires at least 2 players.
  */
 app.patch('/rooms/:roomCode/start', (req, res) => {
-  const roomCode = req.params.roomCode.toUpperCase()
-  const room = rooms[roomCode]
+  const roomCode = req.params.roomCode.toUpperCase();
+  const room = rooms[roomCode];
 
   if (!room) {
     return res.status(404).json({
       success: false,
       message: 'Room not found',
-    })
+    });
   }
 
-  const playerCount = room.players.length
+  const playerCount = room.players.length;
 
   if (room.mode === 'classic' && playerCount < 3) {
     return res.status(409).json({
@@ -1173,7 +1180,7 @@ app.patch('/rooms/:roomCode/start', (req, res) => {
       message: 'Classic Mode needs at least 3 players to start.',
       code: 'CLASSIC_MIN_PLAYERS',
       minPlayers: 3,
-    })
+    });
   }
 
   if (room.mode === 'leaderboard' && playerCount < 2) {
@@ -1182,39 +1189,39 @@ app.patch('/rooms/:roomCode/start', (req, res) => {
       message: 'Leaderboard Mode needs at least 2 players to start.',
       code: 'LEADERBOARD_MIN_PLAYERS',
       minPlayers: 2,
-    })
+    });
   }
 
-  room.status = 'started'
-  room.round = 1
+  room.status = 'started';
+  room.round = 1;
 
-  room.prompts = {}
-  room.promptTargets = {}
-  room.drawings = {}
+  room.prompts = {};
+  room.promptTargets = {};
+  room.drawings = {};
 
   // Classic
-  room.guesses = {}
-  room.guessTargets = {}
+  room.guesses = {};
+  room.guessTargets = {};
 
   // Leaderboard
-  room.ratings = {}
-  room.ratingTargets = {}
-  room.scores = {}
+  room.ratings = {};
+  room.ratingTargets = {};
+  room.scores = {};
 
   for (const p of room.players) {
     p.joinedMidRound = false;
   }
 
-  setPhase(room, 'prompt')
+  setPhase(room, 'prompt');
 
-  io.to(room.code).emit('game-start', room)
-  io.to(room.code).emit('room-update', room)
+  io.to(room.code).emit('game-start', room);
+  io.to(room.code).emit('room-update', room);
 
   res.json({
     success: true,
     room,
-  })
-})
+  });
+});
 
 /**
  * Start the next round.
@@ -1223,14 +1230,14 @@ app.patch('/rooms/:roomCode/start', (req, res) => {
  * here so future round-selector changes automatically work with Leaderboard.
  */
 app.patch('/rooms/:roomCode/restart', (req, res) => {
-  const roomCode = req.params.roomCode.toUpperCase()
-  const room = rooms[roomCode]
+  const roomCode = req.params.roomCode.toUpperCase();
+  const room = rooms[roomCode];
 
   if (!room) {
     return res.status(404).json({
       success: false,
       message: 'Room not found',
-    })
+    });
   }
 
   if ((room.round || 1) >= room.maxRounds) {
@@ -1238,40 +1245,40 @@ app.patch('/rooms/:roomCode/restart', (req, res) => {
       success: false,
       message: `Cannot start round ${(room.round || 1) + 1} — max rounds is ${room.maxRounds}. Use /end to return to the lobby.`,
       maxRounds: room.maxRounds,
-    })
+    });
   }
 
-  room.status = 'started'
+  room.status = 'started';
 
-  room.prompts = {}
-  room.promptTargets = {}
-  room.drawings = {}
+  room.prompts = {};
+  room.promptTargets = {};
+  room.drawings = {};
 
   // Classic
-  room.guesses = {}
-  room.guessTargets = {}
+  room.guesses = {};
+  room.guessTargets = {};
 
   // Leaderboard
-  room.ratings = {}
-  room.ratingTargets = {}
+  room.ratings = {};
+  room.ratingTargets = {};
 
-  room.round = (room.round || 1) + 1
+  room.round = (room.round || 1) + 1;
 
   // A new round starts — mid-round joiners become full participants.
   for (const p of room.players) {
     p.joinedMidRound = false;
   }
 
-  setPhase(room, 'prompt')
+  setPhase(room, 'prompt');
 
-  io.to(room.code).emit('room-update', room)
+  io.to(room.code).emit('room-update', room);
 
   res.json({
     success: true,
     room,
     maxRounds: room.maxRounds,
-  })
-})
+  });
+});
 
 /**
  * End the current game and return to the lobby.
@@ -1279,36 +1286,36 @@ app.patch('/rooms/:roomCode/restart', (req, res) => {
  * Scores are cleared because this starts a fresh game.
  */
 app.patch('/rooms/:roomCode/end', (req, res) => {
-  const roomCode = req.params.roomCode.toUpperCase()
-  const room = rooms[roomCode]
+  const roomCode = req.params.roomCode.toUpperCase();
+  const room = rooms[roomCode];
 
   if (!room) {
     return res.status(404).json({
       success: false,
       message: 'Room not found',
-    })
+    });
   }
 
-  room.status = 'waiting'
-  room.round = 1
+  room.status = 'waiting';
+  room.round = 1;
 
-  room.prompts = {}
-  room.promptTargets = {}
-  room.drawings = {}
+  room.prompts = {};
+  room.promptTargets = {};
+  room.drawings = {};
 
   // Classic
-  room.guesses = {}
-  room.guessTargets = {}
+  room.guesses = {};
+  room.guessTargets = {};
 
   // Leaderboard
-  room.ratings = {}
-  room.ratingTargets = {}
-  room.scores = {}
+  room.ratings = {};
+  room.ratingTargets = {};
+  room.scores = {};
 
-  setPhase(room, 'lobby')
+  setPhase(room, 'lobby');
 
   for (const p of room.players) {
-    p.joinedMidRound = false
+    p.joinedMidRound = false;
 
     // Bots stay ready between games.
     if (!p.isHost && !p.isBot) {
@@ -1317,13 +1324,13 @@ app.patch('/rooms/:roomCode/end', (req, res) => {
     }
   }
 
-  io.to(room.code).emit('room-update', room)
+  io.to(room.code).emit('room-update', room);
 
   res.json({
     success: true,
     room,
-  })
-})
+  });
+});
 
 /**
  * Move a Leaderboard room from the rating reveal to its leaderboard page.
@@ -1332,48 +1339,38 @@ app.patch('/rooms/:roomCode/end', (req, res) => {
  * before the host moves everyone to the leaderboard.
  */
 app.patch('/rooms/:roomCode/rating-reveal', (req, res) => {
-  const roomCode = req.params.roomCode.toUpperCase()
-  const room = rooms[roomCode]
+  const roomCode = req.params.roomCode.toUpperCase();
+  const room = rooms[roomCode];
 
   if (!room) {
     return res.status(404).json({
       success: false,
       message: 'Room not found',
-    })
+    });
   }
 
-  if (
-    room.mode !== 'leaderboard' ||
-    room.phase !== 'ratingReveal'
-  ) {
+  if (room.mode !== 'leaderboard' || room.phase !== 'ratingReveal') {
     return res.status(409).json({
       success: false,
       message: `Cannot show leaderboard during '${room.phase}' phase`,
-    })
+    });
   }
 
-  setPhase(room, 'leaderboard')
+  setPhase(room, 'leaderboard');
 
-  io.to(room.code).emit('room-update', room)
+  io.to(room.code).emit('room-update', room);
 
   res.json({
     success: true,
     room,
-  })
-})
+  });
+});
 
 /**
  * Shared body of submission endpoints.
  */
-function submitForPhase(
-  roomCode,
-  playerName,
-  value,
-  expectedPhase,
-  validate,
-  onAccepted,
-) {
-  const room = rooms[roomCode]
+function submitForPhase(roomCode, playerName, value, expectedPhase, validate, onAccepted) {
+  const room = rooms[roomCode];
 
   if (!room) {
     return {
@@ -1384,12 +1381,10 @@ function submitForPhase(
           message: 'Room not found',
         },
       },
-    }
+    };
   }
 
-  const player = room.players.find(
-    (p) => p.name === playerName,
-  )
+  const player = room.players.find((p) => p.name === playerName);
 
   if (!player) {
     return {
@@ -1400,7 +1395,7 @@ function submitForPhase(
           message: 'Player not found',
         },
       },
-    }
+    };
   }
 
   if (room.phase !== expectedPhase) {
@@ -1421,11 +1416,10 @@ function submitForPhase(
         status: 409,
         body: {
           success: false,
-          message:
-            'You joined mid-round — you can play from the next round',
+          message: 'You joined mid-round — you can play from the next round',
         },
-      }
-    }
+      },
+    };
   }
 
   if (validate && !validate(value)) {
@@ -1436,61 +1430,57 @@ function submitForPhase(
           success: false,
           message: 'Invalid submission',
         },
-      }
-    }
+      },
+    };
   }
 
-  const bucket = PHASE_BUCKET[expectedPhase]
+  const bucket = PHASE_BUCKET[expectedPhase];
 
-  room[bucket] = room[bucket] || {}
-  room[bucket][playerName] = value
+  room[bucket] = room[bucket] || {};
+  room[bucket][playerName] = value;
 
-  player.lastSeen = Date.now()
+  player.lastSeen = Date.now();
 
   if (onAccepted) {
-    onAccepted(room, player)
+    onAccepted(room, player);
   }
 
   // Everyone active beat the clock — advance early; `advanceIfPhaseComplete`
   // counts only active players (mid-round joiners don't owe content this
   // round) and `setPhase` inside re-arms the next deadline (or clears it when
   // the next phase is untimed).
-  advanceIfPhaseComplete(room)
+  advanceIfPhaseComplete(room);
 
-  io.to(room.code).emit('room-update', room)
+  io.to(room.code).emit('room-update', room);
 
   return {
     room,
-  }
+  };
 }
 
 app.post('/rooms/:roomCode/prompts', (req, res) => {
-  const roomCode = req.params.roomCode.toUpperCase()
-  const { playerName, prompt } = req.body
+  const roomCode = req.params.roomCode.toUpperCase();
+  const { playerName, prompt } = req.body;
 
-  const trimmed = (prompt || '').trim()
+  const trimmed = (prompt || '').trim();
 
   const result = submitForPhase(
     roomCode,
     playerName,
     trimmed,
     'prompt',
-    (v) =>
-      typeof v === 'string' &&
-      v.length > 0,
-  )
+    (v) => typeof v === 'string' && v.length > 0,
+  );
 
   if (result.error) {
-    return res
-      .status(result.error.status)
-      .json(result.error.body)
+    return res.status(result.error.status).json(result.error.body);
   }
 
   res.json({
     success: true,
     room: result.room,
-  })
-})
+  });
+});
 
 app.post('/rooms/:roomCode/drawings', (req, res) => {
   const roomCode = req.params.roomCode.toUpperCase();
@@ -1501,22 +1491,18 @@ app.post('/rooms/:roomCode/drawings', (req, res) => {
     playerName,
     dataUrl || '',
     'draw',
-    (v) =>
-      typeof v === 'string' &&
-      v.startsWith('data:image/'),
-  )
+    (v) => typeof v === 'string' && v.startsWith('data:image/'),
+  );
 
   if (result.error) {
-    return res
-      .status(result.error.status)
-      .json(result.error.body)
+    return res.status(result.error.status).json(result.error.body);
   }
 
   res.json({
     success: true,
     room: result.room,
-  })
-})
+  });
+});
 
 /**
  * Classic guess submission.
@@ -1525,27 +1511,27 @@ app.post('/rooms/:roomCode/drawings', (req, res) => {
  * The client cannot choose a different drawing to guess.
  */
 app.post('/rooms/:roomCode/guesses', (req, res) => {
-  const roomCode = req.params.roomCode.toUpperCase()
-  const { playerName, guess } = req.body
+  const roomCode = req.params.roomCode.toUpperCase();
+  const { playerName, guess } = req.body;
 
-  const trimmed = (guess || '').trim()
+  const trimmed = (guess || '').trim();
 
-  const room = rooms[roomCode]
+  const room = rooms[roomCode];
 
   if (!room) {
     return res.status(404).json({
       success: false,
       message: 'Room not found',
-    })
+    });
   }
 
-  const target = room.guessTargets?.[playerName]
+  const target = room.guessTargets?.[playerName];
 
   if (!target) {
     return res.status(409).json({
       success: false,
       message: 'No drawing has been assigned to this player.',
-    })
+    });
   }
 
   const result = submitForPhase(
@@ -1555,22 +1541,61 @@ app.post('/rooms/:roomCode/guesses', (req, res) => {
     'guess',
     (v) => typeof v === 'string',
     (room, player) => {
-      room.guessTargets = room.guessTargets || {}
-      room.guessTargets[player.name] = target
+      room.guessTargets = room.guessTargets || {};
+      room.guessTargets[player.name] = target;
     },
-  )
+  );
 
-  if (result.error) {
-    return res
-      .status(result.error.status)
-      .json(result.error.body)
+  if (result.error) return res.status(result.error.status).json(result.error.body);
+  res.json({ success: true, room: result.room });
+});
+
+/**
+ * Per-IP request budget for the AI endpoints. The provider's free tier is shared
+ * by everyone on this server, so one noisy client mustn't burn it. Over budget
+ * isn't an error: the generator is simply told to skip the model.
+ */
+const AI_RATE_LIMIT = { windowMs: 60000, max: 20 };
+const aiRequestLog = {};
+
+function withinAiBudget(ip) {
+  const now = Date.now();
+  const entry = aiRequestLog[ip];
+  if (!entry || now - entry.windowStart > AI_RATE_LIMIT.windowMs) {
+    aiRequestLog[ip] = { windowStart: now, count: 1 };
+    return true;
   }
+  entry.count += 1;
+  return entry.count <= AI_RATE_LIMIT.max;
+}
 
-  res.json({
-    success: true,
-    room: result.room,
-  })
-})
+// Forget old rate-limit windows so the log doesn't grow forever.
+setInterval(() => {
+  const now = Date.now();
+  for (const ip of Object.keys(aiRequestLog)) {
+    if (now - aiRequestLog[ip].windowStart > AI_RATE_LIMIT.windowMs) delete aiRequestLog[ip];
+  }
+}, AI_RATE_LIMIT.windowMs).unref();
+
+/**
+ * Generate drawing prompts. Body (all optional):
+ *   { theme: string, difficulty: 'easy'|'medium'|'hard', count: 1-20, exclude: string[] }
+ * Always 200 with `count` prompts; `source` says whether they came from the
+ * model ('ai'), the static bank ('fallback'), or both ('mixed').
+ */
+app.post('/ai/prompts', async (req, res) => {
+  const body = req.body || {};
+  const { theme, count, exclude } = body;
+  const difficulty = DIFFICULTIES.includes(body.difficulty) ? body.difficulty : 'easy';
+  const excludeList = Array.isArray(exclude) ? exclude.slice(-200) : [];
+
+  const options = { theme, difficulty, count, exclude: excludeList };
+  const result = withinAiBudget(req.ip)
+    ? await generatePrompts(options)
+    : await generatePrompts({ ...options, forceFallback: true });
+
+  res.json({ success: true, ...result });
+});
 
 /**
  * Leaderboard rating submission.
@@ -1578,34 +1603,34 @@ app.post('/rooms/:roomCode/guesses', (req, res) => {
  * Each player may only rate the drawing assigned to them by the server.
  */
 app.post('/rooms/:roomCode/ratings', (req, res) => {
-  const roomCode = req.params.roomCode.toUpperCase()
-  const { playerName, rating } = req.body
+  const roomCode = req.params.roomCode.toUpperCase();
+  const { playerName, rating } = req.body;
 
-  const numericRating = Number(rating)
+  const numericRating = Number(rating);
 
-  const room = rooms[roomCode]
+  const room = rooms[roomCode];
 
   if (!room) {
     return res.status(404).json({
       success: false,
       message: 'Room not found',
-    })
+    });
   }
 
   if (room.mode !== 'leaderboard') {
     return res.status(409).json({
       success: false,
       message: 'Ratings are only available in Leaderboard Mode.',
-    })
+    });
   }
 
-  const target = room.ratingTargets?.[playerName]
+  const target = room.ratingTargets?.[playerName];
 
   if (!target) {
     return res.status(409).json({
       success: false,
       message: 'No drawing has been assigned to this player.',
-    })
+    });
   }
 
   /*
@@ -1618,17 +1643,12 @@ app.post('/rooms/:roomCode/ratings', (req, res) => {
     playerName,
     numericRating,
     'rating',
-    (v) =>
-      Number.isInteger(v) &&
-      v >= 0 &&
-      v <= 100,
+    (v) => Number.isInteger(v) && v >= 0 && v <= 100,
     recalculateScores,
   );
 
   if (result.error) {
-    return res
-      .status(result.error.status)
-      .json(result.error.body)
+    return res.status(result.error.status).json(result.error.body);
   }
 
   /*
@@ -1638,51 +1658,41 @@ app.post('/rooms/:roomCode/ratings', (req, res) => {
   res.json({
     success: true,
     room: result.room,
-  })
-})
+  });
+});
 
 io.on('connection', (socket) => {
   console.log('Socket connected:', socket.id);
 
   socket.on('room-subscribe', (roomCode) => {
     if (!roomCode) {
-      return
+      return;
     }
 
-    const code = roomCode.toUpperCase()
+    const code = roomCode.toUpperCase();
 
-    socket.join(code)
+    socket.join(code);
 
-    const room = rooms[code]
+    const room = rooms[code];
 
     if (room) {
-      socket.emit('room-update', room)
+      socket.emit('room-update', room);
     }
-  })
+  });
 
   socket.on('hand-tracking-data', (data) => {
     if (data && data.roomCode) {
-      socket
-        .to(data.roomCode.toUpperCase())
-        .emit('hand-tracking-update', data)
+      socket.to(data.roomCode.toUpperCase()).emit('hand-tracking-update', data);
     } else {
-      socket.broadcast.emit(
-        'hand-tracking-update',
-        data,
-      )
+      socket.broadcast.emit('hand-tracking-update', data);
     }
   });
 
   socket.on('drawing-event', (data) => {
     if (data && data.roomCode) {
-      socket
-        .to(data.roomCode.toUpperCase())
-        .emit('drawing-update', data)
+      socket.to(data.roomCode.toUpperCase()).emit('drawing-update', data);
     } else {
-      socket.broadcast.emit(
-        'drawing-update',
-        data,
-      )
+      socket.broadcast.emit('drawing-update', data);
     }
   });
 
@@ -1692,7 +1702,5 @@ io.on('connection', (socket) => {
 });
 
 server.listen(PORT, () => {
-  console.log(
-    `Gartic Hands server listening on http://localhost:${PORT}`,
-  )
-})
+  console.log(`Gartic Hands server listening on http://localhost:${PORT}`);
+});
