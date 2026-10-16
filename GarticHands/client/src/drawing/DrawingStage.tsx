@@ -2,6 +2,7 @@ import { useEffect, useState, type ReactNode } from 'react';
 import DrawingCameraInput from './components/DrawingCameraInput';
 import DrawingCameraCanvas from './components/DrawingCameraCanvas';
 import type { DrawingTool } from './components/Canvas';
+import { useDrawing } from './DrawingContext';
 
 export type DrawMode = 'split' | 'overlay' | 'both';
 
@@ -347,6 +348,32 @@ function DrawingToolPicker({
   );
 }
 
+interface ClearDrawingButtonProps {
+  disabled?: boolean;
+  gameStyle?: boolean;
+}
+
+function ClearDrawingButton({ disabled = false, gameStyle = false }: ClearDrawingButtonProps) {
+  const { clearDrawing } = useDrawing();
+
+  return (
+    <button
+      type="button"
+      onClick={clearDrawing}
+      disabled={disabled}
+      aria-label="Clear Canvas"
+      title="Clear Canvas"
+      className={`${
+        gameStyle
+          ? 'flex h-10 w-10 items-center justify-center rounded-xl border-2 text-xl border-[var(--action)] bg-white text-[var(--text-primary)]'
+          : 'px-3 py-1.5 rounded-full text-xs font-bold uppercase tracking-[0.12em] text-[var(--text-primary)] hover:bg-black/5'
+      } font-bold transition-colors ${disabled ? 'opacity-50 cursor-not-allowed' : ''}`}
+    >
+      {gameStyle ? '🗑️' : '🗑️ Clear'}
+    </button>
+  );
+}
+
 const MODE_STORAGE_KEY = 'gartichands:drawMode';
 const VALID_MODES = new Set<DrawMode>(['split', 'overlay', 'both']);
 
@@ -475,11 +502,14 @@ export function DrawingStage({
 
   const [eraserSize, setEraserSize] = useState<EraserSize>(18);
 
+  const [penUp, setPenUp] = useState(false);
+
   const media = (
     <div className={presentation === 'game' ? 'p-3 md:p-5' : 'mt-2'}>
       {mode === 'split' && (
         <SplitLayout
           drawingEnabled={drawingEnabled}
+          penUp={penUp}
           settings={settings}
           tool={tool}
           eraserSize={eraserSize}
@@ -490,6 +520,7 @@ export function DrawingStage({
       {mode === 'overlay' && (
         <OverlayLayout
           drawingEnabled={drawingEnabled}
+          penUp={penUp}
           settings={settings}
           tool={tool}
           eraserSize={eraserSize}
@@ -500,6 +531,7 @@ export function DrawingStage({
       {mode === 'both' && (
         <BothLayout
           drawingEnabled={drawingEnabled}
+          penUp={penUp}
           settings={settings}
           tool={tool}
           eraserSize={eraserSize}
@@ -524,6 +556,28 @@ export function DrawingStage({
             disabled={!drawingEnabled}
             gameStyle
           />
+          <ClearDrawingButton disabled={!drawingEnabled} gameStyle />
+          <button
+            type="button"
+            onClick={() => setPenUp((previous) => !previous)}
+            disabled={!drawingEnabled}
+            aria-pressed={penUp}
+            aria-label={
+              tool === 'erase'
+              ? penUp ? 'Lower eraser' : 'Lift eraser'
+              : penUp ? 'Lower pen' : 'Lift pen'
+}
+            className={`rounded-xl px-4 py-2 text-sm font-bold transition-colors ${
+              penUp
+                ? 'bg-[var(--action)] text-white'
+                : 'bg-white text-[var(--text-primary)]'
+            } disabled:opacity-50`}
+          >
+            {tool === 'erase'
+              ? penUp ? 'Eraser Up' : 'Eraser Down'
+              : penUp ? 'Pen Up' : 'Pen Down'}
+
+          </button>
           <span className="hidden h-10 w-px shrink-0 bg-white/70 md:block" />
           <DrawingSettingsPicker
             settings={settings}
@@ -543,8 +597,35 @@ export function DrawingStage({
 
   return (
     <div>
-      <DrawingToolPicker tool={tool} onToolChange={handleToolChange} disabled={!drawingEnabled} />
+      <div className="flex items-center gap-2">
+        <DrawingToolPicker tool={tool} onToolChange={handleToolChange} disabled={!drawingEnabled} />
 
+        <div className="inline-flex rounded-full bg-[var(--surface)] p-1">
+          <ClearDrawingButton disabled={!drawingEnabled} />
+        </div>
+      </div>
+
+    <button
+      type="button"
+      onClick={() => setPenUp((previous) => !previous)}
+      disabled={!drawingEnabled}
+      aria-pressed={penUp}
+      aria-label={
+        tool === 'erase'
+          ? penUp ? 'Lower eraser' : 'Lift eraser'
+          : penUp ? 'Lower pen' : 'Lift pen'
+      }
+      className={`ml-3 mt-2 rounded-full px-4 py-2 text-xs font-bold uppercase tracking-wide transition-colors ${
+        penUp
+          ? 'bg-red-600 text-white'
+          : 'bg-white text-black'
+      } disabled:opacity-50`}
+    >
+      {tool === 'erase'
+        ? penUp ? 'Eraser Up' : 'Eraser Down'
+        : penUp ? 'Pen Up' : 'Pen Down'}
+        
+    </button>
       <DrawingSettingsPicker
         settings={settings}
         eraserSize={eraserSize}
@@ -560,6 +641,7 @@ export function DrawingStage({
 
 interface DrawingLayoutProps {
   drawingEnabled: boolean;
+  penUp: boolean;
   settings: DrawingSettings;
   tool: DrawingTool;
   eraserSize: EraserSize;
@@ -568,6 +650,7 @@ interface DrawingLayoutProps {
 
 function SplitLayout({
   drawingEnabled,
+  penUp,
   settings,
   tool,
   eraserSize,
@@ -581,6 +664,7 @@ function SplitLayout({
 
       <Panel label={showLabels ? 'Canvas' : ''}>
         <DrawingCameraCanvas
+          penUp={penUp}
           strokeColor={settings.colour}
           strokeWidth={settings.thickness}
           tool={tool}
@@ -593,6 +677,7 @@ function SplitLayout({
 
 function OverlayLayout({
   drawingEnabled,
+  penUp,
   settings,
   tool,
   eraserSize,
@@ -604,6 +689,7 @@ function OverlayLayout({
         <DrawingCameraInput enabled={drawingEnabled} />
 
         <DrawingCameraCanvas
+          penUp={penUp}
           strokeColor={settings.colour}
           strokeWidth={settings.thickness}
           tool={tool}
@@ -612,6 +698,7 @@ function OverlayLayout({
         />
 
         <DrawingCameraCanvas
+          penUp={penUp}
           strokeColor={settings.colour}
           strokeWidth={settings.thickness}
           tool={tool}
@@ -625,6 +712,7 @@ function OverlayLayout({
 
 function BothLayout({
   drawingEnabled,
+  penUp,
   settings,
   tool,
   eraserSize,
@@ -637,6 +725,7 @@ function BothLayout({
           <DrawingCameraInput enabled={drawingEnabled} />
 
           <DrawingCameraCanvas
+            penUp={penUp}
             strokeColor={settings.colour}
             strokeWidth={settings.thickness}
             tool={tool}
@@ -648,6 +737,7 @@ function BothLayout({
 
       <Panel label={showLabels ? 'Canvas' : ''}>
         <DrawingCameraCanvas
+          penUp={penUp}
           strokeColor={settings.colour}
           strokeWidth={settings.thickness}
           tool={tool}

@@ -42,7 +42,10 @@ describe('api/room', () => {
     const [url, options] = fetchMock.mock.calls[0] as FetchCall;
     expect(url).toContain('/rooms/create');
     expect(options?.method).toBe('POST');
-    expect(JSON.parse(options?.body ?? '{}')).toEqual({ hostName: 'Alice' });
+    expect(JSON.parse(options?.body ?? '{}')).toEqual({
+      hostName: 'Alice',
+      mode: 'classic',
+    });
     expect(result).toEqual({ roomCode: 'ABCD' });
   });
 

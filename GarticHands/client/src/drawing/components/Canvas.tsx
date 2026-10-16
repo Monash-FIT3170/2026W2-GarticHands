@@ -14,11 +14,14 @@ export interface CanvasHandle {
   onFrame: (landmarks: HandLandmark[] | null, gesture: GestureType) => void;
   /** Returns the draw canvas as a PNG data URL, or null if the canvas is not yet mounted. */
   getImage: () => string | null;
+
+  clear: () => void;
 }
 
 export type DrawingTool = 'draw' | 'erase';
 
 interface CanvasProps {
+  penUp?: boolean;
   width?: number;
   height?: number;
   ref?: Ref<CanvasHandle>;
@@ -38,6 +41,7 @@ interface CanvasProps {
 const INDEX_FINGERTIP = 8;
 
 const Canvas = ({
+  penUp = false,
   width = 640,
   height = 480,
   ref,
@@ -51,6 +55,7 @@ const Canvas = ({
   const drawCanvasRef = useRef<HTMLCanvasElement>(null);
   const overlayCanvasRef = useRef<HTMLCanvasElement>(null);
   const toolRef = useRef(tool);
+  const penUpRef = useRef(penUp);
   const { registerDrawCanvasElement } = useDrawingContext();
 
   // Publish the draw-canvas DOM node so the recorder can sample it per-frame.
@@ -145,6 +150,15 @@ const Canvas = ({
     toolRef.current = tool;
   }, [tool]);
 
+  useLayoutEffect(() => {
+    penUpRef.current = penUp;
+
+    if (penUp && stateRef.current) {
+      stateRef.current.active?.reset();
+      stateRef.current.active = null;
+    }
+  }, [penUp]);
+
   useImperativeHandle(
     ref,
     () => ({
@@ -156,7 +170,7 @@ const Canvas = ({
         // Only pinch performs an action. The latest selected tool determines
         // whether that pinch draws or erases.
         const next =
-          gesture === GestureType.PINCH
+          !penUpRef.current && gesture === GestureType.PINCH
             ? (state.ops.find((op) => op.name === toolRef.current) ?? null)
             : null;
 
@@ -173,6 +187,28 @@ const Canvas = ({
           next?.tick(point);
         } else {
           state.cursor.clear();
+        }
+      },
+
+      clear() {
+        /** Resets drawing pixels and detaches curser from previous canvas */
+        const drawCanvas = drawCanvasRef.current;
+        const overlayCanvas = overlayCanvasRef.current;
+
+        if (drawCanvas) {
+          drawCanvas.getContext('2d')?.clearRect(0, 0, drawCanvas.width, drawCanvas.height);
+        }
+
+        if (overlayCanvas) {
+          overlayCanvas
+            .getContext('2d')
+            ?.clearRect(0, 0, overlayCanvas.width, overlayCanvas.height);
+        }
+
+        stateRef.current?.active?.reset();
+        if (stateRef.current) {
+          stateRef.current.active = null;
+          stateRef.current.cursor.clear();
         }
       },
 

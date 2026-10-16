@@ -90,6 +90,8 @@ Single file. Three responsibilities:
 2. **In-memory state** — a `rooms` object keyed by 6-char alphanumeric room code. No persistence; restart = data loss. Intentional for now.
 3. **Socket.IO broadcast hub** — events listed in [`server/README.md`](server/README.md#socket-events).
 
+AI calls live in `server/ai/` behind `chat(messages, profile)`; see [`server/README.md` § AI](server/README.md#ai). The client reaches them only through `client/src/api/ai.ts`.
+
 After any REST mutation that affects a room, the server emits `io.to(roomCode).emit('room-update', room)` so future socket-aware clients can drop the 1s polling.
 
 ## Data shapes (canonical)
@@ -117,6 +119,7 @@ type Room = {
   phaseEndsAt: number | null   // epoch ms; null on the untimed phases
   round: number
   maxRounds: number
+  drawTimeSeconds: number
   prompts: Record<string, string>    // playerName → prompt text
   drawings: Record<string, string>   // playerName → PNG data URL
   guesses: Record<string, string>    // playerName → guess text
@@ -127,6 +130,10 @@ type Room = {
 
 `client/src/types/room.ts` is the typed mirror of these shapes — change both together.
 
+The host can update `drawTimeSeconds` and `maxRounds` while the room is still
+in the lobby using `PATCH /rooms/:roomCode/settings`. Other players see those
+values in the room state but cannot update them.
+
 ## Room capacity
 
 Rooms are limited to 8 players total, including the host. The server enforces
@@ -136,12 +143,12 @@ client values are presentation only and are not used for enforcement.
 
 ## Phase deadlines
 
-Every timed phase has a server-owned deadline. `prompt`, `draw`, and `guess` run for `PHASE_DURATIONS[phase]` seconds (60 by default, overridable per phase with the `PROMPT_SECONDS` / `DRAW_SECONDS` / `GUESS_SECONDS` env vars); `lobby` and `reveal` are untimed because the host paces them.
+Every timed phase has a server-owned deadline. `prompt` and `guess` run for 60 seconds by default, configurable with `PROMPT_SECONDS` and `GUESS_SECONDS`; `draw` uses the host-selected `drawTimeSeconds` setting (60 by default). `DRAW_SECONDS`, when set, remains an explicit server override for demo and timeout testing. `lobby` and `reveal` are untimed because the host paces them.
 
 The server is the only clock that matters:
 
 - `setPhase(room, phase)` in `server/index.js` stamps `room.phaseEndsAt` and arms a `setTimeout`. Every transition goes through it, so a deadline can never be stale and a timer can never outlive its phase.
-- When the timer fires, missing submissions are filled in — a random `FALLBACK_PROMPTS` entry for the prompt phase, `''` for a drawing or a guess — and the room advances. One idle player can no longer stall everyone.
+- When the timer fires, missing submissions are filled in — an AI-generated prompt for the prompt phase (generated in the background when the phase opened; see [`server/README.md` § AI](server/README.md#ai)), falling back to a random `FALLBACK_PROMPTS` entry, and `''` for a drawing or a guess — and the room advances. One idle player can no longer stall everyone.
 - Clients don't run their own clock. `GET /rooms/:code` returns `serverTime` alongside the room, and [`usePhaseAdvance`](client/src/hooks/usePhaseAdvance.ts) counts down `phaseEndsAt - serverTime`, so every player sees the same number regardless of browser clock skew.
 - Clients still auto-submit at zero so in-progress work isn't discarded. The server waits an extra 1.5 s grace before forcing the advance, so that submit wins the race; if it doesn't, the `409` is treated as "too late, follow the room".
 

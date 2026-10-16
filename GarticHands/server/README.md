@@ -20,6 +20,9 @@ Defaults to port `3000`. Override with `PORT=4000 npm run dev:server`.
 | `DRAW_SECONDS`           | `60`    | Time limit for the `draw` phase.                                 |
 | `GUESS_SECONDS`          | `60`    | Time limit for the `guess` phase.                                |
 | `PLAYER_TIMEOUT_SECONDS` | `30`    | How long a player can go without polling before they're dropped. |
+| `GROQ_API_KEY`           | —       | Enables AI features with the default `groq` provider. See [AI](#ai). |
+| `LLM_PROVIDER`           | `groq`  | `groq`, `ollama` (local, no key) or `custom`.                    |
+| `AI_ENABLED`             | `true`  | `false` switches every AI call off (CI, offline demos).          |
 
 Shortening the phase limits is the fastest way to exercise the timeout path:
 `PROMPT_SECONDS=5 DRAW_SECONDS=5 GUESS_SECONDS=5 npm run dev:server`.
@@ -52,6 +55,8 @@ type Room = {
   phase: RoomPhase
   phaseEndsAt: number | null        // epoch ms; null on untimed phases
   round: number             // increments on each "Play Again"
+  maxRounds: number
+  drawTimeSeconds: number   // host-selected draw phase duration
   prompts: Record<string, string>   // playerName → prompt text
   drawings: Record<string, string>  // playerName → PNG data URL
   guesses: Record<string, string>   // playerName → guess text
@@ -112,6 +117,44 @@ When a player is removed the server:
 - emits `players-left` followed by `room-update`.
 
 A client that finds itself missing from `room.players` has been dropped and sends the player back to the landing page.
+
+## AI
+
+All AI code lives in `ai/` and goes through one seam, `chat(messages, profile)` in [`ai/chat.js`](ai/chat.js) (FORKING.md § Seam 8). Nothing else calls a model, and the API key never reaches the client.
+
+| File | Role |
+| ---- | ---- |
+| `ai/chat.js` | Picks the provider from `LLM_PROVIDER`, maps a profile (`fast` / `smart` / `vision`) to a model, exposes `isAiEnabled()`. |
+| `ai/providers/openaiCompatible.js` | The only network call. Groq, Ollama, OpenRouter and OpenAI all use this wire format. |
+| `ai/promptGenerator.js` | Prompt generator (system prompt, validation, cache, fallback). Carries a `forkability_contract` header. |
+| `data/promptBank.js` | Static easy / medium / hard prompts used whenever AI is off or fails. |
+
+**Configuration.** AI is off unless the provider is usable: for `groq` that means `GROQ_API_KEY` is set. Other options:
+
+| Env var | Purpose |
+| ------- | ------- |
+| `LLM_BASE_URL` | Override the provider URL. Required for `custom`. |
+| `LLM_API_KEY` | Bearer key for `custom` (e.g. OpenRouter). |
+| `LLM_MODEL_FAST` / `LLM_MODEL_SMART` / `LLM_MODEL_VISION` | Override the model per profile. Required for `custom`. |
+| `LLM_TIMEOUT_MS` | Per-request timeout, default `8000`. |
+
+**Prompt generator.** Used in two places:
+
+1. `POST /ai/prompts` (below), which solo mode calls for an endless, non-repeating supply of words.
+2. The prompt phase. When a prompt phase opens, `stashPromptsFor` generates one `medium` prompt per active player in the background, avoiding the room's earlier prompts (`promptHistory`). A player who runs out of time gets one of those; if none are ready, they get a static `FALLBACK_PROMPTS` entry as before. The deadline handler never waits on the network.
+
+Every reply is validated: lowercase plain words only, a word limit per difficulty (easy 3, medium 6, hard 8), a small blocklist, no duplicates, nothing excluded. Unused prompts are cached per theme and difficulty for 10 minutes, and concurrent identical requests share one model call. Any failure (no key, timeout, `429`, bad JSON twice) is filled from `data/promptBank.js`, so callers always get the number they asked for.
+
+**Tests.** `npm test -w @gartichands/server` runs `__tests__/` with Node's built-in runner. The model and `fetch` are stubbed, so no key or network is needed.
+
+**Try it locally.** Put `GROQ_API_KEY=...` in your shell (or `.env` for Docker), run `npm run dev`, then:
+
+```bash
+curl -s -X POST localhost:3000/ai/prompts -H 'Content-Type: application/json' \
+  -d '{"theme":"Australian animals","difficulty":"easy","count":5}'
+```
+
+`"source":"ai"` means the model answered; `"fallback"` means AI is off or failed.
 
 ## REST endpoints
 
@@ -209,6 +252,29 @@ Toggle a player's ready flag. No-op for the host (the host is always treated as 
 
 Also broadcasts `room-update`.
 
+### `PATCH /rooms/:roomCode/settings`
+
+Update lobby settings. Only the current host can change them, and only before
+the game starts. Other players see the settings through the room response and
+lobby polling.
+
+**Body** — send one or both settings with the host's player name:
+
+```json
+{ "playerName": "Alice", "drawTimeSeconds": 90 }
+```
+
+`drawTimeSeconds` must be one of `30, 45, 60, 90, 120, 150, 180, 240, 300,
+360`; `maxRounds` must be an integer from `1` to `8`.
+
+**Response 200** `{ "success": true, "room": { ... } }`
+**Response 400** invalid or missing settings.
+**Response 403** caller is not the host.
+**Response 404** room or player not found.
+**Response 409** the game has already started.
+
+Also broadcasts `room-update`.
+
 ### `PATCH /rooms/:roomCode/start`
 
 Mark the room as `started`, set `phase = 'prompt'` and arm its deadline, reset `prompts`/`drawings`/`guesses`, and clear every player's `joinedMidRound` flag. The lobby polls this transition and navigates players to `/input`.
@@ -251,6 +317,27 @@ Record one player's drawing as a PNG data URL. Auto-advances `phase` to `'guess'
 **Response 404** room or player not found.
 
 Broadcasts `room-update`.
+
+### `POST /ai/prompts`
+
+Generate drawing prompts. Every field is optional.
+
+```json
+{ "theme": "Australian animals", "difficulty": "easy", "count": 5, "exclude": ["koala"] }
+```
+
+- `difficulty`: `easy` (objects), `medium` (scenes or actions) or `hard` (surreal ideas). Anything else means `easy`.
+- `count`: 1–20, default 10.
+- `theme`: max 60 characters, plain text.
+- `exclude`: prompts not to repeat (the last 200 are used).
+
+Always `200`:
+
+```json
+{ "success": true, "prompts": ["kangaroo", "emu", "wombat", "platypus", "kookaburra"], "source": "ai" }
+```
+
+`source` is `ai`, `fallback` (static bank) or `mixed`. Each IP gets 20 model-backed requests a minute; beyond that, replies come from the static bank.
 
 ### `POST /rooms/:roomCode/guesses`
 

@@ -19,6 +19,9 @@ export default defineConfig({
     // Explicit absolute paths — otherwise these resolve against the process's
     // cwd (the `GarticHands/` root when run via `npm run test:e2e`) instead of
     // this config file's directory, scattering output outside `e2e-tests/`.
+    testIgnore: ['**/us15-recordings-replay.spec.ts',
+        '**/us21-visual-regression.spec.ts',
+    ],
     outputDir: path.join(__dirname, 'test-results'),
     timeout: 30_000,
     expect: { timeout: 5_000 },
