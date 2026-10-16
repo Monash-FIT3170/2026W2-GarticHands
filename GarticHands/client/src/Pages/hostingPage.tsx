@@ -30,12 +30,12 @@ export default function HostingPage() {
   const hostName = state?.playerName;
   const gameMode = state?.mode ?? 'classic';
 
-  useEffect(() => {
-    async function setupRoom() {
-      if (!hostName) {
-        void navigate('/');
-        return;
-      }
+  // Only create room once user clicks "Create Room"
+  async function handleCreateRoom() {
+    if (!hostName) {
+      void navigate('/');
+      return;
+    }
 
       const data = await createRoom(hostName, gameMode);
 
@@ -51,7 +51,7 @@ export default function HostingPage() {
   }, [hostName, gameMode, navigate]);
 
   useEffect(() => {
-    if (!roomCode || !hostName) return;
+    if (!roomCode || !hostName || !roomCreated) return;
 
     let cancelled = false;
 
@@ -249,7 +249,12 @@ export default function HostingPage() {
               {allReady ? 'Start Game' : 'Waiting for Players'}
             </Button>
 
-            <Button variant="leave" size="full" onClick={() => void handleLeave()} className="mt-3">
+            <Button
+              variant="leave"
+              size="full"
+              onClick={() => void handleLeave()}
+              className="mt-3"
+            >
               Leave Room
             </Button>
           </section>

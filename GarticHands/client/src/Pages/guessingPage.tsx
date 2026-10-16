@@ -7,7 +7,6 @@ import type { DrawLocationState } from '../types/room';
 import BackgroundRays from '../components/ui/BackgroundRays';
 
 const MaxChars = 120;
-/** Shown until the room's server-owned deadline arrives. Real limit: `PHASE_DURATIONS` in `server/index.js`. */
 const TotalTime = 60;
 
 export default function GuessingPage() {
@@ -21,7 +20,24 @@ export default function GuessingPage() {
   const [submitted, setSubmitted] = useState(false);
   const [error, setError] = useState('');
 
-  const { waitingFor, room, secondsLeft } = usePhaseAdvance({
+  // In AI Mode, poll until the AI submits its guess and phase moves to reveal
+  useEffect(() => {
+    if (!aiMode || !roomCode) return;
+
+    const interval = setInterval(async () => {
+      const data = await getRoom(roomCode, playerName);
+      if (!data.success || !data.room) return;
+      setRoomData(data.room);
+
+      if (data.room.phase === 'reveal') {
+        void navigate('/game', { state: { roomCode, playerName } });
+      }
+    }, 1000);
+
+    return () => clearInterval(interval);
+  }, [aiMode, roomCode, playerName, navigate]);
+
+  const { waitingFor, secondsLeft } = usePhaseAdvance({
     roomCode,
     playerName,
     enabled: submitted,
@@ -68,6 +84,28 @@ export default function GuessingPage() {
     if (!submitted) void handleSubmit(true);
   }
 
+  // AI Mode — show waiting screen while AI generates its guess
+  if (aiMode) {
+    return (
+      <div className="background">
+        <Card variant="glass">
+          <RoundHeader round={room?.round ?? 1} totalRounds={room?.maxRounds ?? 4} />
+          <h1 className="text-3xl">AI Mode</h1>
+          <div className="flex flex-col items-center gap-4 mt-4">
+            <span className="text-5xl animate-pulse">🤖</span>
+            <p className="text-[var(--text-muted)] text-sm text-center">
+              The AI is analysing your drawing...
+            </p>
+            <p className="text-xs text-[var(--text-muted)]">
+              Hang tight — results coming up!
+            </p>
+          </div>
+        </Card>
+      </div>
+    );
+  }
+
+  // Classic Mode — normal guessing UI
   return (
     <div
       className="min-h-screen relative overflow-hidden px-6 py-6 lg:px-10 xl:px-16"

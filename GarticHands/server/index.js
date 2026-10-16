@@ -1,3 +1,12 @@
+require('dotenv').config()
+const express = require('express')
+const http = require('http')
+const cors = require('cors')
+const { Server } = require('socket.io')
+const { generatePrompt, generateGuess } = require('./ai/guesser')
+
+const app = express()
+const server = http.createServer(app)
 require('dotenv').config();
 const express = require('express');
 const http = require('http');
@@ -430,6 +439,17 @@ function expirePhase(roomCode, expectedPhase) {
     }
   }
 
+  const completedPhase = expectedPhase
+  setPhase(room, NEXT_PHASE[expectedPhase])
+
+  if (completedPhase === 'draw' && room.aiMode) {
+    autoSubmitAIGuess(room).catch((err) =>
+      console.error('[AI] Unhandled error in autoSubmitAIGuess:', err),
+    )
+  }
+
+  io.to(room.code).emit('phase-timeout', { code: room.code, phase: expectedPhase })
+  io.to(room.code).emit('room-update', room)
   if (expectedPhase === 'prompt') {
     startDrawPhase(room);
   } else if (room.mode === 'leaderboard' && expectedPhase === 'draw') {
@@ -548,9 +568,58 @@ function advanceIfPhaseComplete(room) {
     setPhase(room, NEXT_PHASE[room.phase]);
   }
 
-  return true;
-}
+  const completedPhase = room.phase
+  setPhase(room, NEXT_PHASE[room.phase])
 
+  // When draw phase ends in AI Mode, auto-generate a guess
+  if (completedPhase === 'draw' && room.aiMode) {
+    autoSubmitAIGuess(room).catch((err) =>
+      console.error('[AI] Unhandled error in autoSubmitAIGuess:', err),
+    )
+  }
+
+  return true
+}
+/**
+ * After the draw phase ends, generate an AI guess for the player's drawing.
+ * The guess is stored in room.aiGuess and broadcast to all clients.
+ * The round is never blocked — if Gemini fails, a fallback is used.
+ */
+async function autoSubmitAIGuess(room) {
+  if (room.phase !== 'guess') return
+
+  const humanPlayers = activePlayers(room)
+  if (humanPlayers.length === 0) return
+
+  console.log(`[AI] Generating guesses for ${humanPlayers.length} drawing(s)...`)
+
+  // Store per-player AI guesses separately so each player sees their own result
+  room.aiGuesses = room.aiGuesses || {}
+
+  await Promise.all(
+    humanPlayers.map(async (player) => {
+      const drawing = room.drawings[player.name]
+
+      if (!drawing || drawing.length < 1000) {
+        room.aiGuesses[player.name] = 'a blank canvas'
+        console.log(`[AI] ${player.name}'s drawing appears blank`)
+        return
+      }
+
+      try {
+        const guess = await generateGuess(drawing)
+        console.log(`[AI] Guess for ${player.name}'s drawing: "${guess}"`)
+        room.aiGuesses[player.name] = guess
+      } catch (err) {
+        console.error(`[AI] Guess failed for ${player.name}:`, err.message)
+        room.aiGuesses[player.name] = 'something mysterious'
+      }
+    }),
+  )
+
+  setPhase(room, 'reveal')
+  io.to(room.code).emit('room-update', room)
+}
 /**
  * Shared tail for every departure.
  */
@@ -615,13 +684,10 @@ app.get('/', (_req, res) => {
  * `maxRounds` and `drawTimeSeconds` are configurable from the host lobby.
  */
 app.post('/rooms/create', (req, res) => {
-  const { hostName, mode, maxRounds } = req.body;
-
-  const roomCode = generateRoomCode();
-
-  const selectedMode = mode === 'leaderboard' ? 'leaderboard' : 'classic';
-
-  const selectedMaxRounds = ROUND_OPTIONS.includes(maxRounds) ? maxRounds : MAX_ROUNDS;
+const { hostName, mode, maxRounds, aiMode = false } = req.body
+const roomCode = generateRoomCode()
+const selectedMode = mode === 'leaderboard' ? 'leaderboard' : 'classic'
+const selectedMaxRounds = ROUND_OPTIONS.includes(maxRounds) ? maxRounds : MAX_ROUNDS
 
   rooms[roomCode] = {
     code: roomCode,
@@ -632,6 +698,11 @@ app.post('/rooms/create', (req, res) => {
     phaseEndsAt: null,
 
     round: 1,
+    maxRounds: MAX_ROUNDS,
+    aiMode,
+    aiPrompt: null,
+    aiGuess: null,
+    aiGuesses: {},  // add this
     maxRounds: selectedMaxRounds,
     drawTimeSeconds: 60,
 
@@ -910,6 +981,15 @@ app.patch('/rooms/:roomCode/start', (req, res) => {
     });
   }
 
+  room.status = 'started'
+  room.round = 1
+  room.prompts = {}
+  room.drawings = {}
+  room.guesses = {}
+  room.guessTargets = {}
+  room.aiPrompt = null
+  room.aiGuess = null
+  room.aiGuesses = {}
   if (room.mode === 'leaderboard' && playerCount < 2) {
     return res.status(409).json({
       success: false,
@@ -938,6 +1018,45 @@ app.patch('/rooms/:roomCode/start', (req, res) => {
   for (const p of room.players) {
     p.joinedMidRound = false;
   }
+
+  setPhase(room, 'prompt')
+  io.to(room.code).emit('game-start', room)
+  io.to(room.code).emit('room-update', room)
+
+  // In AI Mode, generate a prompt automatically so the player
+  // skips typing and goes straight to drawing
+  if (room.aiMode) {
+    // Generate a unique prompt for each active player in parallel
+    const players = activePlayers(room)
+
+    Promise.all(
+      players.map((player) =>
+        generatePrompt()
+          .then((prompt) => {
+            room.prompts[player.name] = prompt
+            console.log(`[AI] Generated prompt for ${player.name}: "${prompt}"`)
+          })
+          .catch(() => {
+            const fallback = FALLBACK_PROMPTS[Math.floor(Math.random() * FALLBACK_PROMPTS.length)]
+            room.prompts[player.name] = fallback
+            console.log(`[AI] Fallback prompt for ${player.name}: "${fallback}"`)
+          }),
+      ),
+    )
+      .then(() => {
+        // Store first prompt as aiPrompt for display purposes
+        const firstPlayer = players[0]
+        if (firstPlayer) room.aiPrompt = room.prompts[firstPlayer.name]
+        advanceIfPhaseComplete(room)
+        io.to(room.code).emit('room-update', room)
+      })
+      .catch((err) => {
+        console.error('[AI] Prompt generation failed:', err.message)
+      })
+  }
+
+  res.json({ success: true, room })
+})
 
   setPhase(room, 'prompt');
 
@@ -975,6 +1094,16 @@ app.patch('/rooms/:roomCode/restart', (req, res) => {
     });
   }
 
+  room.status = 'started'
+  room.prompts = {}
+  room.drawings = {}
+  room.guesses = {}
+  room.guessTargets = {}
+  room.aiPrompt = null
+  room.aiGuess = null
+  room.round = (room.round || 1) + 1
+  room.aiGuesses = {}
+
   room.status = 'started';
 
   room.prompts = {};
@@ -995,6 +1124,40 @@ app.patch('/rooms/:roomCode/restart', (req, res) => {
   for (const p of room.players) {
     p.joinedMidRound = false;
   }
+
+  setPhase(room, 'prompt')
+  io.to(room.code).emit('room-update', room)
+
+  // Generate a fresh AI prompt for the new round
+  if (room.aiMode) {
+    const players = activePlayers(room)
+
+    Promise.all(
+      players.map((player) =>
+        generatePrompt()
+          .then((prompt) => {
+            room.prompts[player.name] = prompt
+            console.log(`[AI] Generated prompt for ${player.name} round ${room.round}: "${prompt}"`)
+          })
+          .catch(() => {
+            const fallback = FALLBACK_PROMPTS[Math.floor(Math.random() * FALLBACK_PROMPTS.length)]
+            room.prompts[player.name] = fallback
+          }),
+      ),
+    )
+      .then(() => {
+        const firstPlayer = players[0]
+        if (firstPlayer) room.aiPrompt = room.prompts[firstPlayer.name]
+        advanceIfPhaseComplete(room)
+        io.to(room.code).emit('room-update', room)
+      })
+      .catch((err) => {
+        console.error('[AI] Prompt generation failed:', err.message)
+      })
+  }
+
+  res.json({ success: true, room, maxRounds: MAX_ROUNDS })
+})
 
   setPhase(room, 'prompt');
 
