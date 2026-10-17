@@ -55,7 +55,7 @@ export async function leaveRoom(roomCode: string, playerName: string, keepalive 
   return (await res.json()) as RoomResponse;
 }
 
-export async function updateReady(roomCode: string, playerName: boolean, ready: boolean) {
+export async function updateReady(roomCode: string, playerName: string, ready: boolean) {
   const res = await fetch(`${API_URL}/rooms/${roomCode}/ready`, {
     method: 'PATCH',
     headers: { 'Content-Type': 'application/json' },
