@@ -7,89 +7,58 @@ const { generatePrompts, DIFFICULTIES } = require('./ai/promptGenerator');
 const { MEDIUM_PROMPTS } = require('./data/promptBank');
 const { drawPrompt, MAX_PROMPT_LENGTH } = require('./ai/drawer');
 const { MAX_BOTS, nextBotName, botPrompt, botGuess, botRating } = require('./ai/bots');
+const { generatePrompt, generateGuess } = require('./ai/guesser');
 
-const app = express();
-const server = http.createServer(app);
+const app = express()
+const server = http.createServer(app)
 const io = new Server(server, {
   cors: {
     origin: ['http://localhost:5173', 'http://localhost:5137'],
     methods: ['GET', 'POST'],
   },
-});
+})
 
-const PORT = process.env.PORT || 3000;
-const MAX_ROUNDS = 4;
-const MAX_PLAYERS = 8;
-const DRAW_TIME_OPTIONS = [30, 45, 60, 90, 120, 150, 180, 240, 300, 360];
-const ROUND_OPTIONS = [1, 2, 3, 4, 5, 6, 7, 8];
+const PORT = process.env.PORT || 3000
+const MAX_ROUNDS = 4
+const MAX_PLAYERS = 8
+const DRAW_TIME_OPTIONS = [30, 45, 60, 90, 120, 150, 180, 240, 300, 360]
+const ROUND_OPTIONS = [1, 2, 3, 4, 5, 6, 7, 8]
 
-/** Env override — lets a demo or test run through a phase without waiting a full minute. */
 function phaseSeconds(envName, fallback) {
-  const parsed = Number(process.env[envName]);
-  return Number.isFinite(parsed) && parsed > 0 ? parsed : fallback;
+  const parsed = Number(process.env[envName])
+  return Number.isFinite(parsed) && parsed > 0 ? parsed : fallback
 }
 
-/**
- * Server-authoritative time limit, in seconds, for each timed phase.
- * Untimed phases are host-paced.
- */
 const PHASE_DURATIONS = {
   prompt: phaseSeconds('PROMPT_SECONDS', 60),
   draw: phaseSeconds('DRAW_SECONDS', 60),
   guess: phaseSeconds('GUESS_SECONDS', 60),
   rating: phaseSeconds('RATING_SECONDS', 60),
-};
+}
 
-/**
- * Extra time the server waits past phaseEndsAt before forcing the advance,
- * so a client that auto-submits exactly on the deadline still wins the race.
- */
-const PHASE_GRACE_MS = 1500;
+const PHASE_GRACE_MS = 1500
 
-/**
- * Classic:
- * prompt -> draw -> guess -> reveal
- *
- * Leaderboard:
- * prompt -> draw -> rating -> ratingReveal -> leaderboard
- */
 const NEXT_PHASE = {
   prompt: 'draw',
   draw: 'guess',
   guess: 'reveal',
   rating: 'ratingReveal',
-};
+}
 
 const PHASE_BUCKET = {
   prompt: 'prompts',
   draw: 'drawings',
   guess: 'guesses',
   rating: 'ratings',
-};
+}
 
-/**
- * Handed to players who run out of time in the `prompt` phase so the drawing
- * phase always has something to draw — the last resort when no AI-generated
- * prompt is waiting in `promptStash`. Lives in `data/promptBank.js`, which is
- * deliberately duplicated rather than shared with `client/src/data/prompts.ts`:
- * the server is plain CommonJS and must not import client code.
- */
-const FALLBACK_PROMPTS = MEDIUM_PROMPTS;
+const FALLBACK_PROMPTS = MEDIUM_PROMPTS
 
-/** roomCode → Timeout. Kept out of the room object so rooms stay JSON-serialisable. */
-const phaseTimers = {};
-
-/**
- * roomCode → { id, prompts } — AI prompts generated when a prompt phase opens,
- * ready for any player who runs out of time. Generated up front so the deadline
- * handler stays synchronous and never waits on the network.
- */
-const promptStash = {};
-let promptStashSeq = 0;
-
-/** roomCode → prompts used in earlier rounds, so generated prompts don't repeat. */
-const promptHistory = {};
-const PROMPT_HISTORY_LIMIT = 100;
+const phaseTimers = {}
+const promptStash = {}
+let promptStashSeq = 0
+const promptHistory = {}
+const PROMPT_HISTORY_LIMIT = 100
 
 /**
  * roomCode -> counter bumped on every phase change. A bot turn remembers the
@@ -97,30 +66,21 @@ const PROMPT_HISTORY_LIMIT = 100;
  * even when the room has come back round to the same phase name.
  */
 const phaseSeq = {};
-
-/**
- * A player whose client hasn't polled in this long is treated as gone.
- */
 const PLAYER_TIMEOUT_MS = (() => {
-  const parsed = Number(process.env.PLAYER_TIMEOUT_SECONDS);
-  return Number.isFinite(parsed) && parsed > 0 ? parsed * 1000 : 30000;
-})();
+  const parsed = Number(process.env.PLAYER_TIMEOUT_SECONDS)
+  return Number.isFinite(parsed) && parsed > 0 ? parsed * 1000 : 30000
+})()
 
-/** How often stale players are swept out of every room. */
-const PRESENCE_SWEEP_MS = 3000;
+const PRESENCE_SWEEP_MS = 3000
+const EMPTY_ROOM_GRACE_MS = 60000
 
-/** How long an emptied room is kept before it's dropped from memory. */
-const EMPTY_ROOM_GRACE_MS = 60000;
-
-app.use(cors());
+app.use(cors())
+app.use(express.json({ limit: '10mb' }))
 
 // Render (and most hosts) sit one proxy in front of the server. Trusting that
 // hop makes `req.ip` the player's address rather than the proxy's, so the
 // `/ai/draw` throttle is per player instead of global.
 app.set('trust proxy', 1);
-
-// PNG data URLs from the drawing canvas can be a few hundred KB; default is 100KB.
-app.use(express.json({ limit: '10mb' }));
 
 const rooms = {};
 
@@ -128,7 +88,7 @@ const rooms = {};
 const emptySince = {};
 
 function generateRoomCode() {
-  return Math.random().toString(36).substring(2, 8).toUpperCase();
+  return Math.random().toString(36).substring(2, 8).toUpperCase()
 }
 
 function makePlayer(name, isHost, joinedMidRound = false, isBot = false) {
@@ -142,53 +102,40 @@ function makePlayer(name, isHost, joinedMidRound = false, isBot = false) {
     joinedMidRound,
     joinedAt: Date.now(),
     lastSeen: Date.now(),
-  };
-}
-
-/**
- * The players a phase is allowed to wait on.
- *
- * Players who joined during an active round sit that round out and become
- * participants when the next round starts.
- */
-function activePlayers(room) {
-  return room.players.filter((p) => !p.joinedMidRound);
-}
-
-function clearPhaseTimer(roomCode) {
-  const timer = phaseTimers[roomCode];
-  if (timer) {
-    clearTimeout(timer);
-    delete phaseTimers[roomCode];
   }
 }
 
-/**
- * Move a room into a phase, stamp its deadline and arm the forced advance.
- *
- * Every phase transition goes through this function.
- */
+function activePlayers(room) {
+  return room.players.filter((p) => !p.joinedMidRound)
+}
+
+function clearPhaseTimer(roomCode) {
+  const timer = phaseTimers[roomCode]
+  if (timer) {
+    clearTimeout(timer)
+    delete phaseTimers[roomCode]
+  }
+}
+
 function setPhase(room, phase) {
-  clearPhaseTimer(room.code);
+  clearPhaseTimer(room.code)
+  room.phase = phase
 
-  room.phase = phase;
   phaseSeq[room.code] = (phaseSeq[room.code] || 0) + 1;
-
-  if (phase === 'prompt') stashPromptsFor(room);
-  if (phase === 'draw') recordPromptHistory(room);
+  if (phase === 'prompt' && !room.aiMode) stashPromptsFor(room)
+  if (phase === 'draw') recordPromptHistory(room)
 
   const duration =
     phase === 'draw' && !process.env.DRAW_SECONDS
       ? room.drawTimeSeconds || PHASE_DURATIONS.draw
-      : PHASE_DURATIONS[phase];
+      : PHASE_DURATIONS[phase]
 
   if (!duration) {
-    room.phaseEndsAt = null;
-    return;
+    room.phaseEndsAt = null
+    return
   }
 
-  room.phaseEndsAt = Date.now() + duration * 1000;
-
+  room.phaseEndsAt = Date.now() + duration * 1000
   phaseTimers[room.code] = setTimeout(
     () => expirePhase(room.code, phase),
     duration * 1000 + PHASE_GRACE_MS,
@@ -199,148 +146,66 @@ function setPhase(room, phase) {
   scheduleBotTurns(room);
 }
 
-/**
- * Start generating fallback prompts for a prompt phase that just opened: one per
- * active player, avoiding prompts from earlier rounds. Fire-and-forget — the
- * generator never throws, and a result for a round that has since moved on is
- * discarded via the sequence id.
- */
 function stashPromptsFor(room) {
-  const id = ++promptStashSeq;
-  promptStash[room.code] = { id, prompts: [] };
+  const id = ++promptStashSeq
+  promptStash[room.code] = { id, prompts: [] }
 
   void generatePrompts({
     difficulty: 'medium',
     count: Math.max(1, activePlayers(room).length),
     exclude: promptHistory[room.code] || [],
   }).then(({ prompts }) => {
-    const stash = promptStash[room.code];
-    if (stash && stash.id === id) stash.prompts = prompts;
-  });
+    const stash = promptStash[room.code]
+    if (stash && stash.id === id) stash.prompts = prompts
+  })
 }
 
-/** Remember this round's prompts so the next round's generated ones are new. */
 function recordPromptHistory(room) {
   const used = Object.values(room.prompts || {})
     .filter((p) => typeof p === 'string' && p.trim())
-    .map((p) => p.toLowerCase().trim());
-  const history = [...(promptHistory[room.code] || []), ...used];
-  promptHistory[room.code] = history.slice(-PROMPT_HISTORY_LIMIT);
+    .map((p) => p.toLowerCase().trim())
+  const history = [...(promptHistory[room.code] || []), ...used]
+  promptHistory[room.code] = history.slice(-PROMPT_HISTORY_LIMIT)
 }
 
-/**
- * A prompt for a player who ran out of time: an AI-generated one from the stash
- * when available, otherwise a random static fallback. Skips anything another
- * player already wrote this round.
- */
 function fallbackPromptFor(room) {
   const taken = new Set(
     Object.values(room.prompts || {}).map((p) => String(p).toLowerCase().trim()),
-  );
-  const stash = promptStash[room.code];
+  )
+  const stash = promptStash[room.code]
   if (stash) {
     while (stash.prompts.length > 0) {
-      const next = stash.prompts.shift();
-      if (!taken.has(next)) return next;
+      const next = stash.prompts.shift()
+      if (!taken.has(next)) return next
     }
   }
-  return FALLBACK_PROMPTS[Math.floor(Math.random() * FALLBACK_PROMPTS.length)];
+  return FALLBACK_PROMPTS[Math.floor(Math.random() * FALLBACK_PROMPTS.length)]
 }
 
-/** What a player who never submitted gets recorded as when the deadline passes. */
 function defaultSubmission(phase, room) {
-  if (phase === 'prompt') return fallbackPromptFor(room);
-  // Draw and guess degrade to "nothing submitted" — the reveal screen renders
-  // an empty drawing/guess rather than blocking the round.
-
-  if (phase === 'rating') {
-    return 0;
-  }
-
-  return '';
+  if (phase === 'prompt') return fallbackPromptFor(room)
+  if (phase === 'rating') return 0
+  return ''
 }
 
-/**
- * Create the prompt assignment for the current round.
- *
- * `promptTargets[drawer]` is the name of the player whose prompt that drawer
- * must draw.
- *
- * Every active player receives exactly one other player's prompt.
- * The offset changes each round so players do not repeatedly receive the
- * same prompt source where possible.
- */
 function createPromptTargets(room) {
-  const players = activePlayers(room);
-
-  room.promptTargets = {};
-
-  if (players.length < 2) {
-    return;
-  }
-
-  /*
-   * Offset is always between 1 and players.length - 1, which guarantees
-   * that nobody receives their own prompt.
-   *
-   * Example with three players:
-   *
-   * Alice -> receives Bob's prompt
-   * Bob -> receives Charlie's prompt
-   * Charlie -> receives Alice's prompt
-   */
-  const offset = ((room.round - 1) % (players.length - 1)) + 1;
-
+  const players = activePlayers(room)
+  room.promptTargets = {}
+  if (players.length < 2) return
+  const offset = ((room.round - 1) % (players.length - 1)) + 1
   players.forEach((player, index) => {
-    const promptAuthorIndex = (index + offset) % players.length;
-    room.promptTargets[player.name] = players[promptAuthorIndex].name;
-  });
+    const promptAuthorIndex = (index + offset) % players.length
+    room.promptTargets[player.name] = players[promptAuthorIndex].name
+  })
 }
 
-/**
- * Create the Classic guess assignment for the current round.
- *
- * `guessTargets[guesser]` is the name of the player whose drawing that
- * guesser must guess.
- *
- * The target is deliberately different from:
- *   1. the guesser themselves
- *   2. the player whose prompt the guesser received
- *
- * This prevents a Classic player from guessing the same player's drawing
- * that they gave their prompt to.
- */
 function createGuessTargets(room) {
-  const players = activePlayers(room);
-
-  room.guessTargets = {};
-
-  if (players.length < 3) {
-    return;
-  }
-
-  /*
-   * The prompt assignment uses an offset of at least 1.
-   *
-   * We use the next available offset after the prompt assignment for guesses.
-   * For three players this gives the only valid third player.
-   *
-   * For larger rooms, the offset changes with the round where possible while
-   * still avoiding the prompt recipient and the guesser themselves.
-   */
-  const promptOffset = ((room.round - 1) % (players.length - 1)) + 1;
-
-  let guessOffset = (promptOffset + 1) % players.length;
-
-  if (guessOffset === 0) {
-    guessOffset = 1;
-  }
-
-  /*
-   * With three players, the only valid guess target is two positions away.
-   * For larger rooms, keep searching until the target is neither the player
-   * themselves nor the recipient of their prompt.
-   */
+  const players = activePlayers(room)
+  room.guessTargets = {}
+  if (players.length < 3) return
+  const promptOffset = ((room.round - 1) % (players.length - 1)) + 1
+  let guessOffset = (promptOffset + 1) % players.length
+  if (guessOffset === 0) guessOffset = 1
   players.forEach((player, index) => {
     // Try every offset once. Every player rejects the same two offsets (0 and
     // -promptOffset), so they all settle on the same one and each drawing
@@ -355,128 +220,75 @@ function createGuessTargets(room) {
       const promptRecipient = players[(index - promptOffset + players.length) % players.length];
 
       if (target.name !== player.name && target.name !== promptRecipient.name) {
-        room.guessTargets[player.name] = target.name;
-        return;
+        room.guessTargets[player.name] = target.name
+        return
       }
     }
-  });
+  })
 }
 
-/**
- * Move from the prompt phase to the drawing phase.
- *
- * Prompt assignments are created only after every prompt has been submitted
- * or fallback prompts have been inserted. This means the assignment always
- * uses the players who actually participated in the prompt phase.
- */
 function startDrawPhase(room) {
-  createPromptTargets(room);
-
+  createPromptTargets(room)
   if (room.mode === 'classic') {
-    createGuessTargets(room);
+    createGuessTargets(room)
   } else {
-    room.guessTargets = {};
+    room.guessTargets = {}
   }
-
-  setPhase(room, 'draw');
+  setPhase(room, 'draw')
 }
 
-/**
- * Create the rating assignment for the current round.
- *
- * Every active player rates exactly one other active player's drawing.
- * Every active player receives exactly one rating.
- *
- * The offset changes each round so players are not repeatedly assigned
- * the same target where possible.
- */
 function createRatingTargets(room) {
-  const players = activePlayers(room);
-
-  room.ratingTargets = {};
-
-  if (players.length < 2) {
-    return;
-  }
-
-  /*
-   * Offset is always between 1 and players.length - 1.
-   *
-   * This gives:
-   * 3 players:
-   * round 1 -> next player
-   * round 2 -> player after next
-   *
-   * and works for both even and odd player counts.
-   */
-  const offset = ((room.round - 1) % (players.length - 1)) + 1;
-
+  const players = activePlayers(room)
+  room.ratingTargets = {}
+  if (players.length < 2) return
+  const offset = ((room.round - 1) % (players.length - 1)) + 1
   players.forEach((player, index) => {
-    const targetIndex = (index + offset) % players.length;
-    room.ratingTargets[player.name] = players[targetIndex].name;
-  });
+    const targetIndex = (index + offset) % players.length
+    room.ratingTargets[player.name] = players[targetIndex].name
+  })
 }
 
-/**
- * Move from drawing to the Leaderboard rating phase.
- *
- * Rating assignments are created here, rather than earlier in the round,
- * so they are based on the players who actually made it to the rating phase.
- */
 function startRatingPhase(room) {
-  createRatingTargets(room);
-  setPhase(room, 'rating');
+  createRatingTargets(room)
+  setPhase(room, 'rating')
 }
 
-/**
- * Deadline handler.
- *
- * Timed phases are automatically completed with default submissions.
- */
 function expirePhase(roomCode, expectedPhase) {
-  delete phaseTimers[roomCode];
+  delete phaseTimers[roomCode]
+  const room = rooms[roomCode]
+  if (!room || room.phase !== expectedPhase) return
 
-  const room = rooms[roomCode];
+  const bucket = PHASE_BUCKET[expectedPhase]
+  if (!bucket) return
 
-  if (!room || room.phase !== expectedPhase) {
-    return;
-  }
-
-  const bucket = PHASE_BUCKET[expectedPhase];
-
-  if (!bucket) {
-    return;
-  }
-
-  room[bucket] = room[bucket] || {};
-
+  room[bucket] = room[bucket] || {}
   for (const player of activePlayers(room)) {
-    const submission = room[bucket][player.name];
-
+    const submission = room[bucket][player.name]
     if (submission === undefined || submission === null) {
-      room[bucket][player.name] = defaultSubmission(expectedPhase, room);
+      room[bucket][player.name] = defaultSubmission(expectedPhase, room)
     }
   }
 
+  const completedPhase = expectedPhase
+
   if (expectedPhase === 'prompt') {
-    startDrawPhase(room);
+    startDrawPhase(room)
   } else if (room.mode === 'leaderboard' && expectedPhase === 'draw') {
-    startRatingPhase(room);
+    startRatingPhase(room)
   } else {
-    setPhase(room, NEXT_PHASE[expectedPhase]);
+    setPhase(room, NEXT_PHASE[expectedPhase])
   }
 
-  io.to(room.code).emit('phase-timeout', {
-    code: room.code,
-    phase: expectedPhase,
-  });
+  if (completedPhase === 'draw' && room.aiMode) {
+    autoSubmitAIGuess(room).catch((err) =>
+      console.error('[AI] Unhandled error in autoSubmitAIGuess:', err),
+    )
+  }
 
-  io.to(room.code).emit('room-update', room);
+  io.to(room.code).emit('phase-timeout', { code: room.code, phase: expectedPhase })
+  io.to(room.code).emit('room-update', room)
 }
 
-/**
- * Hand the room to the longest-standing remaining player.
- */
 function promoteHost(room) {
   // A bot can't press Start or pace the reveal, so it never holds the role.
   const humans = room.players.filter((p) => !p.isBot);
@@ -492,99 +304,104 @@ function promoteHost(room) {
   next.ready = true;
 }
 
-/**
- * Drop a player and everything keyed by their name.
- */
 function removePlayer(room, playerName) {
-  const index = room.players.findIndex((p) => p.name === playerName);
+  const index = room.players.findIndex((p) => p.name === playerName)
+  if (index === -1) return false
 
-  if (index === -1) {
-    return false;
-  }
-
-  const [gone] = room.players.splice(index, 1);
-
-  delete room.prompts[playerName];
-  delete room.drawings[playerName];
-  delete room.guesses[playerName];
-  delete room.ratings[playerName];
+  const [gone] = room.players.splice(index, 1)
+  delete room.prompts[playerName]
+  delete room.drawings[playerName]
+  delete room.guesses[playerName]
+  delete room.ratings[playerName]
 
   if (room.promptTargets) {
-    delete room.promptTargets[playerName];
-
+    delete room.promptTargets[playerName]
     for (const recipient of Object.keys(room.promptTargets)) {
-      if (room.promptTargets[recipient] === playerName) {
-        delete room.promptTargets[recipient];
-      }
+      if (room.promptTargets[recipient] === playerName) delete room.promptTargets[recipient]
     }
   }
 
   if (room.guessTargets) {
-    delete room.guessTargets[playerName];
-
+    delete room.guessTargets[playerName]
     for (const guesser of Object.keys(room.guessTargets)) {
-      if (room.guessTargets[guesser] === playerName) {
-        delete room.guessTargets[guesser];
-      }
+      if (room.guessTargets[guesser] === playerName) delete room.guessTargets[guesser]
     }
   }
 
   if (room.ratingTargets) {
-    delete room.ratingTargets[playerName];
-
+    delete room.ratingTargets[playerName]
     for (const rater of Object.keys(room.ratingTargets)) {
-      if (room.ratingTargets[rater] === playerName) {
-        delete room.ratingTargets[rater];
-      }
+      if (room.ratingTargets[rater] === playerName) delete room.ratingTargets[rater]
     }
   }
 
-  if (gone.isHost) {
-    promoteHost(room);
-  }
-
-  return true;
+  if (gone.isHost) promoteHost(room)
+  return true
 }
 
-/**
- * Advance a timed submission phase when every remaining active player
- * has submitted.
- */
 function advanceIfPhaseComplete(room) {
-  const bucket = PHASE_BUCKET[room.phase];
+  const bucket = PHASE_BUCKET[room.phase]
+  if (!bucket) return false
 
-  if (!bucket) {
-    return false;
-  }
-
-  const active = activePlayers(room);
-
-  if (active.length === 0) {
-    return false;
-  }
+  const active = activePlayers(room)
+  if (active.length === 0) return false
 
   const everyoneSubmitted = active.every(
     (p) => room[bucket][p.name] !== undefined && room[bucket][p.name] !== null,
-  );
+  )
+  if (!everyoneSubmitted) return false
 
-  if (!everyoneSubmitted) {
-    return false;
-  }
+  const completedPhase = room.phase
 
   if (room.phase === 'prompt') {
-    startDrawPhase(room);
+    startDrawPhase(room)
   } else if (room.mode === 'leaderboard' && room.phase === 'draw') {
-    startRatingPhase(room);
+    startRatingPhase(room)
   } else {
-    setPhase(room, NEXT_PHASE[room.phase]);
+    setPhase(room, NEXT_PHASE[room.phase])
   }
 
-  return true;
+  if (completedPhase === 'draw' && room.aiMode) {
+    autoSubmitAIGuess(room).catch((err) =>
+      console.error('[AI] Unhandled error in autoSubmitAIGuess:', err),
+    )
+  }
+
+  return true
 }
 
-/**
- * Shared tail for every departure.
- */
+async function autoSubmitAIGuess(room) {
+  if (room.phase !== 'guess') return
+
+  const humanPlayers = activePlayers(room)
+  if (humanPlayers.length === 0) return
+
+  console.log(`[AI] Generating guesses for ${humanPlayers.length} drawing(s)...`)
+  room.aiGuesses = room.aiGuesses || {}
+
+  await Promise.all(
+    humanPlayers.map(async (player) => {
+      const drawing = room.drawings[player.name]
+      if (!drawing || drawing.length < 1000) {
+        room.aiGuesses[player.name] = 'a blank canvas'
+        console.log(`[AI] ${player.name}'s drawing appears blank`)
+        return
+      }
+      try {
+        const guess = await generateGuess(drawing)
+        console.log(`[AI] Guess for ${player.name}'s drawing: "${guess}"`)
+        room.aiGuesses[player.name] = guess
+      } catch (err) {
+        console.error(`[AI] Guess failed for ${player.name}:`, err.message)
+        room.aiGuesses[player.name] = 'something mysterious'
+      }
+    }),
+  )
+
+  setPhase(room, 'reveal')
+  io.to(room.code).emit('room-update', room)
+}
+
 function afterPlayersLeft(room) {
   // Bots don't keep a room alive on their own — nobody is left to watch them.
   if (!room.players.some((p) => !p.isBot)) {
@@ -592,23 +409,16 @@ function afterPlayersLeft(room) {
   }
 
   if (room.players.length === 0) {
-    emptySince[room.code] = Date.now();
-    return;
+    emptySince[room.code] = Date.now()
+    return
   }
-
-  delete emptySince[room.code];
-
-  advanceIfPhaseComplete(room);
-
-  io.to(room.code).emit('room-update', room);
+  delete emptySince[room.code]
+  advanceIfPhaseComplete(room)
+  io.to(room.code).emit('room-update', room)
 }
 
-/**
- * Presence sweep.
- */
 setInterval(() => {
-  const now = Date.now();
-
+  const now = Date.now()
   for (const code of Object.keys(rooms)) {
     const room = rooms[code];
 
@@ -616,20 +426,14 @@ setInterval(() => {
     const stale = room.players.filter((p) => !p.isBot && now - p.lastSeen > PLAYER_TIMEOUT_MS);
 
     if (stale.length > 0) {
-      for (const p of stale) {
-        removePlayer(room, p.name);
-      }
-
+      for (const p of stale) removePlayer(room, p.name)
       io.to(room.code).emit('players-left', {
         code: room.code,
         names: stale.map((p) => p.name),
-      });
-
-      afterPlayersLeft(room);
+      })
+      afterPlayersLeft(room)
     }
-
-    const emptiedAt = emptySince[code];
-
+    const emptiedAt = emptySince[code]
     if (emptiedAt && now - emptiedAt > EMPTY_ROOM_GRACE_MS) {
       clearPhaseTimer(code);
       delete rooms[code];
@@ -639,7 +443,7 @@ setInterval(() => {
       delete promptHistory[code];
     }
   }
-}, PRESENCE_SWEEP_MS);
+}, PRESENCE_SWEEP_MS)
 
 /**
  * Leaderboard scores for the round, rebuilt from every submitted rating.
@@ -781,8 +585,8 @@ function scheduleBotTurns(room) {
 }
 
 app.get('/', (_req, res) => {
-  res.json({ message: 'Gartic Hands server is running' });
-});
+  res.json({ message: 'Gartic Hands server is running' })
+})
 
 /**
  * Add a bot to a lobby. Host only. Bots join ready, never host, and are
@@ -888,13 +692,10 @@ app.post('/ai/draw', async (req, res) => {
  * `maxRounds` and `drawTimeSeconds` are configurable from the host lobby.
  */
 app.post('/rooms/create', (req, res) => {
-  const { hostName, mode, maxRounds } = req.body;
-
-  const roomCode = generateRoomCode();
-
-  const selectedMode = mode === 'leaderboard' ? 'leaderboard' : 'classic';
-
-  const selectedMaxRounds = ROUND_OPTIONS.includes(maxRounds) ? maxRounds : MAX_ROUNDS;
+  const { hostName, mode, maxRounds, aiMode = false } = req.body
+  const roomCode = generateRoomCode()
+  const selectedMode = mode === 'leaderboard' ? 'leaderboard' : 'classic'
+  const selectedMaxRounds = ROUND_OPTIONS.includes(maxRounds) ? maxRounds : MAX_ROUNDS
 
   rooms[roomCode] = {
     code: roomCode,
@@ -903,276 +704,140 @@ app.post('/rooms/create', (req, res) => {
     mode: selectedMode,
     phase: 'lobby',
     phaseEndsAt: null,
-
     round: 1,
     maxRounds: selectedMaxRounds,
     drawTimeSeconds: 60,
-
+    aiMode,
+    aiPrompt: null,
+    aiGuess: null,
+    aiGuesses: {},
     prompts: {},
     promptTargets: {},
     drawings: {},
-
-    // Classic
     guesses: {},
     guessTargets: {},
-
-    // Leaderboard
     ratings: {},
     ratingTargets: {},
     scores: {},
-
     createdAt: Date.now(),
-  };
+  }
 
-  res.json({
-    success: true,
-    roomCode,
-    room: rooms[roomCode],
-  });
-});
+  res.json({ success: true, roomCode, room: rooms[roomCode] })
+})
 
 app.patch('/rooms/:roomCode/settings', (req, res) => {
-  const roomCode = req.params.roomCode.toUpperCase();
-  const { playerName, drawTimeSeconds, maxRounds } = req.body;
-  const room = rooms[roomCode];
+  const roomCode = req.params.roomCode.toUpperCase()
+  const { playerName, drawTimeSeconds, maxRounds } = req.body
+  const room = rooms[roomCode]
 
-  if (!room) {
-    return res.status(404).json({
-      success: false,
-      message: 'Room not found',
-    });
-  }
+  if (!room) return res.status(404).json({ success: false, message: 'Room not found' })
 
-  const player = room.players.find((p) => p.name === playerName);
-
-  if (!player) {
-    return res.status(404).json({
-      success: false,
-      message: 'Player not found',
-    });
-  }
-
-  if (!player.isHost) {
-    return res.status(403).json({
-      success: false,
-      message: 'Only the host can update room settings.',
-    });
-  }
-
+  const player = room.players.find((p) => p.name === playerName)
+  if (!player) return res.status(404).json({ success: false, message: 'Player not found' })
+  if (!player.isHost) return res.status(403).json({ success: false, message: 'Only the host can update room settings.' })
   if (room.status !== 'waiting' || room.phase !== 'lobby') {
-    return res.status(409).json({
-      success: false,
-      message: 'Room settings cannot be changed after the game starts.',
-    });
+    return res.status(409).json({ success: false, message: 'Room settings cannot be changed after the game starts.' })
   }
 
-  const hasDrawTime = Object.hasOwn(req.body, 'drawTimeSeconds');
-  const hasRounds = Object.hasOwn(req.body, 'maxRounds');
+  const hasDrawTime = Object.hasOwn(req.body, 'drawTimeSeconds')
+  const hasRounds = Object.hasOwn(req.body, 'maxRounds')
 
   if (
     (!hasDrawTime && !hasRounds) ||
     (hasDrawTime && !DRAW_TIME_OPTIONS.includes(drawTimeSeconds)) ||
     (hasRounds && !ROUND_OPTIONS.includes(maxRounds))
   ) {
-    return res.status(400).json({
-      success: false,
-      message: 'Invalid room settings.',
-    });
+    return res.status(400).json({ success: false, message: 'Invalid room settings.' })
   }
 
-  if (hasDrawTime) room.drawTimeSeconds = drawTimeSeconds;
-  if (hasRounds) room.maxRounds = maxRounds;
-  player.lastSeen = Date.now();
+  if (hasDrawTime) room.drawTimeSeconds = drawTimeSeconds
+  if (hasRounds) room.maxRounds = maxRounds
+  player.lastSeen = Date.now()
 
-  io.to(room.code).emit('room-update', room);
-
-  res.json({
-    success: true,
-    room,
-  });
-});
+  io.to(room.code).emit('room-update', room)
+  res.json({ success: true, room })
+})
 
 app.post('/rooms/join', (req, res) => {
-  const { roomCode, playerName } = req.body;
+  const { roomCode, playerName } = req.body
 
   if (!roomCode || !playerName) {
-    return res.status(400).json({
-      success: false,
-      message: 'Room code and player name are required',
-    });
+    return res.status(400).json({ success: false, message: 'Room code and player name are required' })
   }
 
-  const room = rooms[roomCode.toUpperCase()];
-
-  if (!room) {
-    return res.status(404).json({
-      success: false,
-      message: 'Room not found',
-    });
-  }
-
+  const room = rooms[roomCode.toUpperCase()]
+  if (!room) return res.status(404).json({ success: false, message: 'Room not found' })
   if (room.players.length >= MAX_PLAYERS) {
-    return res.status(409).json({
-      success: false,
-      message: `Room is full (${MAX_PLAYERS} players maximum).`,
-    });
+    return res.status(409).json({ success: false, message: `Room is full (${MAX_PLAYERS} players maximum).` })
   }
-
   if (room.players.some((player) => player.name.toUpperCase() === playerName.toUpperCase())) {
-    return res.status(409).json({
-      success: false,
-      message: `Player Name "${playerName}" Invalid: Already Exists in Lobby.`,
-    });
+    return res.status(409).json({ success: false, message: `Player Name "${playerName}" Invalid: Already Exists in Lobby.` })
   }
 
-  // Joining a game that already started is allowed: the player is flagged as a
-  // mid-round joiner so the current round can finish without waiting on them.
-  // The flag is cleared when the next round starts (/start, /restart, /end).
-  room.players.push(makePlayer(playerName, false, room.status === 'started'));
+  room.players.push(makePlayer(playerName, false, room.status === 'started'))
+  delete emptySince[room.code]
 
-  delete emptySince[room.code];
+  if (!room.players.some((p) => p.isHost)) promoteHost(room)
 
-  // A room can be rejoined after it emptied (within the grace window), at which
-  // point nobody holds the host role — and a hostless lobby is deadlocked,
-  // because only the host sees the Start button. Nothing else re-establishes a
-  // host on join, so do it here whenever the role is vacant.
-  if (!room.players.some((p) => p.isHost)) {
-    promoteHost(room);
-  }
-
-  io.to(room.code).emit('room-update', room);
-
-  res.json({
-    success: true,
-    room,
-  });
-});
+  io.to(room.code).emit('room-update', room)
+  res.json({ success: true, room })
+})
 
 app.get('/rooms/:roomCode', (req, res) => {
-  const roomCode = req.params.roomCode.toUpperCase();
-  const room = rooms[roomCode];
+  const roomCode = req.params.roomCode.toUpperCase()
+  const room = rooms[roomCode]
+  if (!room) return res.status(404).json({ success: false, message: 'Room not found' })
 
-  if (!room) {
-    return res.status(404).json({
-      success: false,
-      message: 'Room not found',
-    });
-  }
-
-  // Doubles as the presence heartbeat. Every in-game page already polls this
-  // once per second, so identifying the caller costs no extra request — and a
-  // player who stops polling is exactly the player who has gone.
-  const { playerName } = req.query;
-
+  const { playerName } = req.query
   if (playerName) {
-    const player = room.players.find((p) => p.name === playerName);
-
-    if (player) {
-      player.lastSeen = Date.now();
-    }
+    const player = room.players.find((p) => p.name === playerName)
+    if (player) player.lastSeen = Date.now()
   }
 
-  // `serverTime` lets the client rebase `phaseEndsAt` onto its own clock using
-  // only server-side timestamps, so a skewed browser clock can't shift the
-  // countdown. See `client/src/hooks/usePhaseAdvance.ts`.
-  res.json({
-    success: true,
-    room,
-    serverTime: Date.now(),
-  });
-});
+  res.json({ success: true, room, serverTime: Date.now() })
+})
 
-/**
- * Leave a room.
- */
 app.delete('/rooms/:roomCode/players/:playerName', (req, res) => {
-  const roomCode = req.params.roomCode.toUpperCase();
-  const room = rooms[roomCode];
+  const roomCode = req.params.roomCode.toUpperCase()
+  const room = rooms[roomCode]
+  if (!room) return res.status(404).json({ success: false, message: 'Room not found' })
 
-  if (!room) {
-    return res.status(404).json({
-      success: false,
-      message: 'Room not found',
-    });
-  }
-
-  const { playerName } = req.params;
-
+  const { playerName } = req.params
   if (!removePlayer(room, playerName)) {
-    return res.status(404).json({
-      success: false,
-      message: 'Player not found',
-    });
+    return res.status(404).json({ success: false, message: 'Player not found' })
   }
 
-  io.to(room.code).emit('players-left', {
-    code: room.code,
-    names: [playerName],
-  });
-
-  afterPlayersLeft(room);
-
-  res.json({
-    success: true,
-    room,
-  });
-});
+  io.to(room.code).emit('players-left', { code: room.code, names: [playerName] })
+  afterPlayersLeft(room)
+  res.json({ success: true, room })
+})
 
 app.patch('/rooms/:roomCode/ready', (req, res) => {
-  const roomCode = req.params.roomCode.toUpperCase();
-  const { playerName, ready: newReady } = req.body;
+  const roomCode = req.params.roomCode.toUpperCase()
+  const { playerName, ready: newReady } = req.body
+  const room = rooms[roomCode]
 
-  const room = rooms[roomCode];
+  if (!room) return res.status(404).json({ success: false, message: 'Room not found' })
 
-  if (!room) {
-    return res.status(404).json({
-      success: false,
-      message: 'Room not found',
-    });
-  }
+  const player = room.players.find((p) => p.name === playerName)
+  if (!player) return res.status(404).json({ success: false, message: 'Player not found' })
 
-  const player = room.players.find((p) => p.name === playerName);
-
-  if (!player) {
-    return res.status(404).json({
-      success: false,
-      message: 'Player not found',
-    });
-  }
-
-  player.lastSeen = Date.now();
-
+  player.lastSeen = Date.now()
   if (!player.isHost) {
-    player.ready = newReady;
-    player.status = newReady ? 'ready' : 'waiting';
+    player.ready = newReady
+    player.status = newReady ? 'ready' : 'waiting'
   }
 
-  io.to(room.code).emit('room-update', room);
+  io.to(room.code).emit('room-update', room)
+  res.json({ success: true, room })
+})
 
-  res.json({
-    success: true,
-    room,
-  });
-});
-
-/**
- * Start a game.
- *
- * Classic requires at least 3 players.
- * Leaderboard requires at least 2 players.
- */
 app.patch('/rooms/:roomCode/start', (req, res) => {
-  const roomCode = req.params.roomCode.toUpperCase();
-  const room = rooms[roomCode];
+  const roomCode = req.params.roomCode.toUpperCase()
+  const room = rooms[roomCode]
+  if (!room) return res.status(404).json({ success: false, message: 'Room not found' })
 
-  if (!room) {
-    return res.status(404).json({
-      success: false,
-      message: 'Room not found',
-    });
-  }
-
-  const playerCount = room.players.length;
+  const playerCount = room.players.length
 
   if (room.mode === 'classic' && playerCount < 3) {
     return res.status(409).json({
@@ -1180,7 +845,7 @@ app.patch('/rooms/:roomCode/start', (req, res) => {
       message: 'Classic Mode needs at least 3 players to start.',
       code: 'CLASSIC_MIN_PLAYERS',
       minPlayers: 3,
-    });
+    })
   }
 
   if (room.mode === 'leaderboard' && playerCount < 2) {
@@ -1189,130 +854,140 @@ app.patch('/rooms/:roomCode/start', (req, res) => {
       message: 'Leaderboard Mode needs at least 2 players to start.',
       code: 'LEADERBOARD_MIN_PLAYERS',
       minPlayers: 2,
-    });
+    })
   }
 
-  room.status = 'started';
-  room.round = 1;
-
-  room.prompts = {};
-  room.promptTargets = {};
-  room.drawings = {};
-
-  // Classic
-  room.guesses = {};
-  room.guessTargets = {};
-
-  // Leaderboard
-  room.ratings = {};
-  room.ratingTargets = {};
-  room.scores = {};
+  room.status = 'started'
+  room.round = 1
+  room.prompts = {}
+  room.promptTargets = {}
+  room.drawings = {}
+  room.guesses = {}
+  room.guessTargets = {}
+  room.ratings = {}
+  room.ratingTargets = {}
+  room.scores = {}
+  room.aiPrompt = null
+  room.aiGuess = null
+  room.aiGuesses = {}
 
   for (const p of room.players) {
-    p.joinedMidRound = false;
+    p.joinedMidRound = false
   }
 
-  setPhase(room, 'prompt');
+  setPhase(room, 'prompt')
+  io.to(room.code).emit('game-start', room)
+  io.to(room.code).emit('room-update', room)
 
-  io.to(room.code).emit('game-start', room);
-  io.to(room.code).emit('room-update', room);
+  if (room.aiMode) {
+    const players = activePlayers(room)
+    Promise.all(
+      players.map((player) =>
+        generatePrompt()
+          .then((prompt) => {
+            room.prompts[player.name] = prompt
+            console.log(`[AI] Generated prompt for ${player.name}: "${prompt}"`)
+          })
+          .catch(() => {
+            const fallback = FALLBACK_PROMPTS[Math.floor(Math.random() * FALLBACK_PROMPTS.length)]
+            room.prompts[player.name] = fallback
+            console.log(`[AI] Fallback prompt for ${player.name}: "${fallback}"`)
+          }),
+      ),
+    )
+      .then(() => {
+        const firstPlayer = players[0]
+        if (firstPlayer) room.aiPrompt = room.prompts[firstPlayer.name]
+        advanceIfPhaseComplete(room)
+        io.to(room.code).emit('room-update', room)
+      })
+      .catch((err) => {
+        console.error('[AI] Prompt generation failed:', err.message)
+      })
+  }
 
-  res.json({
-    success: true,
-    room,
-  });
-});
+  res.json({ success: true, room })
+})
 
-/**
- * Start the next round.
- *
- * We deliberately use room.maxRounds instead of the hard-coded MAX_ROUNDS
- * here so future round-selector changes automatically work with Leaderboard.
- */
 app.patch('/rooms/:roomCode/restart', (req, res) => {
-  const roomCode = req.params.roomCode.toUpperCase();
-  const room = rooms[roomCode];
-
-  if (!room) {
-    return res.status(404).json({
-      success: false,
-      message: 'Room not found',
-    });
-  }
+  const roomCode = req.params.roomCode.toUpperCase()
+  const room = rooms[roomCode]
+  if (!room) return res.status(404).json({ success: false, message: 'Room not found' })
 
   if ((room.round || 1) >= room.maxRounds) {
     return res.status(409).json({
       success: false,
       message: `Cannot start round ${(room.round || 1) + 1} — max rounds is ${room.maxRounds}. Use /end to return to the lobby.`,
       maxRounds: room.maxRounds,
-    });
+    })
   }
 
-  room.status = 'started';
+  room.status = 'started'
+  room.prompts = {}
+  room.promptTargets = {}
+  room.drawings = {}
+  room.guesses = {}
+  room.guessTargets = {}
+  room.ratings = {}
+  room.ratingTargets = {}
+  room.round = (room.round || 1) + 1
+  room.aiPrompt = null
+  room.aiGuess = null
+  room.aiGuesses = {}
 
-  room.prompts = {};
-  room.promptTargets = {};
-  room.drawings = {};
-
-  // Classic
-  room.guesses = {};
-  room.guessTargets = {};
-
-  // Leaderboard
-  room.ratings = {};
-  room.ratingTargets = {};
-
-  room.round = (room.round || 1) + 1;
-
-  // A new round starts — mid-round joiners become full participants.
   for (const p of room.players) {
-    p.joinedMidRound = false;
+    p.joinedMidRound = false
   }
 
-  setPhase(room, 'prompt');
+  setPhase(room, 'prompt')
+  io.to(room.code).emit('room-update', room)
 
-  io.to(room.code).emit('room-update', room);
+  if (room.aiMode) {
+    const players = activePlayers(room)
+    Promise.all(
+      players.map((player) =>
+        generatePrompt()
+          .then((prompt) => {
+            room.prompts[player.name] = prompt
+            console.log(`[AI] Generated prompt for ${player.name} round ${room.round}: "${prompt}"`)
+          })
+          .catch(() => {
+            const fallback = FALLBACK_PROMPTS[Math.floor(Math.random() * FALLBACK_PROMPTS.length)]
+            room.prompts[player.name] = fallback
+          }),
+      ),
+    )
+      .then(() => {
+        const firstPlayer = players[0]
+        if (firstPlayer) room.aiPrompt = room.prompts[firstPlayer.name]
+        advanceIfPhaseComplete(room)
+        io.to(room.code).emit('room-update', room)
+      })
+      .catch((err) => {
+        console.error('[AI] Prompt generation failed:', err.message)
+      })
+  }
 
-  res.json({
-    success: true,
-    room,
-    maxRounds: room.maxRounds,
-  });
-});
+  res.json({ success: true, room, maxRounds: room.maxRounds })
+})
 
-/**
- * End the current game and return to the lobby.
- *
- * Scores are cleared because this starts a fresh game.
- */
 app.patch('/rooms/:roomCode/end', (req, res) => {
-  const roomCode = req.params.roomCode.toUpperCase();
-  const room = rooms[roomCode];
+  const roomCode = req.params.roomCode.toUpperCase()
+  const room = rooms[roomCode]
+  if (!room) return res.status(404).json({ success: false, message: 'Room not found' })
 
-  if (!room) {
-    return res.status(404).json({
-      success: false,
-      message: 'Room not found',
-    });
-  }
+  room.status = 'waiting'
+  room.round = 1
+  room.prompts = {}
+  room.promptTargets = {}
+  room.drawings = {}
+  room.guesses = {}
+  room.guessTargets = {}
+  room.ratings = {}
+  room.ratingTargets = {}
+  room.scores = {}
 
-  room.status = 'waiting';
-  room.round = 1;
-
-  room.prompts = {};
-  room.promptTargets = {};
-  room.drawings = {};
-
-  // Classic
-  room.guesses = {};
-  room.guessTargets = {};
-
-  // Leaderboard
-  room.ratings = {};
-  room.ratingTargets = {};
-  room.scores = {};
-
-  setPhase(room, 'lobby');
+  setPhase(room, 'lobby')
 
   for (const p of room.players) {
     p.joinedMidRound = false;
@@ -1324,383 +999,184 @@ app.patch('/rooms/:roomCode/end', (req, res) => {
     }
   }
 
-  io.to(room.code).emit('room-update', room);
+  io.to(room.code).emit('room-update', room)
+  res.json({ success: true, room })
+})
 
-  res.json({
-    success: true,
-    room,
-  });
-});
-
-/**
- * Move a Leaderboard room from the rating reveal to its leaderboard page.
- *
- * The rating reveal is deliberately untimed so players can see their results
- * before the host moves everyone to the leaderboard.
- */
 app.patch('/rooms/:roomCode/rating-reveal', (req, res) => {
-  const roomCode = req.params.roomCode.toUpperCase();
-  const room = rooms[roomCode];
-
-  if (!room) {
-    return res.status(404).json({
-      success: false,
-      message: 'Room not found',
-    });
-  }
+  const roomCode = req.params.roomCode.toUpperCase()
+  const room = rooms[roomCode]
+  if (!room) return res.status(404).json({ success: false, message: 'Room not found' })
 
   if (room.mode !== 'leaderboard' || room.phase !== 'ratingReveal') {
-    return res.status(409).json({
-      success: false,
-      message: `Cannot show leaderboard during '${room.phase}' phase`,
-    });
+    return res.status(409).json({ success: false, message: `Cannot show leaderboard during '${room.phase}' phase` })
   }
 
-  setPhase(room, 'leaderboard');
+  setPhase(room, 'leaderboard')
+  io.to(room.code).emit('room-update', room)
+  res.json({ success: true, room })
+})
 
-  io.to(room.code).emit('room-update', room);
-
-  res.json({
-    success: true,
-    room,
-  });
-});
-
-/**
- * Shared body of submission endpoints.
- */
 function submitForPhase(roomCode, playerName, value, expectedPhase, validate, onAccepted) {
-  const room = rooms[roomCode];
+  const room = rooms[roomCode]
+  if (!room) return { error: { status: 404, body: { success: false, message: 'Room not found' } } }
 
-  if (!room) {
-    return {
-      error: {
-        status: 404,
-        body: {
-          success: false,
-          message: 'Room not found',
-        },
-      },
-    };
-  }
-
-  const player = room.players.find((p) => p.name === playerName);
-
-  if (!player) {
-    return {
-      error: {
-        status: 404,
-        body: {
-          success: false,
-          message: 'Player not found',
-        },
-      },
-    };
-  }
+  const player = room.players.find((p) => p.name === playerName)
+  if (!player) return { error: { status: 404, body: { success: false, message: 'Player not found' } } }
 
   if (room.phase !== expectedPhase) {
-    return {
-      error: {
-        status: 409,
-        body: {
-          success: false,
-          message: `Cannot submit during '${room.phase}' phase`,
-        },
-      },
-    };
+    return { error: { status: 409, body: { success: false, message: `Cannot submit during '${room.phase}' phase` } } }
   }
 
   if (player.joinedMidRound) {
-    return {
-      error: {
-        status: 409,
-        body: {
-          success: false,
-          message: 'You joined mid-round — you can play from the next round',
-        },
-      },
-    };
+    return { error: { status: 409, body: { success: false, message: 'You joined mid-round — you can play from the next round' } } }
   }
 
   if (validate && !validate(value)) {
-    return {
-      error: {
-        status: 400,
-        body: {
-          success: false,
-          message: 'Invalid submission',
-        },
-      },
-    };
+    return { error: { status: 400, body: { success: false, message: 'Invalid submission' } } }
   }
 
-  const bucket = PHASE_BUCKET[expectedPhase];
+  const bucket = PHASE_BUCKET[expectedPhase]
+  room[bucket] = room[bucket] || {}
+  room[bucket][playerName] = value
+  player.lastSeen = Date.now()
 
-  room[bucket] = room[bucket] || {};
-  room[bucket][playerName] = value;
+  if (onAccepted) onAccepted(room, player)
 
-  player.lastSeen = Date.now();
-
-  if (onAccepted) {
-    onAccepted(room, player);
-  }
-
-  // Everyone active beat the clock — advance early; `advanceIfPhaseComplete`
-  // counts only active players (mid-round joiners don't owe content this
-  // round) and `setPhase` inside re-arms the next deadline (or clears it when
-  // the next phase is untimed).
-  advanceIfPhaseComplete(room);
-
-  io.to(room.code).emit('room-update', room);
-
-  return {
-    room,
-  };
+  advanceIfPhaseComplete(room)
+  io.to(room.code).emit('room-update', room)
+  return { room }
 }
 
 app.post('/rooms/:roomCode/prompts', (req, res) => {
-  const roomCode = req.params.roomCode.toUpperCase();
-  const { playerName, prompt } = req.body;
+  const roomCode = req.params.roomCode.toUpperCase()
+  const { playerName, prompt } = req.body
+  const trimmed = (prompt || '').trim()
 
-  const trimmed = (prompt || '').trim();
-
-  const result = submitForPhase(
-    roomCode,
-    playerName,
-    trimmed,
-    'prompt',
-    (v) => typeof v === 'string' && v.length > 0,
-  );
-
-  if (result.error) {
-    return res.status(result.error.status).json(result.error.body);
-  }
-
-  res.json({
-    success: true,
-    room: result.room,
-  });
-});
+  const result = submitForPhase(roomCode, playerName, trimmed, 'prompt', (v) => typeof v === 'string' && v.length > 0)
+  if (result.error) return res.status(result.error.status).json(result.error.body)
+  res.json({ success: true, room: result.room })
+})
 
 app.post('/rooms/:roomCode/drawings', (req, res) => {
-  const roomCode = req.params.roomCode.toUpperCase();
-  const { playerName, dataUrl } = req.body;
+  const roomCode = req.params.roomCode.toUpperCase()
+  const { playerName, dataUrl } = req.body
 
-  const result = submitForPhase(
-    roomCode,
-    playerName,
-    dataUrl || '',
-    'draw',
-    (v) => typeof v === 'string' && v.startsWith('data:image/'),
-  );
+  const result = submitForPhase(roomCode, playerName, dataUrl || '', 'draw', (v) => typeof v === 'string' && v.startsWith('data:image/'))
+  if (result.error) return res.status(result.error.status).json(result.error.body)
+  res.json({ success: true, room: result.room })
+})
 
-  if (result.error) {
-    return res.status(result.error.status).json(result.error.body);
-  }
-
-  res.json({
-    success: true,
-    room: result.room,
-  });
-});
-
-/**
- * Classic guess submission.
- *
- * The target is assigned by the server at the start of the draw phase.
- * The client cannot choose a different drawing to guess.
- */
 app.post('/rooms/:roomCode/guesses', (req, res) => {
-  const roomCode = req.params.roomCode.toUpperCase();
-  const { playerName, guess } = req.body;
+  const roomCode = req.params.roomCode.toUpperCase()
+  const { playerName, guess } = req.body
+  const trimmed = (guess || '').trim()
+  const room = rooms[roomCode]
 
-  const trimmed = (guess || '').trim();
+  if (!room) return res.status(404).json({ success: false, message: 'Room not found' })
 
-  const room = rooms[roomCode];
+  const target = room.guessTargets?.[playerName]
+  if (!target) return res.status(409).json({ success: false, message: 'No drawing has been assigned to this player.' })
 
-  if (!room) {
-    return res.status(404).json({
-      success: false,
-      message: 'Room not found',
-    });
-  }
-
-  const target = room.guessTargets?.[playerName];
-
-  if (!target) {
-    return res.status(409).json({
-      success: false,
-      message: 'No drawing has been assigned to this player.',
-    });
-  }
-
-  const result = submitForPhase(
-    roomCode,
-    playerName,
-    trimmed,
-    'guess',
-    (v) => typeof v === 'string',
+  const result = submitForPhase(roomCode, playerName, trimmed, 'guess', (v) => typeof v === 'string',
     (room, player) => {
-      room.guessTargets = room.guessTargets || {};
-      room.guessTargets[player.name] = target;
+      room.guessTargets = room.guessTargets || {}
+      room.guessTargets[player.name] = target
     },
-  );
+  )
 
-  if (result.error) return res.status(result.error.status).json(result.error.body);
-  res.json({ success: true, room: result.room });
-});
+  if (result.error) return res.status(result.error.status).json(result.error.body)
+  res.json({ success: true, room: result.room })
+})
 
-/**
- * Per-IP request budget for the AI endpoints. The provider's free tier is shared
- * by everyone on this server, so one noisy client mustn't burn it. Over budget
- * isn't an error: the generator is simply told to skip the model.
- */
-const AI_RATE_LIMIT = { windowMs: 60000, max: 20 };
-const aiRequestLog = {};
+const AI_RATE_LIMIT = { windowMs: 60000, max: 20 }
+const aiRequestLog = {}
 
 function withinAiBudget(ip) {
-  const now = Date.now();
-  const entry = aiRequestLog[ip];
+  const now = Date.now()
+  const entry = aiRequestLog[ip]
   if (!entry || now - entry.windowStart > AI_RATE_LIMIT.windowMs) {
-    aiRequestLog[ip] = { windowStart: now, count: 1 };
-    return true;
+    aiRequestLog[ip] = { windowStart: now, count: 1 }
+    return true
   }
-  entry.count += 1;
-  return entry.count <= AI_RATE_LIMIT.max;
+  entry.count += 1
+  return entry.count <= AI_RATE_LIMIT.max
 }
 
-// Forget old rate-limit windows so the log doesn't grow forever.
 setInterval(() => {
-  const now = Date.now();
+  const now = Date.now()
   for (const ip of Object.keys(aiRequestLog)) {
-    if (now - aiRequestLog[ip].windowStart > AI_RATE_LIMIT.windowMs) delete aiRequestLog[ip];
+    if (now - aiRequestLog[ip].windowStart > AI_RATE_LIMIT.windowMs) delete aiRequestLog[ip]
   }
-}, AI_RATE_LIMIT.windowMs).unref();
+}, AI_RATE_LIMIT.windowMs).unref()
 
-/**
- * Generate drawing prompts. Body (all optional):
- *   { theme: string, difficulty: 'easy'|'medium'|'hard', count: 1-20, exclude: string[] }
- * Always 200 with `count` prompts; `source` says whether they came from the
- * model ('ai'), the static bank ('fallback'), or both ('mixed').
- */
 app.post('/ai/prompts', async (req, res) => {
-  const body = req.body || {};
-  const { theme, count, exclude } = body;
-  const difficulty = DIFFICULTIES.includes(body.difficulty) ? body.difficulty : 'easy';
-  const excludeList = Array.isArray(exclude) ? exclude.slice(-200) : [];
+  const body = req.body || {}
+  const { theme, count, exclude } = body
+  const difficulty = DIFFICULTIES.includes(body.difficulty) ? body.difficulty : 'easy'
+  const excludeList = Array.isArray(exclude) ? exclude.slice(-200) : []
 
-  const options = { theme, difficulty, count, exclude: excludeList };
+  const options = { theme, difficulty, count, exclude: excludeList }
   const result = withinAiBudget(req.ip)
     ? await generatePrompts(options)
-    : await generatePrompts({ ...options, forceFallback: true });
+    : await generatePrompts({ ...options, forceFallback: true })
 
-  res.json({ success: true, ...result });
-});
+  res.json({ success: true, ...result })
+})
 
-/**
- * Leaderboard rating submission.
- *
- * Each player may only rate the drawing assigned to them by the server.
- */
 app.post('/rooms/:roomCode/ratings', (req, res) => {
-  const roomCode = req.params.roomCode.toUpperCase();
-  const { playerName, rating } = req.body;
+  const roomCode = req.params.roomCode.toUpperCase()
+  const { playerName, rating } = req.body
+  const numericRating = Number(rating)
+  const room = rooms[roomCode]
 
-  const numericRating = Number(rating);
+  if (!room) return res.status(404).json({ success: false, message: 'Room not found' })
+  if (room.mode !== 'leaderboard') return res.status(409).json({ success: false, message: 'Ratings are only available in Leaderboard Mode.' })
 
-  const room = rooms[roomCode];
+  const target = room.ratingTargets?.[playerName]
+  if (!target) return res.status(409).json({ success: false, message: 'No drawing has been assigned to this player.' })
 
-  if (!room) {
-    return res.status(404).json({
-      success: false,
-      message: 'Room not found',
-    });
-  }
-
-  if (room.mode !== 'leaderboard') {
-    return res.status(409).json({
-      success: false,
-      message: 'Ratings are only available in Leaderboard Mode.',
-    });
-  }
-
-  const target = room.ratingTargets?.[playerName];
-
-  if (!target) {
-    return res.status(409).json({
-      success: false,
-      message: 'No drawing has been assigned to this player.',
-    });
-  }
-
-  /*
-   * submitForPhase validates the player, phase and mid-round status.
-   * The target itself is stored by the server and is never accepted from
-   * the client, preventing a client from rating a different drawing.
-   */
-  const result = submitForPhase(
-    roomCode,
-    playerName,
-    numericRating,
-    'rating',
+  const result = submitForPhase(roomCode, playerName, numericRating, 'rating',
     (v) => Number.isInteger(v) && v >= 0 && v <= 100,
     recalculateScores,
   );
 
-  if (result.error) {
-    return res.status(result.error.status).json(result.error.body);
-  }
-
-  /*
-   * The shared phase-completion helper moves us to ratingReveal once
-   * everyone has submitted.
-   */
-  res.json({
-    success: true,
-    room: result.room,
-  });
-});
+  if (result.error) return res.status(result.error.status).json(result.error.body)
+  res.json({ success: true, room: result.room })
+})
 
 io.on('connection', (socket) => {
-  console.log('Socket connected:', socket.id);
+  console.log('Socket connected:', socket.id)
 
   socket.on('room-subscribe', (roomCode) => {
-    if (!roomCode) {
-      return;
-    }
-
-    const code = roomCode.toUpperCase();
-
-    socket.join(code);
-
-    const room = rooms[code];
-
-    if (room) {
-      socket.emit('room-update', room);
-    }
-  });
+    if (!roomCode) return
+    const code = roomCode.toUpperCase()
+    socket.join(code)
+    const room = rooms[code]
+    if (room) socket.emit('room-update', room)
+  })
 
   socket.on('hand-tracking-data', (data) => {
     if (data && data.roomCode) {
-      socket.to(data.roomCode.toUpperCase()).emit('hand-tracking-update', data);
+      socket.to(data.roomCode.toUpperCase()).emit('hand-tracking-update', data)
     } else {
-      socket.broadcast.emit('hand-tracking-update', data);
+      socket.broadcast.emit('hand-tracking-update', data)
     }
-  });
+  })
 
   socket.on('drawing-event', (data) => {
     if (data && data.roomCode) {
-      socket.to(data.roomCode.toUpperCase()).emit('drawing-update', data);
+      socket.to(data.roomCode.toUpperCase()).emit('drawing-update', data)
     } else {
-      socket.broadcast.emit('drawing-update', data);
+      socket.broadcast.emit('drawing-update', data)
     }
-  });
+  })
 
   socket.on('disconnect', () => {
-    console.log('Socket disconnected:', socket.id);
-  });
-});
+    console.log('Socket disconnected:', socket.id)
+  })
+})
 
 server.listen(PORT, () => {
-  console.log(`Gartic Hands server listening on http://localhost:${PORT}`);
-});
+  console.log(`Gartic Hands server listening on http://localhost:${PORT}`)
+})

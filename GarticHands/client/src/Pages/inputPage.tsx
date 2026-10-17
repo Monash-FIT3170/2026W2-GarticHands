@@ -1,14 +1,13 @@
 import { useEffect, useState } from 'react';
 import { useLocation, useNavigate } from 'react-router-dom';
-import { Button, RoundHeader, CountdownTimer } from '../components/ui';
-import { submitPrompt, PhaseConflictStatus } from '../api/room';
+import { Card, Button, RoundHeader, CountdownTimer } from '../components/ui';
+import { submitPrompt, getRoom, PhaseConflictStatus } from '../api/room';
 import { usePhaseAdvance } from '../hooks/usePhaseAdvance';
+import type { DrawLocationState, Room } from '../types/room';
 import { usePromptSuggestions } from '../hooks/usePromptSuggestions';
-import type { DrawLocationState } from '../types/room';
 import BackgroundRays from '../components/ui/BackgroundRays';
 
 const MaxChars = 120;
-/** Shown until the room's server-owned deadline arrives. Real limit: `PHASE_DURATIONS` in `server/index.js`. */
 const TotalTime = 60;
 
 export default function InputPage() {
@@ -21,16 +20,46 @@ export default function InputPage() {
   const [input, setInput] = useState('');
   const [submitted, setSubmitted] = useState(false);
   const [error, setError] = useState('');
+  const [room, setRoomData] = useState<Room | null>(null);
+  const [aiMode, setAiMode] = useState(false);
   const { suggestions, loading: loadingSuggestions, refresh } = usePromptSuggestions();
 
   useEffect(() => {
     if (!roomCode || !playerName) void navigate('/');
   }, [roomCode, playerName, navigate]);
 
-  const { waitingFor, room, secondsLeft } = usePhaseAdvance({
+  // Check if room is in AI Mode and if so, wait for AI prompt
+  useEffect(() => {
+    if (!roomCode) return;
+
+    async function checkRoom() {
+      const data = await getRoom(roomCode as string, playerName);
+      if (!data.success || !data.room) return;
+      setRoomData(data.room);
+
+      if (data.room.aiMode) {
+        setAiMode(true);
+        // AI prompt already submitted by server — navigate to draw
+        if (data.room.phase === 'draw') {
+          void navigate('/draw', { state: { roomCode, playerName } });
+        }
+      }
+    }
+
+    void checkRoom();
+
+    // Poll until AI prompt is ready and phase advances to draw
+    const interval = setInterval(() => {
+      void checkRoom();
+    }, 1000);
+
+    return () => clearInterval(interval);
+  }, [roomCode, playerName, navigate]);
+
+  const { waitingFor, secondsLeft } = usePhaseAdvance({
     roomCode,
     playerName,
-    enabled: submitted,
+    enabled: submitted || aiMode,
     whenPhase: 'draw',
     to: '/draw',
     countBucket: 'prompts',
@@ -61,6 +90,38 @@ export default function InputPage() {
     if (!submitted) void handleSubmit();
   }
 
+  // AI Mode — show waiting screen while AI generates the prompt
+  if (aiMode) {
+    return (
+      <div className="background">
+        <Card variant="glass">
+          <RoundHeader round={room?.round ?? 1} totalRounds={room?.maxRounds ?? 4} />
+          <h1 className="text-3xl">AI Mode</h1>
+          <div className="flex flex-col items-center gap-4 mt-4">
+            <span className="text-5xl animate-bounce">🤖</span>
+            <p className="text-[var(--text-muted)] text-sm text-center">
+              The AI is generating your drawing prompt...
+            </p>
+            {room?.aiPrompt && (
+              <div className="bg-[var(--surface-soft)] border border-[var(--surface-border)] rounded-xl p-4 text-center">
+                <p className="text-xs text-[var(--text-muted)] uppercase tracking-widest mb-1">
+                  Your prompt is
+                </p>
+                <p className="text-xl font-extrabold text-[var(--text-primary)]">
+                  &quot;{room.aiPrompt}&quot;
+                </p>
+              </div>
+            )}
+            <p className="text-xs text-[var(--text-muted)]">
+              {waitingFor > 0 ? 'Heading to drawing phase...' : 'Get ready to draw!'}
+            </p>
+          </div>
+        </Card>
+      </div>
+    );
+  }
+
+  // Classic Mode — normal prompt input
   return (
     <div className="background">
       <BackgroundRays />
