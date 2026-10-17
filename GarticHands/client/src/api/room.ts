@@ -20,11 +20,11 @@ async function withStatus(res: Response): Promise<SubmitResponse> {
   return { ...((await res.json()) as RoomResponse), status: res.status };
 }
 
-export async function createRoom(hostName: string, mode: GameMode = 'classic') {
+export async function createRoom(hostName: string, gameMode: string = 'classic', aiMode = false) {
   const res = await fetch(`${API_URL}/rooms/create`, {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({ hostName, mode }),
+    body: JSON.stringify({ hostName, mode: gameMode, aiMode }),
   });
   return (await res.json()) as RoomResponse;
 }

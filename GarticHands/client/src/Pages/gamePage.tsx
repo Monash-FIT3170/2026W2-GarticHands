@@ -235,14 +235,10 @@ function CardsView({ chains, aiPrompt, aiGuesses }: {
 
   return (
     <div className="space-y-6">
-      {chains.map((chain) => (
-        <div
-          key={chain.drawer.name}
-          className="bg-[var(--surface-soft)] border border-[var(--surface-border)] rounded-xl p-4"
-        >
-          <p className="text-sm text-[var(--text-muted)]">
-            <span className="font-semibold">{chain.drawer.name}</span> drew:{' '}
-            <span className="italic">&quot;{chain.prompt || '(no prompt)'}&quot;</span>
+      {aiPrompt && (
+        <div className="bg-indigo-600/20 border border-indigo-400/40 rounded-xl p-4 text-center">
+          <p className="text-xs text-indigo-300 uppercase tracking-widest mb-1">
+            🤖 AI gave you this prompt
           </p>
           <p className="text-lg font-extrabold text-white">
             &quot;{aiPrompt}&quot;
@@ -251,7 +247,6 @@ function CardsView({ chains, aiPrompt, aiGuesses }: {
       )}
 
       {chains.map((chain) => {
-        // Look up this player's specific AI guess
         const thisAiGuess = aiGuesses?.[chain.drawer.name]
 
         return (

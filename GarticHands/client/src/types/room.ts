@@ -20,51 +20,32 @@ export interface Player {
 
 export type RoomStatus = 'waiting' | 'started';
 
-export type GameMode = 'classic' | 'leaderboard';
+export type RoomPhase = 'lobby' | 'prompt' | 'draw' | 'guess' | 'reveal' | 'rating' | 'ratingReveal' | 'leaderboard';
 
-export type RoomPhase =
-  'lobby' | 'prompt' | 'draw' | 'guess' | 'reveal' | 'rating' | 'ratingReveal' | 'leaderboard';
+export type GameMode = 'classic' | 'leaderboard';
 
 export interface Room {
   code: string;
   players: Player[];
   status: RoomStatus;
-  mode: GameMode;
   phase: RoomPhase;
-  /**
-   * Epoch ms (server clock) at which the current phase auto-advances. `null` for
-   * the untimed phases — `lobby`, `reveal`, and `leaderboard`. Pair it with the
-   * `serverTime` field on `GET /rooms/:code` rather than the browser clock; see
-   * [`../hooks/usePhaseAdvance.ts`](../hooks/usePhaseAdvance.ts).
-   */
+  mode?: GameMode;
   phaseEndsAt: number | null;
   round: number;
   maxRounds: number;
-  /** Host-selected draw time; optional for room payloads from older servers. */
   drawTimeSeconds?: number;
+  aiMode?: boolean;
+  aiPrompt?: string | null;
+  aiGuess?: string | null;
+  aiGuesses?: Record<string, string>;
   prompts: Record<string, string>;
-  /**
-   * Drawer name → prompt author name. The server assigns which player's prompt
-   * each drawer receives at the start of the drawing phase.
-   */
   promptTargets?: Record<string, string>;
   drawings: Record<string, string>;
   guesses: Record<string, string>;
   guessTargets?: Record<string, string>;
-  /**
-   * Rater name → rating target name. The server assigns these targets at the
-   * start of each rating phase so every active player rates exactly one other
-   * player's drawing.
-   */
+  ratings?: Record<string, number>;
   ratingTargets?: Record<string, string>;
-  /**
-   * Rater name → rating given to their assigned player's drawing.
-   */
-  ratings: Record<string, number>;
-  /**
-   * Player name → cumulative leaderboard score across completed rounds.
-   */
-  scores: Record<string, number>;
+  scores?: Record<string, number>;
   createdAt: number;
 }
 
@@ -73,5 +54,5 @@ export interface DrawLocationState {
   playerName?: string;
   room?: Room;
   joinedLate?: boolean;
+  mode?: GameMode;
 }
-

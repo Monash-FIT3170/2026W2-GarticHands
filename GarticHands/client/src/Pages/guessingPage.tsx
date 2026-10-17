@@ -1,9 +1,9 @@
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import { useLocation, useNavigate } from 'react-router-dom';
-import { Button, RoundHeader, CountdownTimer } from '../components/ui';
-import { submitGuess, PhaseConflictStatus } from '../api/room';
+import { Card, Button, RoundHeader, CountdownTimer } from '../components/ui';
+import { getRoom, submitGuess, PhaseConflictStatus } from '../api/room';
 import { usePhaseAdvance } from '../hooks/usePhaseAdvance';
-import type { DrawLocationState } from '../types/room';
+import type { Room, DrawLocationState } from '../types/room';
 import BackgroundRays from '../components/ui/BackgroundRays';
 
 const MaxChars = 120;
@@ -19,6 +19,8 @@ export default function GuessingPage() {
   const [guess, setGuess] = useState('');
   const [submitted, setSubmitted] = useState(false);
   const [error, setError] = useState('');
+  const [room, setRoomData] = useState<Room | null>(null);
+  const [aiMode, setAiMode] = useState(false);
 
   // In AI Mode, poll until the AI submits its guess and phase moves to reveal
   useEffect(() => {
