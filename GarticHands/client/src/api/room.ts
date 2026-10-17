@@ -20,7 +20,7 @@ async function withStatus(res: Response): Promise<SubmitResponse> {
   return { ...((await res.json()) as RoomResponse), status: res.status };
 }
 
-export async function createRoom(hostName: string, gameMode: string = 'classic', aiMode = false) {
+export async function createRoom(hostName: string, gameMode: GameMode = 'classic', aiMode = false) {
   const res = await fetch(`${API_URL}/rooms/create`, {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
@@ -55,7 +55,7 @@ export async function leaveRoom(roomCode: string, playerName: string, keepalive 
   return (await res.json()) as RoomResponse;
 }
 
-export async function updateReady(roomCode: string, playerName: boolean, ready: boolean) {
+export async function updateReady(roomCode: string, playerName: string, ready: boolean) {
   const res = await fetch(`${API_URL}/rooms/${roomCode}/ready`, {
     method: 'PATCH',
     headers: { 'Content-Type': 'application/json' },
@@ -160,4 +160,37 @@ export async function endRoom(roomCode: string) {
     headers: { 'Content-Type': 'application/json' },
   });
   return (await res.json()) as RoomResponse;
+}
+
+/**
+ * Add a bot to the lobby. Host only — the server plays the bot's turns.
+ * Remove a bot with `leaveRoom(roomCode, botName)`, like any other player.
+ */
+export async function addBot(roomCode: string, playerName: string) {
+  const res = await fetch(`${API_URL}/rooms/${roomCode}/bots`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ playerName }),
+  });
+  return (await res.json()) as RoomResponse;
+}
+
+export interface AiDrawingResponse {
+  success: boolean;
+  message?: string;
+  prompt?: string;
+  /** `ai` when the LLM drew it, `template` when the offline fallback did. */
+  source?: 'ai' | 'template';
+  /** Animated SVG data URL, drawn in the same style as the game canvas. */
+  dataUrl?: string;
+}
+
+/** Ask the server to draw `prompt` the way a bot would. */
+export async function aiDraw(prompt: string) {
+  const res = await fetch(`${API_URL}/ai/draw`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ prompt }),
+  });
+  return (await res.json()) as AiDrawingResponse;
 }

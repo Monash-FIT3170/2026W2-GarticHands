@@ -1,9 +1,9 @@
-import { useEffect, useState } from 'react';
+import { useState } from 'react';
 import { useLocation, useNavigate } from 'react-router-dom';
 import { Card, Button, RoundHeader, CountdownTimer } from '../components/ui';
-import { getRoom, submitGuess, PhaseConflictStatus } from '../api/room';
+import { submitGuess, PhaseConflictStatus } from '../api/room';
 import { usePhaseAdvance } from '../hooks/usePhaseAdvance';
-import type { Room, DrawLocationState } from '../types/room';
+import type { DrawLocationState } from '../types/room';
 import BackgroundRays from '../components/ui/BackgroundRays';
 
 const MaxChars = 120;
@@ -19,27 +19,7 @@ export default function GuessingPage() {
   const [guess, setGuess] = useState('');
   const [submitted, setSubmitted] = useState(false);
   const [error, setError] = useState('');
-  const [room, setRoomData] = useState<Room | null>(null);
-  const [aiMode, setAiMode] = useState(false);
-
-  // In AI Mode, poll until the AI submits its guess and phase moves to reveal
-  useEffect(() => {
-    if (!aiMode || !roomCode) return;
-
-    const interval = setInterval(async () => {
-      const data = await getRoom(roomCode, playerName);
-      if (!data.success || !data.room) return;
-      setRoomData(data.room);
-
-      if (data.room.phase === 'reveal') {
-        void navigate('/game', { state: { roomCode, playerName } });
-      }
-    }, 1000);
-
-    return () => clearInterval(interval);
-  }, [aiMode, roomCode, playerName, navigate]);
-
-  const { waitingFor, secondsLeft } = usePhaseAdvance({
+  const { waitingFor, room, secondsLeft } = usePhaseAdvance({
     roomCode,
     playerName,
     enabled: submitted,
@@ -47,6 +27,9 @@ export default function GuessingPage() {
     to: '/game',
     countBucket: 'guesses',
   });
+
+  // AI Mode: the server guesses every drawing, so this page only waits for the reveal.
+  const aiMode = Boolean(room?.aiMode);
 
   const targetName = room && playerName ? room.guessTargets?.[playerName] : undefined;
   const drawnBy = targetName ?? '...';

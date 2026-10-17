@@ -48,6 +48,8 @@ vi.mock('react-router-dom', () => ({
 
 vi.mock('../client/src/api/room', () => ({
   submitPrompt: mockSubmitPrompt,
+  // The page polls the room to detect AI Mode; a non-AI room keeps the normal flow.
+  getRoom: () => Promise.resolve({ success: false }),
   // Real constant re-declared here because the whole module is mocked away:
   // the page compares `data.status === PhaseConflictStatus` on failures.
   PhaseConflictStatus: 409,

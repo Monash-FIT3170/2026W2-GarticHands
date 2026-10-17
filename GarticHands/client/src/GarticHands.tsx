@@ -12,6 +12,7 @@ import RatingReveal from './Pages/ratingRevealPage.tsx';
 import Leaderboard from './Pages/leaderboardPage.tsx';
 import Playground from './Pages/playgroundPage.tsx';
 import Solo from './Pages/soloPage.tsx';
+import HowToPlay from './Pages/howToPlayPage.tsx';
 import { RecordingsProvider } from './state/RecordingsContext.tsx';
 import { SettingsProvider } from './state/SettingsContext.tsx';
 import ExitGameButton from './components/ExitGameButton.tsx';
@@ -35,6 +36,7 @@ export default function GarticHands() {
             <Route path="/leaderboard" element={<Leaderboard />} />
             <Route path="/playground" element={<Playground />} />
             <Route path="/solo" element={<Solo />} />
+            <Route path="/how-to-play" element={<HowToPlay />} />
           </Routes>
           <ExitGameButton />
         </RecordingsProvider>

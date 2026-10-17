@@ -45,6 +45,7 @@ describe('api/room', () => {
     expect(JSON.parse(options?.body ?? '{}')).toEqual({
       hostName: 'Alice',
       mode: 'classic',
+      aiMode: false,
     });
     expect(result).toEqual({ roomCode: 'ABCD' });
   });
