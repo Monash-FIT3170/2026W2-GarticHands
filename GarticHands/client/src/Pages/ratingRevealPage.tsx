@@ -55,7 +55,7 @@ export default function RatingRevealPage() {
 
       setDrawing(playerDrawing);
 
-      const receivedRating: number | undefined = Object.entries(room.ratings).find(
+      const receivedRating: number | undefined = Object.entries(room.ratings ?? {}).find(
         ([name]) => name === currentPlayerName,
       )?.[1];
 
