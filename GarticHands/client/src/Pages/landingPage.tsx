@@ -12,9 +12,7 @@ export default function LandingPage() {
   const canContinue = playerName.trim().length > 0;
 
   function handleModeSelect(mode: GameMode) {
-    if (mode === 'ai') return;
-
-    if (mode === 'classic' || mode === 'leaderboard') {
+    if (mode === 'classic' || mode === 'leaderboard' || mode === 'ai') {
       setExpandedMode((current) => (current === mode ? null : mode));
       return;
     }
@@ -36,6 +34,22 @@ export default function LandingPage() {
       state: {
         playerName: playerName.trim(),
         mode,
+      },
+    });
+  }
+
+  /**
+   * AI Mode: host a room that already has bots in it, so a single player
+   * can start straight away. Classic needs 3 players, Leaderboard 2.
+   */
+  function playWithBots(mode: 'classic' | 'leaderboard') {
+    if (!canContinue) return;
+
+    void navigate('/host', {
+      state: {
+        playerName: playerName.trim(),
+        mode,
+        bots: mode === 'classic' ? 2 : 1,
       },
     });
   }
@@ -273,17 +287,78 @@ export default function LandingPage() {
               <GameModeCard
                 mode="ai"
                 title="AI Mode"
-                description="Play a classic-style drawing game with an AI opponent."
+                description="Play against drawing bots. Write a prompt, watch a bot sketch it, and guess what the bots drew."
                 icon={<AiIcon />}
-                comingSoon
+                expanded={expandedMode === 'ai'}
+                disabled={!canContinue}
                 onClick={() => handleModeSelect('ai')}
-              />
+              >
+                <div className="flex flex-col sm:flex-row gap-3 w-full">
+                  <button
+                    type="button"
+                    onClick={(event) => {
+                      event.stopPropagation();
+                      playWithBots('classic');
+                    }}
+                    disabled={!canContinue}
+                    className="
+                      flex-1
+                      bg-[var(--accent)]
+                      text-[var(--primary)]
+                      rounded-xl
+                      px-4 py-3
+                      font-extrabold
+                      transition-all
+                      hover:-translate-y-0.5
+                      hover:shadow-lg
+                      hover:bg-[var(--accent-hover)]
+                      disabled:opacity-40
+                      disabled:cursor-not-allowed
+                    "
+                  >
+                    Classic vs Bots
+                  </button>
+
+                  <button
+                    type="button"
+                    onClick={(event) => {
+                      event.stopPropagation();
+                      playWithBots('leaderboard');
+                    }}
+                    disabled={!canContinue}
+                    className="
+                      flex-1
+                      bg-white
+                      text-[var(--text-primary)]
+                      border-2 border-[var(--accent-soft)]
+                      rounded-xl
+                      px-4 py-3
+                      font-extrabold
+                      transition-all
+                      hover:-translate-y-0.5
+                      hover:shadow-lg
+                      hover:border-[var(--accent)]
+                      disabled:opacity-40
+                      disabled:cursor-not-allowed
+                    "
+                  >
+                    Leaderboard vs Bot
+                  </button>
+                </div>
+              </GameModeCard>
             </div>
           </section>
         </div>
 
         <p className="text-white/50 text-xs font-medium text-center mt-5">
-          Hover over a mode to learn more.
+          Hover over a mode to learn more.{' '}
+          <button
+            type="button"
+            onClick={() => void navigate('/how-to-play')}
+            className="font-bold text-white/90 underline underline-offset-2 hover:text-white"
+          >
+            New here? See how to play
+          </button>
         </p>
       </div>
     </Page>
@@ -313,9 +388,7 @@ function GameModeCard({
   onClick,
   children,
 }: GameModeCardProps) {
-  const isClassic = mode === 'classic';
-  const isLeaderboard = mode === 'leaderboard';
-  const hasRoomControls = isClassic || isLeaderboard;
+  const hasRoomControls = mode === 'classic' || mode === 'leaderboard' || mode === 'ai';
 
   return (
     <div
