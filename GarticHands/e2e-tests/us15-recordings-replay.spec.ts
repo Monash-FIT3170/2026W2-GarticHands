@@ -17,7 +17,6 @@ test('My Recordings shows a playable replay per round and Next advances between 
     // Host creates the room.
     await hostPage.goto(CLIENT_URL)
     await hostPage.getByPlaceholder('Enter username...').fill('RecorderHost')
-    await hostPage.getByRole('button', { name: /Classic Play with friends/ }).click()
     await hostPage.getByRole('button', { name: 'Host Game', exact: true }).click()
     await expect(hostPage).toHaveURL(`${CLIENT_URL}/host`)
 
@@ -28,7 +27,6 @@ test('My Recordings shows a playable replay per round and Next advances between 
     // Second player joins.
     await playerPage.goto(CLIENT_URL)
     await playerPage.getByPlaceholder('Enter username...').fill('RecorderPlayer2')
-    await playerPage.getByRole('button', { name: /Classic Play with friends/ }).click()
     await playerPage.getByRole('button', { name: 'Join Room', exact: true }).click()
     await playerPage.getByPlaceholder('ABC123').fill(roomCode)
     await playerPage.getByRole('button', { name: 'Join Game' }).click()
@@ -37,7 +35,6 @@ test('My Recordings shows a playable replay per round and Next advances between 
     // Third player joins.
     await thirdPlayerPage.goto(CLIENT_URL)
     await thirdPlayerPage.getByPlaceholder('Enter username...').fill('RecorderPlayer3')
-    await thirdPlayerPage.getByRole('button', { name: /Classic Play with friends/ }).click()
     await thirdPlayerPage.getByRole('button', { name: 'Join Room', exact: true }).click()
     await thirdPlayerPage.getByPlaceholder('ABC123').fill(roomCode)
     await thirdPlayerPage.getByRole('button', { name: 'Join Game' }).click()
