@@ -1,5 +1,4 @@
 import { useState } from 'react';
-import { useNavigate } from 'react-router-dom';
 import {
   DrawingProvider,
   DrawingStage,
@@ -26,7 +25,6 @@ export default function PlaygroundPage() {
 }
 
 function PlaygroundInner() {
-  const navigate = useNavigate();
   const { getDrawingImage } = useDrawing();
   const [mode, setMode] = useDrawingMode();
   const [snapshot, setSnapshot] = useState<string | null>(null);
@@ -52,9 +50,11 @@ function PlaygroundInner() {
           />
 
           <div className="flex justify-center lg:justify-end">
-            <Button variant="secondary" size="sm" onClick={() => void navigate('/')}>
-              Home
-            </Button>
+            <div className="flex items-center gap-1 rounded-full bg-white px-4 py-1.5 text-xs font-bold text-[var(--action)]">
+              <span>Time left:</span>
+
+              <span className="text-base leading-none">∞</span>
+            </div>
           </div>
         </div>
 

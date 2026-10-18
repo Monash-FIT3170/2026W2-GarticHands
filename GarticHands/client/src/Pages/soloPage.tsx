@@ -1,5 +1,4 @@
 import { useState } from 'react';
-import { useNavigate } from 'react-router-dom';
 import {
   DrawingProvider,
   DrawingStage,
@@ -7,11 +6,9 @@ import {
   useDrawing,
   useDrawingMode,
 } from '../drawing';
-import { Card, Button, CountdownTimer } from '../components/ui';
+import { Card, Button } from '../components/ui';
 import BackgroundRays from '../components/ui/BackgroundRays';
 import { usePromptQueue } from '../hooks/usePromptQueue';
-
-const TotalTime = 60;
 
 interface SavedDrawing {
   prompt: string;
@@ -33,12 +30,10 @@ export default function SoloPage() {
 }
 
 function SoloInner() {
-  const navigate = useNavigate();
   const { getDrawingImage, clearDrawing } = useDrawing();
   const [mode, setMode] = useDrawingMode();
   const { prompt, next: nextPrompt } = usePromptQueue();
   const [results, setResults] = useState<SavedDrawing[]>([]);
-  const [timerKey, setTimerKey] = useState(0);
   const [drawingKey, setDrawingKey] = useState(0);
 
   function handleSave() {
@@ -50,7 +45,6 @@ function SoloInner() {
   function handleNext() {
     clearDrawing();
     nextPrompt();
-    setTimerKey((k) => k + 1);
     setDrawingKey((k) => k + 1);
   }
 
@@ -66,7 +60,7 @@ function SoloInner() {
       <Card variant="lobby" className="relative z-10 !max-w-6xl !rounded-[22px] !p-4 md:!p-6">
         <div className="mb-3 flex flex-col items-stretch justify-between gap-3 lg:flex-row lg:items-center">
           <div className="flex justify-center lg:justify-start">
-            <p className="rounds !mb-0">Computer Mode</p>
+            <p className="rounds !mb-0">SOLO</p>
           </div>
 
           <DrawingModePicker
@@ -75,21 +69,12 @@ function SoloInner() {
             className="!m-0 flex justify-center"
           />
 
-          <div className="flex items-center justify-center gap-2 lg:justify-end">
+          <div className="flex justify-center lg:justify-end">
             <div className="flex items-center gap-1 rounded-full bg-white px-4 py-1.5 text-xs font-bold text-[var(--action)]">
               <span>Time left:</span>
 
-              <CountdownTimer
-                key={timerKey}
-                seconds={TotalTime}
-                suffix="s"
-                className="!text-[var(--action)]"
-              />
+              <span className="text-base leading-none">∞</span>
             </div>
-
-            <Button variant="secondary" size="sm" onClick={() => void navigate('/')}>
-              Home
-            </Button>
           </div>
         </div>
 
