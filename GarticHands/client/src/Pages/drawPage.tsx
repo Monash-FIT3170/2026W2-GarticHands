@@ -167,7 +167,7 @@ function DrawPageInner() {
     <div className="background !justify-start">
       <BackgroundRays />
 
-      <Card variant="lobby" className="relative z-10 !max-w-5xl !rounded-[22px] !p-4 md:!p-6">
+      <Card variant="lobby" className="relative z-10 !max-w-6xl !rounded-[22px] !p-4 md:!p-6">
         <div className="mb-3 flex flex-col items-stretch justify-between gap-3 md:flex-row md:items-center">
           <div className="flex justify-center md:justify-start">
             <RoundHeader round={room?.round ?? 1} totalRounds={room?.maxRounds ?? 4} />

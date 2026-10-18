@@ -549,7 +549,7 @@ export function DrawingStage({
           {prompt || 'Your prompt will appear here'}
         </div>
         {media}
-        <div className="flex flex-wrap items-center justify-center gap-4 px-3 py-2 md:gap-4 md:px-4 lg:flex-nowrap">
+        <div className="flex flex-wrap items-center justify-center gap-4 px-3 py-2 md:gap-4 md:px-4 xl:flex-nowrap">
           <DrawingToolPicker
             tool={tool}
             onToolChange={handleToolChange}
