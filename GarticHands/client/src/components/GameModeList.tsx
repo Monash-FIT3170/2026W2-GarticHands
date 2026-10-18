@@ -1,5 +1,6 @@
 import { useState, type ReactNode } from 'react';
 import type { GameMode } from '../types/room';
+import { GAMEMODE_ICONS } from './ui/gamemodes';
 
 interface ModeOption {
   key: string;
@@ -10,7 +11,9 @@ interface ModeOption {
   room?: { mode: GameMode; aiMode: boolean };
 }
 
-const aiIcon = <img src="/gamemode_ai_guess.png" alt="" className="h-16 w-16 object-contain" />;
+function modeIcon(src: string) {
+  return <img src={src} alt="" className="h-16 w-16 object-contain" />;
+}
 
 const MODE_OPTIONS: ModeOption[] = [
   {
@@ -18,7 +21,7 @@ const MODE_OPTIONS: ModeOption[] = [
     title: 'Classic',
     description:
       "Play with friends through a shared drawing challenge. Create prompts, draw what you're given, and guess the results.",
-    icon: <img src="/gamemode_classic.png" alt="" className="h-16 w-16 object-contain" />,
+    icon: modeIcon(GAMEMODE_ICONS.classic),
     room: { mode: 'classic', aiMode: false },
   },
   {
@@ -26,7 +29,7 @@ const MODE_OPTIONS: ModeOption[] = [
     title: 'Showdown',
     description:
       "Compete across multiple rounds. Rate another player's drawing each round and build the highest total score.",
-    icon: <LeaderboardIcon />,
+    icon: modeIcon(GAMEMODE_ICONS.showdown),
     room: { mode: 'leaderboard', aiMode: false },
   },
   {
@@ -34,7 +37,7 @@ const MODE_OPTIONS: ModeOption[] = [
     title: 'AI Classic',
     description:
       'Classic with AI help: AI writes everyone\'s prompts and adds its own guesses. Short on players? Add bots from the player list.',
-    icon: aiIcon,
+    icon: modeIcon(GAMEMODE_ICONS.aiClassic),
     room: { mode: 'classic', aiMode: true },
   },
   {
@@ -42,7 +45,7 @@ const MODE_OPTIONS: ModeOption[] = [
     title: 'AI Showdown',
     description:
       'Showdown with AI help: AI writes everyone\'s prompts and adds its own guesses. Short on players? Add bots from the player list.',
-    icon: aiIcon,
+    icon: modeIcon(GAMEMODE_ICONS.aiShowdown),
     room: { mode: 'leaderboard', aiMode: true },
   },
   {
@@ -50,14 +53,14 @@ const MODE_OPTIONS: ModeOption[] = [
     title: 'Playground',
     description:
       'Draw whatever you want with no time limit. Experiment freely and take a snapshot of your drawing. Leaves this room.',
-    icon: <PlaygroundIcon />,
+    icon: modeIcon(GAMEMODE_ICONS.playground),
   },
   {
     key: 'solo',
     title: 'Solo',
     description:
       'Get an automatically generated prompt and challenge yourself to bring it to life. Leaves this room.',
-    icon: <SoloIcon />,
+    icon: modeIcon(GAMEMODE_ICONS.solo),
   },
 ];
 
@@ -150,7 +153,7 @@ export default function GameModeList({
                   }
                 `}
               >
-                <span className="mb-2 flex h-16 w-16 items-center justify-center transition-transform group-hover:scale-105 [&>svg]:h-16 [&>svg]:w-16">
+                <span className="mb-2 flex h-16 w-16 items-center justify-center transition-transform group-hover:scale-105">
                   {option.icon}
                 </span>
                 <span className="font-extrabold text-[var(--primary)]">{option.title}</span>
@@ -170,147 +173,5 @@ export default function GameModeList({
         </div>
       )}
     </>
-  );
-}
-
-/* -------------------- Icons -------------------- */
-
-function LeaderboardIcon() {
-  return (
-    <svg viewBox="0 0 100 100" className="w-12 h-12" aria-hidden="true">
-      <rect
-        x="18"
-        y="48"
-        width="18"
-        height="34"
-        rx="4"
-        fill="var(--accent-soft)"
-        stroke="var(--primary)"
-        strokeWidth="3"
-      />
-
-      <rect
-        x="41"
-        y="32"
-        width="18"
-        height="50"
-        rx="4"
-        fill="var(--accent)"
-        stroke="var(--primary)"
-        strokeWidth="3"
-      />
-
-      <rect
-        x="64"
-        y="20"
-        width="18"
-        height="62"
-        rx="4"
-        fill="var(--action)"
-        stroke="var(--primary)"
-        strokeWidth="3"
-      />
-
-      <path
-        d="M24 40 L31 33 L39 38 L51 24 L59 29 L72 15"
-        fill="none"
-        stroke="var(--primary)"
-        strokeWidth="5"
-        strokeLinecap="round"
-        strokeLinejoin="round"
-      />
-
-      <path
-        d="M72 15 L70 24 M72 15 L63 17"
-        fill="none"
-        stroke="var(--primary)"
-        strokeWidth="5"
-        strokeLinecap="round"
-      />
-    </svg>
-  );
-}
-
-function PlaygroundIcon() {
-  return (
-    <svg viewBox="0 0 100 100" className="w-12 h-12" aria-hidden="true">
-      <path
-        d="M20 70 L67 23 L79 35 L32 82 L17 84 Z"
-        fill="white"
-        stroke="var(--primary)"
-        strokeWidth="3"
-        strokeLinejoin="round"
-      />
-
-      <path
-        d="M67 23 L75 15 L87 27 L79 35 Z"
-        fill="var(--accent)"
-        stroke="var(--primary)"
-        strokeWidth="3"
-        strokeLinejoin="round"
-      />
-
-      <path d="M17 84 L20 70 L32 82 Z" fill="var(--action)" />
-
-      <path d="M29 66 L41 78" stroke="var(--primary)" strokeWidth="5" />
-
-      <circle cx="29" cy="29" r="8" fill="var(--action)" />
-
-      <path d="M51 14 L54 24 L64 27 L54 30 L51 40 L48 30 L38 27 L48 24 Z" fill="var(--accent)" />
-    </svg>
-  );
-}
-
-function SoloIcon() {
-  return (
-    <svg viewBox="0 0 100 100" className="w-12 h-12" aria-hidden="true">
-      {/* Prompt card */}
-      <rect
-        x="19"
-        y="17"
-        width="62"
-        height="68"
-        rx="10"
-        fill="white"
-        stroke="var(--primary)"
-        strokeWidth="4"
-      />
-
-      {/* Folded corner */}
-      <path
-        d="M62 17 L81 36 L62 36 Z"
-        fill="var(--accent-soft)"
-        stroke="var(--primary)"
-        strokeWidth="3"
-        strokeLinejoin="round"
-      />
-
-      {/* Question mark */}
-      <path
-        d="M39 43
-           C39 34 46 29 53 29
-           C61 29 67 34 67 42
-           C67 48 63 51 58 54
-           C54 56 53 59 53 63"
-        fill="none"
-        stroke="var(--action)"
-        strokeWidth="7"
-        strokeLinecap="round"
-      />
-
-      <circle cx="53" cy="72" r="4" fill="var(--action)" />
-
-      {/* Small sparkle */}
-      <path d="M27 66 L29 72 L35 74 L29 76 L27 82 L25 76 L19 74 L25 72 Z" fill="var(--accent)" />
-
-      {/* Pencil */}
-      <g transform="rotate(-38 70 72)">
-        <rect x="66" y="57" width="10" height="27" rx="2" fill="var(--action)" />
-
-        <polygon points="66,57 76,57 71,49" fill="var(--action-strong)" />
-
-        <polygon points="69,53 73,53 71,49" fill="var(--primary)" />
-      </g>
-    </svg>
   );
 }
