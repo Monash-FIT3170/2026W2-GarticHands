@@ -475,6 +475,8 @@ interface DrawingStageProps {
   onToolChange?: (tool: DrawingTool) => void;
   presentation?: 'standard' | 'game';
   prompt?: string;
+  /** Replaces the "Your prompt is:" banner text, for game-style pages without a prompt. */
+  heading?: ReactNode;
   toolbarActions?: ReactNode;
 }
 
@@ -485,6 +487,7 @@ export function DrawingStage({
   onToolChange,
   presentation = 'standard',
   prompt,
+  heading,
   toolbarActions,
 }: DrawingStageProps) {
   const [internalTool, setInternalTool] = useState<DrawingTool>('draw');
@@ -545,8 +548,12 @@ export function DrawingStage({
     return (
       <div className="overflow-hidden rounded-2xl border-4 border-[var(--page-bg)] bg-[var(--card-bg)] shadow-md">
         <div className="bg-[var(--primary)] px-4 py-3 text-center text-xl font-extrabold text-white md:text-2xl">
-          <span>Your prompt is: </span>
-          {prompt || 'Your prompt will appear here'}
+          {heading ?? (
+            <>
+              <span>Your prompt is: </span>
+              {prompt || 'Your prompt will appear here'}
+            </>
+          )}
         </div>
         {media}
         <div className="flex flex-wrap items-center justify-center gap-4 px-3 py-2 md:gap-4 md:px-4 xl:flex-nowrap">

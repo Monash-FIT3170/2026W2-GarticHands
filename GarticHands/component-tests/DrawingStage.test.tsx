@@ -74,6 +74,15 @@ describe('DrawingStage', () => {
     expect(screen.getByText('a flying cat')).toBeInTheDocument();
   });
 
+  test('shows a custom heading in place of the prompt banner', () => {
+    render(
+      withProvider(<DrawingStage mode="split" presentation="game" heading="MediaPipe Sandbox" />),
+    );
+
+    expect(screen.getByText('MediaPipe Sandbox')).toBeInTheDocument();
+    expect(screen.queryByText('Your prompt is:')).not.toBeInTheDocument();
+  });
+
   test('changes pencil and eraser icon colours with the active tool', () => {
     const { rerender } = render(
       withProvider(<DrawingStage mode="split" presentation="game" tool="draw" />),
