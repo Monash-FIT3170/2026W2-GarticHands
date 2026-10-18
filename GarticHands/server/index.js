@@ -446,7 +446,7 @@ setInterval(() => {
 }, PRESENCE_SWEEP_MS)
 
 /**
- * Leaderboard scores for the round, rebuilt from every submitted rating.
+ * Showdown scores for the round, rebuilt from every submitted rating.
  * Used as the rating submission's `onAccepted` hook, for players and bots.
  */
 function recalculateScores(room) {
@@ -851,7 +851,7 @@ app.patch('/rooms/:roomCode/start', (req, res) => {
   if (room.mode === 'leaderboard' && playerCount < 2) {
     return res.status(409).json({
       success: false,
-      message: 'Leaderboard Mode needs at least 2 players to start.',
+      message: 'Showdown Mode needs at least 2 players to start.',
       code: 'LEADERBOARD_MIN_PLAYERS',
       minPlayers: 2,
     })
@@ -1131,7 +1131,7 @@ app.post('/rooms/:roomCode/ratings', (req, res) => {
   const room = rooms[roomCode]
 
   if (!room) return res.status(404).json({ success: false, message: 'Room not found' })
-  if (room.mode !== 'leaderboard') return res.status(409).json({ success: false, message: 'Ratings are only available in Leaderboard Mode.' })
+  if (room.mode !== 'leaderboard') return res.status(409).json({ success: false, message: 'Ratings are only available in Showdown Mode.' })
 
   const target = room.ratingTargets?.[playerName]
   if (!target) return res.status(409).json({ success: false, message: 'No drawing has been assigned to this player.' })

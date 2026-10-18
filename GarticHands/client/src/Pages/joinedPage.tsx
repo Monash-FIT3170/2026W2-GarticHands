@@ -156,13 +156,13 @@ export default function JoinedPage() {
 
     if (gameMode === 'classic' && players.length < 3) {
       setPopup(
-        'Classic Mode needs at least 3 players. Switch to Leaderboard Mode to play with 2 players.',
+        'Classic Mode needs at least 3 players. Switch to Showdown Mode to play with 2 players.',
       );
       return;
     }
 
     if (gameMode === 'leaderboard' && players.length < 2) {
-      setPopup('Leaderboard Mode needs at least 2 players.');
+      setPopup('Showdown Mode needs at least 2 players.');
       return;
     }
 
@@ -233,7 +233,7 @@ export default function JoinedPage() {
                 )}
 
                 <p className="font-extrabold text-[var(--primary)]">
-                  {isLeaderboard ? 'Leaderboard' : 'Classic'}
+                  {isLeaderboard ? 'Showdown' : 'Classic'}
                 </p>
               </div>
             </div>

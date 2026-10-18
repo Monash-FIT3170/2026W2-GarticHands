@@ -183,7 +183,7 @@ test('classic', async ({ page }) => {
 test('leaderboard', async ({ page }) => {
   await enterName(page, 'Sam');
   await page.getByRole('button', { name: /AI Mode/ }).click();
-  await page.getByRole('button', { name: 'Leaderboard vs Bot', exact: true }).click();
+  await page.getByRole('button', { name: 'Showdown vs Bot', exact: true }).click();
   await expect(page.getByText('PLAYERS 2/8')).toBeVisible({ timeout: 10_000 });
 
   await record(page, 'leaderboard', async () => {

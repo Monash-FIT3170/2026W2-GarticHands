@@ -52,11 +52,11 @@ const SECTIONS: GuideSection[] = [
   },
   {
     id: 'leaderboard',
-    title: 'Leaderboard',
+    title: 'Showdown',
     tagline: 'Draw, rate each other, climb the board. 2–8 players.',
     clip: 'leaderboard',
     clipAlt:
-      'A Leaderboard round: a player draws their prompt, rates another drawing out of 100, and sees the ratings and leaderboard.',
+      'A Showdown round: a player draws their prompt, rates another drawing out of 100, and sees the ratings and leaderboard.',
     steps: [
       'Everyone writes a prompt, then draws the prompt they are handed.',
       'Rate: score another player’s drawing from 0 to 100.',
@@ -72,7 +72,7 @@ const SECTIONS: GuideSection[] = [
     clipAlt:
       'Choosing AI Mode on the home screen opens a lobby that already has two bots in it; the host adds one more bot and starts the game.',
     steps: [
-      'Enter your name, open AI Mode and choose Classic vs Bots or Leaderboard vs Bot.',
+      'Enter your name, open AI Mode and choose Classic vs Bots or Showdown vs Bot.',
       'The lobby opens with bots already seated — press Start Game.',
       'Bots write prompts, sketch simple drawings that are easy to guess, guess your drawings and rate them.',
       'Hosts of any room can also press Add bot in the lobby to fill empty seats (up to 5 bots).',

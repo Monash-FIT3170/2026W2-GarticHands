@@ -40,7 +40,7 @@ export default function LandingPage() {
 
   /**
    * AI Mode: host a room that already has bots in it, so a single player
-   * can start straight away. Classic needs 3 players, Leaderboard 2.
+   * can start straight away. Classic needs 3 players, Showdown 2.
    */
   function playWithBots(mode: 'classic' | 'leaderboard') {
     if (!canContinue) return;
@@ -207,7 +207,7 @@ export default function LandingPage() {
 
               <GameModeCard
                 mode="leaderboard"
-                title="Leaderboard"
+                title="Showdown"
                 description="Compete across multiple rounds. Rate another player's drawing each round and build the highest total score."
                 icon={<LeaderboardIcon />}
                 expanded={expandedMode === 'leaderboard'}
@@ -342,7 +342,7 @@ export default function LandingPage() {
                       disabled:cursor-not-allowed
                     "
                   >
-                    Leaderboard vs Bot
+                    Showdown vs Bot
                   </button>
                 </div>
               </GameModeCard>
