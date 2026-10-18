@@ -22,6 +22,11 @@ export class CanvasLocation {
       case GestureType.PINCH:
         this.drawIcon(point, tool === 'erase' ? '🧽' : '✏️');
         return;
+
+      case GestureType.OPEN_PALM:
+        this.drawIcon(point, '✏️');
+        return;
+
       case GestureType.HAND_PRESENT:
         this.drawPointer(point);
         return;

@@ -14,6 +14,8 @@ interface PlayerListProps {
   variant?: 'lobby' | 'compact';
   /** Fill missing rows up to `padTo` slots with empty-state placeholders. */
   padTo?: number;
+  /** When given, bot rows get a remove button (host lobby only). */
+  onRemoveBot?: (name: string) => void;
 }
 
 /** Player roster — used on both hosting and joined lobbies. */
@@ -22,13 +24,19 @@ export default function PlayerList({
   selfName,
   variant = 'compact',
   padTo,
+  onRemoveBot,
 }: PlayerListProps) {
   if (variant === 'lobby') {
     const empties = Math.max(0, (padTo ?? players.length) - players.length);
     return (
       <div className="space-y-4 max-h-60 overflow-y-auto pr-3">
         {players.map((player, i) => (
-          <LobbyRow key={`p-${i}`} player={player} isSelf={player.name === selfName} />
+          <LobbyRow
+            key={`p-${i}`}
+            player={player}
+            isSelf={player.name === selfName}
+            onRemoveBot={onRemoveBot}
+          />
         ))}
         {Array.from({ length: empties }).map((_, i) => (
           <EmptyLobbyRow key={`e-${i}`} />
@@ -46,7 +54,15 @@ export default function PlayerList({
   );
 }
 
-function LobbyRow({ player, isSelf }: { player: Player; isSelf: boolean }) {
+function LobbyRow({
+  player,
+  isSelf,
+  onRemoveBot,
+}: {
+  player: Player;
+  isSelf: boolean;
+  onRemoveBot?: (name: string) => void;
+}) {
   const borderClass = isSelf ? 'border-[var(--accent)]' : 'border-transparent';
 
   const rowClasses = `flex items-center gap-4 rounded-full px-4 py-3 border-4 shadow-sm bg-[var(--surface)] ${borderClass}`;
@@ -60,13 +76,24 @@ function LobbyRow({ player, isSelf }: { player: Player; isSelf: boolean }) {
 
       <div className="flex-1 min-w-0 text-center">
         <p className={nameClasses}>
+          {player.isBot && <BotMark />}
           {player.name}
           {/* {isSelf ? ' (You)' : ''} */}
         </p>
       </div>
 
-      <div className="w-20 flex-shrink-0 flex items-center justify-end">
+      <div className="w-20 flex-shrink-0 flex items-center justify-end gap-1">
         <Badge tone="lobby" kind={badgeKind(player)} />
+        {player.isBot && onRemoveBot && (
+          <button
+            type="button"
+            onClick={() => onRemoveBot(player.name)}
+            aria-label={`Remove ${player.name}`}
+            className="w-7 h-7 flex-shrink-0 flex items-center justify-center rounded-full bg-[var(--action)] text-white font-bold leading-none hover:bg-[var(--action-strong)]"
+          >
+            ×
+          </button>
+        )}
       </div>
     </div>
   );
@@ -91,6 +118,7 @@ function CompactRow({ player, isSelf }: { player: Player; isSelf: boolean }) {
     <div className="flex items-center space-x-4 p-3 rounded bg-neutral-700 text-white">
       <div className="flex-1">
         <div className="font-semibold">
+          {player.isBot && <BotMark />}
           {player.name}
           {isSelf ? ' (you)' : ''}
         </div>
@@ -98,6 +126,15 @@ function CompactRow({ player, isSelf }: { player: Player; isSelf: boolean }) {
 
       <Badge tone="simple" kind={badgeKind(player)} />
     </div>
+  );
+}
+
+/** Small robot glyph so bots are recognisable at a glance. */
+function BotMark() {
+  return (
+    <span role="img" aria-label="Bot" className="mr-1">
+      🤖
+    </span>
   );
 }
 
