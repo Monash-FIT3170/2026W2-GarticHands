@@ -14,6 +14,8 @@ export interface CanvasHandle {
   onFrame: (landmarks: HandLandmark[] | null, gesture: GestureType) => void;
   /** Returns the draw canvas as a PNG data URL, or null if the canvas is not yet mounted. */
   getImage: () => string | null;
+
+  clear: () => void;
 }
 
 export type DrawingTool = 'draw' | 'erase';
@@ -185,6 +187,28 @@ const Canvas = ({
           next?.tick(point);
         } else {
           state.cursor.clear();
+        }
+      },
+
+      clear() {
+        /** Resets drawing pixels and detaches curser from previous canvas */
+        const drawCanvas = drawCanvasRef.current;
+        const overlayCanvas = overlayCanvasRef.current;
+
+        if (drawCanvas) {
+          drawCanvas.getContext('2d')?.clearRect(0, 0, drawCanvas.width, drawCanvas.height);
+        }
+
+        if (overlayCanvas) {
+          overlayCanvas
+            .getContext('2d')
+            ?.clearRect(0, 0, overlayCanvas.width, overlayCanvas.height);
+        }
+
+        stateRef.current?.active?.reset();
+        if (stateRef.current) {
+          stateRef.current.active = null;
+          stateRef.current.cursor.clear();
         }
       },
 

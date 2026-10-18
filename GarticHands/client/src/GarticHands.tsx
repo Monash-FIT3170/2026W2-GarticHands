@@ -14,6 +14,7 @@ import Playground from './Pages/playgroundPage.tsx';
 import Solo from './Pages/soloPage.tsx';
 import { RecordingsProvider } from './state/RecordingsContext.tsx';
 import { SettingsProvider } from './state/SettingsContext.tsx';
+import ExitGameButton from './components/ExitGameButton.tsx';
 
 export default function GarticHands() {
   return (
@@ -35,6 +36,7 @@ export default function GarticHands() {
             <Route path="/playground" element={<Playground />} />
             <Route path="/solo" element={<Solo />} />
           </Routes>
+          <ExitGameButton />
         </RecordingsProvider>
       </SettingsProvider>
     </BrowserRouter>

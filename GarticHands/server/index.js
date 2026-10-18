@@ -1,16 +1,16 @@
-const express = require('express')
-const http = require('http')
-const cors = require('cors')
-const { Server } = require('socket.io')
+const express = require('express');
+const http = require('http');
+const cors = require('cors');
+const { Server } = require('socket.io');
 
-const app = express()
-const server = http.createServer(app)
+const app = express();
+const server = http.createServer(app);
 const io = new Server(server, {
   cors: {
     origin: ['http://localhost:5173', 'http://localhost:5137'],
     methods: ['GET', 'POST'],
   },
-})
+});
 
 const PORT = process.env.PORT || 3000
 const MAX_ROUNDS = 4
@@ -20,8 +20,8 @@ const ROUND_OPTIONS = [1, 2, 3, 4, 5, 6, 7, 8]
 
 /** Env override — lets a demo or test run through a phase without waiting a full minute. */
 function phaseSeconds(envName, fallback) {
-  const parsed = Number(process.env[envName])
-  return Number.isFinite(parsed) && parsed > 0 ? parsed : fallback
+  const parsed = Number(process.env[envName]);
+  return Number.isFinite(parsed) && parsed > 0 ? parsed : fallback;
 }
 
 /**
@@ -39,7 +39,7 @@ const PHASE_DURATIONS = {
  * Extra time the server waits past phaseEndsAt before forcing the advance,
  * so a client that auto-submits exactly on the deadline still wins the race.
  */
-const PHASE_GRACE_MS = 1500
+const PHASE_GRACE_MS = 1500;
 
 /**
  * Classic:
@@ -75,7 +75,7 @@ const FALLBACK_PROMPTS = [
   'a tree growing lightbulbs',
   'a snail racing a train',
   'a castle floating on a cloud',
-]
+];
 
 /** roomCode -> Timeout. Kept out of the room object so rooms stay JSON-serialisable. */
 const phaseTimers = {}
@@ -84,28 +84,28 @@ const phaseTimers = {}
  * A player whose client hasn't polled in this long is treated as gone.
  */
 const PLAYER_TIMEOUT_MS = (() => {
-  const parsed = Number(process.env.PLAYER_TIMEOUT_SECONDS)
-  return Number.isFinite(parsed) && parsed > 0 ? parsed * 1000 : 30000
-})()
+  const parsed = Number(process.env.PLAYER_TIMEOUT_SECONDS);
+  return Number.isFinite(parsed) && parsed > 0 ? parsed * 1000 : 30000;
+})();
 
 /** How often stale players are swept out of every room. */
-const PRESENCE_SWEEP_MS = 3000
+const PRESENCE_SWEEP_MS = 3000;
 
 /** How long an emptied room is kept before it's dropped from memory. */
-const EMPTY_ROOM_GRACE_MS = 60000
+const EMPTY_ROOM_GRACE_MS = 60000;
 
 app.use(cors())
 
 // PNG data URLs from the drawing canvas can be a few hundred KB.
 app.use(express.json({ limit: '10mb' }))
 
-const rooms = {}
+const rooms = {};
 
 /** roomCode -> epoch ms the room lost its last player. */
 const emptySince = {}
 
 function generateRoomCode() {
-  return Math.random().toString(36).substring(2, 8).toUpperCase()
+  return Math.random().toString(36).substring(2, 8).toUpperCase();
 }
 
 function makePlayer(name, isHost, joinedMidRound = false) {
@@ -117,7 +117,7 @@ function makePlayer(name, isHost, joinedMidRound = false) {
     joinedMidRound,
     joinedAt: Date.now(),
     lastSeen: Date.now(),
-  }
+  };
 }
 
 /**
@@ -127,15 +127,15 @@ function makePlayer(name, isHost, joinedMidRound = false) {
  * participants when the next round starts.
  */
 function activePlayers(room) {
-  return room.players.filter((p) => !p.joinedMidRound)
+  return room.players.filter((p) => !p.joinedMidRound);
 }
 
 function clearPhaseTimer(roomCode) {
   const timer = phaseTimers[roomCode]
 
   if (timer) {
-    clearTimeout(timer)
-    delete phaseTimers[roomCode]
+    clearTimeout(timer);
+    delete phaseTimers[roomCode];
   }
 }
 
@@ -155,8 +155,8 @@ function setPhase(room, phase) {
       : PHASE_DURATIONS[phase]
 
   if (!duration) {
-    room.phaseEndsAt = null
-    return
+    room.phaseEndsAt = null;
+    return;
   }
 
   room.phaseEndsAt = Date.now() + duration * 1000
@@ -164,7 +164,7 @@ function setPhase(room, phase) {
   phaseTimers[room.code] = setTimeout(
     () => expirePhase(room.code, phase),
     duration * 1000 + PHASE_GRACE_MS,
-  )
+  );
 }
 
 /**
@@ -364,7 +364,7 @@ function startRatingPhase(room) {
  * Timed phases are automatically completed with default submissions.
  */
 function expirePhase(roomCode, expectedPhase) {
-  delete phaseTimers[roomCode]
+  delete phaseTimers[roomCode];
 
   const room = rooms[roomCode]
 
@@ -384,7 +384,7 @@ function expirePhase(roomCode, expectedPhase) {
     const submission = room[bucket][player.name]
 
     if (submission === undefined || submission === null) {
-      room[bucket][player.name] = defaultSubmission(expectedPhase)
+      room[bucket][player.name] = defaultSubmission(expectedPhase);
     }
   }
 
@@ -524,8 +524,8 @@ function advanceIfPhaseComplete(room) {
  */
 function afterPlayersLeft(room) {
   if (room.players.length === 0) {
-    emptySince[room.code] = Date.now()
-    return
+    emptySince[room.code] = Date.now();
+    return;
   }
 
   delete emptySince[room.code]
@@ -539,10 +539,10 @@ function afterPlayersLeft(room) {
  * Presence sweep.
  */
 setInterval(() => {
-  const now = Date.now()
+  const now = Date.now();
 
   for (const code of Object.keys(rooms)) {
-    const room = rooms[code]
+    const room = rooms[code];
 
     const stale = room.players.filter(
       (p) => now - p.lastSeen > PLAYER_TIMEOUT_MS,
@@ -564,16 +564,16 @@ setInterval(() => {
     const emptiedAt = emptySince[code]
 
     if (emptiedAt && now - emptiedAt > EMPTY_ROOM_GRACE_MS) {
-      clearPhaseTimer(code)
-      delete rooms[code]
-      delete emptySince[code]
+      clearPhaseTimer(code);
+      delete rooms[code];
+      delete emptySince[code];
     }
   }
-}, PRESENCE_SWEEP_MS)
+}, PRESENCE_SWEEP_MS);
 
 app.get('/', (_req, res) => {
-  res.json({ message: 'Gartic Hands server is running' })
-})
+  res.json({ message: 'Gartic Hands server is running' });
+});
 
 /**
  * Create a room.
@@ -621,7 +621,7 @@ app.post('/rooms/create', (req, res) => {
     scores: {},
 
     createdAt: Date.now(),
-  }
+  };
 
   res.json({
     success: true,
@@ -692,13 +692,13 @@ app.patch('/rooms/:roomCode/settings', (req, res) => {
 })
 
 app.post('/rooms/join', (req, res) => {
-  const { roomCode, playerName } = req.body
+  const { roomCode, playerName } = req.body;
 
   if (!roomCode || !playerName) {
     return res.status(400).json({
       success: false,
       message: 'Room code and player name are required',
-    })
+    });
   }
 
   const room = rooms[roomCode.toUpperCase()]
@@ -714,9 +714,19 @@ app.post('/rooms/join', (req, res) => {
     return res.status(409).json({
       success: false,
       message: `Room is full (${MAX_PLAYERS} players maximum).`,
-    })
+    });
   }
 
+  if (room.players.some((player) => player.name.toUpperCase() === playerName.toUpperCase())) {
+    return res.status(409).json({
+      success: false,
+      message: `Player Name "${playerName}" Invalid: Already Exists in Lobby.`,
+    });
+  }
+
+  // Joining a game that already started is allowed: the player is flagged as a
+  // mid-round joiner so the current round can finish without waiting on them.
+  // The flag is cleared when the next round starts (/start, /restart, /end).
   room.players.push(
     makePlayer(
       playerName,
@@ -727,6 +737,10 @@ app.post('/rooms/join', (req, res) => {
 
   delete emptySince[room.code]
 
+  // A room can be rejoined after it emptied (within the grace window), at which
+  // point nobody holds the host role — and a hostless lobby is deadlocked,
+  // because only the host sees the Start button. Nothing else re-establishes a
+  // host on join, so do it here whenever the role is vacant.
   if (!room.players.some((p) => p.isHost)) {
     promoteHost(room)
   }
@@ -750,6 +764,9 @@ app.get('/rooms/:roomCode', (req, res) => {
     })
   }
 
+  // Doubles as the presence heartbeat. Every in-game page already polls this
+  // once per second, so identifying the caller costs no extra request — and a
+  // player who stops polling is exactly the player who has gone.
   const { playerName } = req.query
 
   if (playerName) {
@@ -762,6 +779,9 @@ app.get('/rooms/:roomCode', (req, res) => {
     }
   }
 
+  // `serverTime` lets the client rebase `phaseEndsAt` onto its own clock using
+  // only server-side timestamps, so a skewed browser clock can't shift the
+  // countdown. See `client/src/hooks/usePhaseAdvance.ts`.
   res.json({
     success: true,
     room,
@@ -806,8 +826,8 @@ app.delete('/rooms/:roomCode/players/:playerName', (req, res) => {
 })
 
 app.patch('/rooms/:roomCode/ready', (req, res) => {
-  const roomCode = req.params.roomCode.toUpperCase()
-  const { playerName, ready: newReady } = req.body
+  const roomCode = req.params.roomCode.toUpperCase();
+  const { playerName, ready: newReady } = req.body;
 
   const room = rooms[roomCode]
 
@@ -829,11 +849,11 @@ app.patch('/rooms/:roomCode/ready', (req, res) => {
     })
   }
 
-  player.lastSeen = Date.now()
+  player.lastSeen = Date.now();
 
   if (!player.isHost) {
-    player.ready = newReady
-    player.status = newReady ? 'ready' : 'waiting'
+    player.ready = newReady;
+    player.status = newReady ? 'ready' : 'waiting';
   }
 
   io.to(room.code).emit('room-update', room)
@@ -898,7 +918,7 @@ app.patch('/rooms/:roomCode/start', (req, res) => {
   room.scores = {}
 
   for (const p of room.players) {
-    p.joinedMidRound = false
+    p.joinedMidRound = false;
   }
 
   setPhase(room, 'prompt')
@@ -955,7 +975,7 @@ app.patch('/rooms/:roomCode/restart', (req, res) => {
 
   // A new round starts — mid-round joiners become full participants.
   for (const p of room.players) {
-    p.joinedMidRound = false
+    p.joinedMidRound = false;
   }
 
   setPhase(room, 'prompt')
@@ -1007,8 +1027,8 @@ app.patch('/rooms/:roomCode/end', (req, res) => {
     p.joinedMidRound = false
 
     if (!p.isHost) {
-      p.ready = false
-      p.status = 'waiting'
+      p.ready = false;
+      p.status = 'waiting';
     }
   }
 
@@ -1107,7 +1127,7 @@ function submitForPhase(
           message: `Cannot submit during '${room.phase}' phase`,
         },
       },
-    }
+    };
   }
 
   if (player.joinedMidRound) {
@@ -1146,6 +1166,10 @@ function submitForPhase(
     onAccepted(room, player)
   }
 
+  // Everyone active beat the clock — advance early; `advanceIfPhaseComplete`
+  // counts only active players (mid-round joiners don't owe content this
+  // round) and `setPhase` inside re-arms the next deadline (or clears it when
+  // the next phase is untimed).
   advanceIfPhaseComplete(room)
 
   io.to(room.code).emit('room-update', room)
@@ -1184,8 +1208,8 @@ app.post('/rooms/:roomCode/prompts', (req, res) => {
 })
 
 app.post('/rooms/:roomCode/drawings', (req, res) => {
-  const roomCode = req.params.roomCode.toUpperCase()
-  const { playerName, dataUrl } = req.body
+  const roomCode = req.params.roomCode.toUpperCase();
+  const { playerName, dataUrl } = req.body;
 
   const result = submitForPhase(
     roomCode,
@@ -1334,7 +1358,7 @@ app.post('/rooms/:roomCode/ratings', (req, res) => {
         }
       }
     },
-  )
+  );
 
   if (result.error) {
     return res
@@ -1353,7 +1377,7 @@ app.post('/rooms/:roomCode/ratings', (req, res) => {
 })
 
 io.on('connection', (socket) => {
-  console.log('Socket connected:', socket.id)
+  console.log('Socket connected:', socket.id);
 
   socket.on('room-subscribe', (roomCode) => {
     if (!roomCode) {
@@ -1382,7 +1406,7 @@ io.on('connection', (socket) => {
         data,
       )
     }
-  })
+  });
 
   socket.on('drawing-event', (data) => {
     if (data && data.roomCode) {
@@ -1395,12 +1419,12 @@ io.on('connection', (socket) => {
         data,
       )
     }
-  })
+  });
 
   socket.on('disconnect', () => {
-    console.log('Socket disconnected:', socket.id)
-  })
-})
+    console.log('Socket disconnected:', socket.id);
+  });
+});
 
 server.listen(PORT, () => {
   console.log(

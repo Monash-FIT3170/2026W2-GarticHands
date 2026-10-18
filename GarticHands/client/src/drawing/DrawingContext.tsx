@@ -31,6 +31,9 @@ interface DrawingContextValue {
    * slow per-frame).
    */
   registerDrawCanvasElement: (canvas: HTMLCanvasElement) => () => void;
+
+  /** Clears current canvas */
+  clearDrawing: () => void;
 }
 
 const DrawingContext = createContext<DrawingContextValue | null>(null);
@@ -70,6 +73,12 @@ export function DrawingProvider({ children }: DrawingProviderProps) {
     return canvasesRef.current[0]?.getImage() ?? null;
   }, []);
 
+  const clearDrawing = useCallback(() => {
+    for (const handle of canvasesRef.current) {
+      handle.clear();
+    }
+  }, []);
+
   const registerCameraCanvas = useCallback((canvas: HTMLCanvasElement) => {
     cameraCanvasRef.current = canvas;
     return () => {
@@ -96,6 +105,7 @@ export function DrawingProvider({ children }: DrawingProviderProps) {
         pushFrame,
         registerCanvas,
         getDrawingImage,
+        clearDrawing,
         registerCameraCanvas,
         getCameraCanvas,
         getPrimaryDrawCanvas,
@@ -127,6 +137,7 @@ export function useDrawingContext(): DrawingContextValue {
  * ```
  */
 export function useDrawing() {
-  const { getDrawingImage, getCameraCanvas, getPrimaryDrawCanvas } = useDrawingContext();
-  return { getDrawingImage, getCameraCanvas, getPrimaryDrawCanvas };
+  const { getDrawingImage, clearDrawing, getCameraCanvas, getPrimaryDrawCanvas } =
+    useDrawingContext();
+  return { getDrawingImage, clearDrawing, getCameraCanvas, getPrimaryDrawCanvas };
 }
