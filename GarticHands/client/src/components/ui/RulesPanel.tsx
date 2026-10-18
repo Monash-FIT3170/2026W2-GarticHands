@@ -59,6 +59,14 @@ export default function RulesPanel({ open, onClose }: RulesPanelProps) {
         <Button variant="primary" size="full" onClick={onClose} className="mt-7">
           Got it!
         </Button>
+
+        {/* A plain link rather than useNavigate: this panel also renders outside a router. */}
+        <a
+          href="/how-to-play"
+          className="mt-3 block w-full text-center text-sm font-bold text-white underline underline-offset-4 hover:text-white/80"
+        >
+          Full guide with animations for every mode →
+        </a>
       </div>
     </div>
   );

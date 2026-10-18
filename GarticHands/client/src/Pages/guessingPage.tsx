@@ -1,13 +1,12 @@
 import { useState } from 'react';
 import { useLocation, useNavigate } from 'react-router-dom';
-import { Button, RoundHeader, CountdownTimer } from '../components/ui';
+import { Card, Button, RoundHeader, CountdownTimer } from '../components/ui';
 import { submitGuess, PhaseConflictStatus } from '../api/room';
 import { usePhaseAdvance } from '../hooks/usePhaseAdvance';
 import type { DrawLocationState } from '../types/room';
 import BackgroundRays from '../components/ui/BackgroundRays';
 
 const MaxChars = 120;
-/** Shown until the room's server-owned deadline arrives. Real limit: `PHASE_DURATIONS` in `server/index.js`. */
 const TotalTime = 60;
 
 export default function GuessingPage() {
@@ -20,7 +19,6 @@ export default function GuessingPage() {
   const [guess, setGuess] = useState('');
   const [submitted, setSubmitted] = useState(false);
   const [error, setError] = useState('');
-
   const { waitingFor, room, secondsLeft } = usePhaseAdvance({
     roomCode,
     playerName,
@@ -29,6 +27,9 @@ export default function GuessingPage() {
     to: '/game',
     countBucket: 'guesses',
   });
+
+  // AI Mode: the server guesses every drawing, so this page only waits for the reveal.
+  const aiMode = Boolean(room?.aiMode);
 
   const targetName = room && playerName ? room.guessTargets?.[playerName] : undefined;
   const drawnBy = targetName ?? '...';
@@ -68,6 +69,28 @@ export default function GuessingPage() {
     if (!submitted) void handleSubmit(true);
   }
 
+  // AI Mode — show waiting screen while AI generates its guess
+  if (aiMode) {
+    return (
+      <div className="background">
+        <Card variant="glass">
+          <RoundHeader round={room?.round ?? 1} totalRounds={room?.maxRounds ?? 4} />
+          <h1 className="text-3xl">AI Mode</h1>
+          <div className="flex flex-col items-center gap-4 mt-4">
+            <span className="text-5xl animate-pulse">🤖</span>
+            <p className="text-[var(--text-muted)] text-sm text-center">
+              The AI is analysing your drawing...
+            </p>
+            <p className="text-xs text-[var(--text-muted)]">
+              Hang tight — results coming up!
+            </p>
+          </div>
+        </Card>
+      </div>
+    );
+  }
+
+  // Classic Mode — normal guessing UI
   return (
     <div
       className="min-h-screen relative overflow-hidden px-6 py-6 lg:px-10 xl:px-16"

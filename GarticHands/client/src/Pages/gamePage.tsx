@@ -127,7 +127,13 @@ export default function GamePage() {
           <ViewTabs view={view} onChange={setView} recordingsCount={recordings.length} />
         )}
 
-        {!roundInProgress && view === 'cards' && <CardsView chains={chains} />}
+        {!roundInProgress && view === 'cards' && (
+          <CardsView
+            chains={chains}
+            aiPrompt={room?.aiPrompt}
+            aiGuesses={room?.aiGuesses}
+          />
+        )}
 
         {!roundInProgress && view === 'slideshow' && (
           <SlideshowView chains={chains.filter((c) => c.drawing)} />
@@ -218,45 +224,70 @@ function ViewTabs({ view, onChange, recordingsCount }: ViewTabsProps) {
 // Reveal cards (original view)
 // ---------------------------------------------------------------------------
 
-function CardsView({ chains }: { chains: RevealChain[] }) {
+function CardsView({ chains, aiPrompt, aiGuesses }: { 
+  chains: RevealChain[]
+  aiPrompt?: string | null
+  aiGuesses?: Record<string, string>
+}) {
   if (chains.length === 0) {
     return <p className="text-sm text-[var(--text-muted)]">No drawings to reveal.</p>;
   }
 
   return (
     <div className="space-y-6">
-      {chains.map((chain) => (
-        <div
-          key={chain.drawer.name}
-          className="bg-[var(--surface-soft)] border border-[var(--surface-border)] rounded-xl p-4"
-        >
-          <p className="text-sm text-[var(--text-muted)]">
-            <span className="font-semibold">{chain.drawer.name}</span> drew:{' '}
-            <span className="italic">&quot;{chain.prompt || '(no prompt)'}&quot;</span>
+      {aiPrompt && (
+        <div className="bg-indigo-600/20 border border-indigo-400/40 rounded-xl p-4 text-center">
+          <p className="text-xs text-indigo-300 uppercase tracking-widest mb-1">
+            🤖 AI gave you this prompt
           </p>
-
-          {chain.drawing ? (
-            <img
-              src={chain.drawing}
-              alt={`Drawing by ${chain.drawer.name}`}
-              className="w-full h-56 object-contain bg-black rounded-lg my-3"
-            />
-          ) : (
-            <div className="w-full h-56 bg-[var(--surface-soft)] rounded-lg my-3 flex items-center justify-center text-sm text-[var(--text-muted)]">
-              No drawing submitted
-            </div>
-          )}
-
-          <p className="text-sm text-[var(--text-muted)]">
-            <span className="font-semibold">{chain.guesserName}</span> guessed:{' '}
-            <span className="italic">&quot;{chain.guess || '(no guess)'}&quot;</span>
+          <p className="text-lg font-extrabold text-white">
+            &quot;{aiPrompt}&quot;
           </p>
         </div>
-      ))}
+      )}
+
+      {chains.map((chain) => {
+        const thisAiGuess = aiGuesses?.[chain.drawer.name]
+
+        return (
+          <div
+            key={chain.drawer.name}
+            className="bg-[var(--surface-soft)] border border-[var(--surface-border)] rounded-xl p-4"
+          >
+            <p className="text-sm text-[var(--text-muted)]">
+              <span className="font-semibold">{chain.drawer.name}</span> drew:{' '}
+              <span className="italic">&quot;{chain.prompt || '(no prompt)'}&quot;</span>
+            </p>
+
+            {chain.drawing ? (
+              <img
+                src={chain.drawing}
+                alt={`Drawing by ${chain.drawer.name}`}
+                className="w-full h-56 object-contain bg-black rounded-lg my-3"
+              />
+            ) : (
+              <div className="w-full h-56 bg-[var(--surface-soft)] rounded-lg my-3 flex items-center justify-center text-sm text-[var(--text-muted)]">
+                No drawing submitted
+              </div>
+            )}
+
+            {thisAiGuess ? (
+              <p className="text-sm text-[var(--text-muted)]">
+                <span className="font-semibold">🤖 AI guessed:</span>{' '}
+                <span className="italic">&quot;{thisAiGuess}&quot;</span>
+              </p>
+            ) : (
+              <p className="text-sm text-[var(--text-muted)]">
+                <span className="font-semibold">{chain.guesserName}</span> guessed:{' '}
+                <span className="italic">&quot;{chain.guess || '(no guess)'}&quot;</span>
+              </p>
+            )}
+          </div>
+        )
+      })}
     </div>
   );
 }
-
 // ---------------------------------------------------------------------------
 // Slideshow — auto-advance through every drawing
 // ---------------------------------------------------------------------------
