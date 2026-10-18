@@ -29,7 +29,9 @@ export default function HostingPage() {
   const [popup, setPopup] = useState('');
   const [roomCreated, setRoomCreated] = useState(false);
   const [aiMode, setAiMode] = useState(false);
+  const [settingsSaving, setSettingsSaving] = useState(false);
   const createStarted = useRef(false);
+  const settingsQueue = useRef(Promise.resolve());
 
   const navigate = useNavigate();
   const location = useLocation();
@@ -140,19 +142,25 @@ export default function HostingPage() {
     aiMode?: boolean;
   }) {
     if (!roomCode || !hostName) return;
-    try {
-      const data = await updateRoomSettings(roomCode, hostName, settings);
-      if (!data.success || !data.room) {
-        setPopup(data.message ?? 'Unable to update room settings.');
-        return;
+    setSettingsSaving(true);
+    const update = settingsQueue.current.then(async () => {
+      try {
+        const data = await updateRoomSettings(roomCode, hostName, settings);
+        if (!data.success || !data.room) {
+          setPopup(data.message ?? 'Unable to update room settings.');
+          return;
+        }
+        setDrawTimeSeconds(data.room.drawTimeSeconds ?? 60);
+        setMaxRounds(data.room.maxRounds);
+        setGameMode(data.room.mode ?? 'classic');
+        setAiMode(data.room.aiMode ?? false);
+      } catch {
+        setPopup('Unable to update room settings. Please try again.');
       }
-      setDrawTimeSeconds(data.room.drawTimeSeconds ?? 60);
-      setMaxRounds(data.room.maxRounds);
-      setGameMode(data.room.mode ?? 'classic');
-      setAiMode(data.room.aiMode ?? false);
-    } catch {
-      setPopup('Unable to update room settings. Please try again.');
-    }
+    });
+    settingsQueue.current = update;
+    await update;
+    if (settingsQueue.current === update) setSettingsSaving(false);
   }
 
   const botCount = players.filter((player) => player.isBot).length;
@@ -265,7 +273,7 @@ export default function HostingPage() {
               <GameModeList
                 mode={gameMode}
                 aiMode={aiMode}
-                disabled={!isHost}
+                disabled={!isHost || settingsSaving}
                 onRoomModeChange={(mode, ai) => {
                   setGameMode(mode);
                   setAiMode(ai);
@@ -297,7 +305,7 @@ export default function HostingPage() {
               variant="start"
               size="full"
               onClick={() => void handleStart()}
-              disabled={!allReady || players.length > MAX_PLAYERS}
+              disabled={!allReady || players.length > MAX_PLAYERS || settingsSaving}
               className="mt-4"
             >
               {allReady ? 'Start Game' : 'Waiting for Players'}

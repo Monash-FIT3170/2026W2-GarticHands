@@ -28,11 +28,25 @@ test('host picks the game mode from the lobby list', async ({ page }) => {
     const showdown = page.getByRole('button', { name: 'Showdown', exact: true })
     await expect(classic).toHaveAttribute('aria-pressed', 'true')
 
+    let releaseSettingsUpdate = () => {}
+    const settingsUpdatePaused = new Promise<void>((resolve) => {
+        releaseSettingsUpdate = resolve
+    })
+    await page.route('**/rooms/*/settings', async (route) => {
+        await settingsUpdatePaused
+        await route.continue()
+    })
+
     await showdown.hover()
     await expect(page.getByRole('tooltip')).toContainText('Compete across multiple rounds')
 
     await showdown.click()
     await expect(showdown).toHaveAttribute('aria-pressed', 'true')
+    const startGame = page.getByRole('button', { name: 'Start Game' })
+    await expect(startGame).toBeDisabled()
+    releaseSettingsUpdate()
+    await expect(startGame).toBeEnabled()
+
     await expect(classic).toHaveAttribute('aria-pressed', 'false')
 
     const aiShowdown = page.getByRole('button', { name: 'AI Showdown', exact: true })

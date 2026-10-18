@@ -127,7 +127,7 @@ export default function LandingPage() {
         </section>
 
         <p className="text-white/50 text-xs font-medium text-center mt-5">
-          Hover over a mode to learn more.{' '}
+          Choose Host Game to pick a mode, or Join Room to play with friends.{' '}
           <button
             type="button"
             onClick={() => void navigate('/how-to-play')}

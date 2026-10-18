@@ -19,6 +19,7 @@ test.describe('visual regression baselines', () => {
         await page.getByPlaceholder('Enter username...').fill('player1')
         await page.getByRole('button', { name: 'Host Game', exact: true }).click()
         await expect(page).toHaveURL('/host')
+        await expect(page.locator('p.font-mono')).not.toHaveText('------')
         // The displayed room code is random per run, so it must be masked out
         // of the comparison — otherwise no baseline can ever match twice.
         await expect(page).toHaveScreenshot('host-lobby.png', {
