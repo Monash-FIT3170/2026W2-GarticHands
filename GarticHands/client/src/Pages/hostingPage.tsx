@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState, useCallback } from 'react';
+import { useEffect, useMemo, useRef, useState, useCallback } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
 import {
   addBot,
@@ -11,6 +11,7 @@ import {
 import { Page, Card, Button } from '../components/ui';
 import PlayerList from '../components/PlayerList';
 import RoomSettings from '../components/RoomSettings';
+import GameModeList from '../components/GameModeList';
 import { useLeaveRoom } from '../hooks/useLeaveRoom';
 import { usePlayerDepartures } from '../hooks/usePlayerDepartures';
 import type { GameMode, Player, DrawLocationState } from '../types/room';
@@ -28,6 +29,7 @@ export default function HostingPage() {
   const [popup, setPopup] = useState('');
   const [roomCreated, setRoomCreated] = useState(false);
   const [aiMode, setAiMode] = useState(false);
+  const createStarted = useRef(false);
 
   const navigate = useNavigate();
   const location = useLocation();
@@ -41,7 +43,7 @@ export default function HostingPage() {
     | null;
 
   const hostName = state?.playerName;
-  const gameMode = state?.mode ?? 'classic';
+  const [gameMode, setGameMode] = useState<GameMode>(state?.mode ?? 'classic');
   const startingBots = state?.bots ?? 0;
 
   async function handleCreateRoom() {
@@ -67,6 +69,14 @@ export default function HostingPage() {
     }
   }
 
+  // The room exists as soon as the host arrives; the mode is picked in the lobby.
+  useEffect(() => {
+    if (createStarted.current) return;
+    createStarted.current = true;
+    void handleCreateRoom();
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- create exactly once
+  }, []);
+
   useEffect(() => {
     if (!roomCode || !hostName || !roomCreated) return;
 
@@ -79,6 +89,8 @@ export default function HostingPage() {
           setPlayers(data.room.players);
           setDrawTimeSeconds(data.room.drawTimeSeconds ?? 60);
           setMaxRounds(data.room.maxRounds);
+          setGameMode(data.room.mode ?? 'classic');
+          setAiMode(data.room.aiMode ?? false);
         }
       } catch {
         // Retry on next poll
@@ -121,7 +133,12 @@ export default function HostingPage() {
     void navigate('/');
   }
 
-  async function saveRoomSettings(settings: { drawTimeSeconds?: number; maxRounds?: number }) {
+  async function saveRoomSettings(settings: {
+    drawTimeSeconds?: number;
+    maxRounds?: number;
+    mode?: GameMode;
+    aiMode?: boolean;
+  }) {
     if (!roomCode || !hostName) return;
     try {
       const data = await updateRoomSettings(roomCode, hostName, settings);
@@ -131,6 +148,8 @@ export default function HostingPage() {
       }
       setDrawTimeSeconds(data.room.drawTimeSeconds ?? 60);
       setMaxRounds(data.room.maxRounds);
+      setGameMode(data.room.mode ?? 'classic');
+      setAiMode(data.room.aiMode ?? false);
     } catch {
       setPopup('Unable to update room settings. Please try again.');
     }
@@ -179,53 +198,9 @@ export default function HostingPage() {
     void navigate('/input', { state: { roomCode, playerName: hostName } });
   }
 
-  const isLeaderboard = gameMode === 'leaderboard';
-
-  // ── PRE-ROOM SCREEN — choose AI Mode before creating ──
-  if (!roomCreated) {
-    return (
-      <Page variant="centered" logo>
-        <Card variant="lobby">
-          <div className="flex flex-col items-center gap-6 p-4">
-            <h2 className="text-white text-2xl font-extrabold tracking-wide">CHOOSE GAMEMODE</h2>
-
-            <div className="flex flex-col gap-4 w-full max-w-[220px]">
-              <div className="bg-[var(--surface)] rounded-lg border-4 border-[var(--accent)] flex flex-col items-center justify-center shadow-sm py-4">
-                {isLeaderboard ? <LeaderboardIcon /> : (
-                  <img src="/gamemode_classic.png" alt="Classic" className="w-16 h-16 mb-2 object-contain" />
-                )}
-                <p className="text-[var(--primary)] font-extrabold">
-                  {isLeaderboard ? 'Showdown' : 'Classic'}
-                </p>
-              </div>
-
-              <button
-                onClick={() => setAiMode(!aiMode)}
-                className={`rounded-lg border-4 flex flex-col items-center justify-center shadow-sm py-4 transition-colors ${
-                  aiMode
-                    ? 'bg-indigo-600 border-indigo-400 text-white'
-                    : 'bg-[var(--surface)] border-[var(--border)] text-[var(--primary)]'
-                }`}
-              >
-                <span className="text-3xl mb-1">🤖</span>
-                <p className="font-extrabold">AI Mode</p>
-                <p className="text-xs opacity-70 mt-1">
-                  {aiMode ? 'ON — AI prompts & guesses' : 'OFF'}
-                </p>
-              </button>
-            </div>
-
-            <Button variant="start" size="full" onClick={() => void handleCreateRoom()}>
-              Create Room
-            </Button>
-
-            <Button variant="leave" size="full" onClick={() => void navigate('/')}>
-              Back
-            </Button>
-          </div>
-        </Card>
-      </Page>
-    );
+  async function launchSoloMode(mode: 'playground' | 'solo') {
+    await leaveRoom();
+    void navigate(mode === 'playground' ? '/playground' : '/solo');
   }
 
   // ── LOBBY SCREEN ──
@@ -287,23 +262,17 @@ export default function HostingPage() {
             <div className="color-vision-lobby-section flex w-full flex-col items-center rounded-xl p-6">
               <h2 className="mb-5 text-2xl font-extrabold tracking-wide text-white">GAMEMODE</h2>
 
-              <div className="flex flex-col items-center gap-3 w-full max-w-[200px]">
-                <div className="flex w-full flex-col items-center justify-center rounded-lg border-4 border-[var(--accent)] bg-[var(--surface)] shadow-sm py-3">
-                  {isLeaderboard ? <LeaderboardIcon /> : (
-                    <img src="/gamemode_classic.png" alt="Classic" className="mb-2 h-16 w-16 object-contain" />
-                  )}
-                  <p className="font-extrabold text-[var(--primary)]">
-                    {isLeaderboard ? 'Showdown' : 'Classic'}
-                  </p>
-                </div>
-
-                {aiMode && (
-                  <div className="flex items-center gap-2 bg-indigo-600 rounded-lg px-3 py-2 w-full justify-center">
-                    <span className="text-lg">🤖</span>
-                    <p className="text-white font-bold text-sm">AI Mode ON</p>
-                  </div>
-                )}
-              </div>
+              <GameModeList
+                mode={gameMode}
+                aiMode={aiMode}
+                disabled={!isHost}
+                onRoomModeChange={(mode, ai) => {
+                  setGameMode(mode);
+                  setAiMode(ai);
+                  void saveRoomSettings({ mode, aiMode: ai });
+                }}
+                onLaunch={(mode) => void launchSoloMode(mode)}
+              />
             </div>
 
             <div className="mt-6 flex w-full flex-col items-center gap-2">
@@ -360,17 +329,5 @@ function Popup({ message, onClose }: { message: string; onClose: () => void }) {
         <Button variant="start" size="full" onClick={onClose} className="mt-6">OK</Button>
       </div>
     </div>
-  );
-}
-
-function LeaderboardIcon() {
-  return (
-    <svg viewBox="0 0 100 100" className="h-16 w-16 mb-2" aria-hidden="true">
-      <rect x="18" y="48" width="18" height="34" rx="4" fill="var(--accent-soft)" stroke="var(--primary)" strokeWidth="3" />
-      <rect x="41" y="32" width="18" height="50" rx="4" fill="var(--accent)" stroke="var(--primary)" strokeWidth="3" />
-      <rect x="64" y="20" width="18" height="62" rx="4" fill="var(--action)" stroke="var(--primary)" strokeWidth="3" />
-      <path d="M24 40 L31 33 L39 38 L51 24 L59 29 L72 15" fill="none" stroke="var(--primary)" strokeWidth="5" strokeLinecap="round" strokeLinejoin="round" />
-      <path d="M72 15 L70 24 M72 15 L63 17" fill="none" stroke="var(--primary)" strokeWidth="5" strokeLinecap="round" />
-    </svg>
   );
 }

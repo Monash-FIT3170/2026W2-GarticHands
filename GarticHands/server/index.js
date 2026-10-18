@@ -727,7 +727,7 @@ app.post('/rooms/create', (req, res) => {
 
 app.patch('/rooms/:roomCode/settings', (req, res) => {
   const roomCode = req.params.roomCode.toUpperCase()
-  const { playerName, drawTimeSeconds, maxRounds } = req.body
+  const { playerName, drawTimeSeconds, maxRounds, mode, aiMode } = req.body
   const room = rooms[roomCode]
 
   if (!room) return res.status(404).json({ success: false, message: 'Room not found' })
@@ -741,17 +741,24 @@ app.patch('/rooms/:roomCode/settings', (req, res) => {
 
   const hasDrawTime = Object.hasOwn(req.body, 'drawTimeSeconds')
   const hasRounds = Object.hasOwn(req.body, 'maxRounds')
+  // The host picks the game mode and AI Mode from the lobby.
+  const hasMode = Object.hasOwn(req.body, 'mode')
+  const hasAiMode = Object.hasOwn(req.body, 'aiMode')
 
   if (
-    (!hasDrawTime && !hasRounds) ||
+    (!hasDrawTime && !hasRounds && !hasMode && !hasAiMode) ||
     (hasDrawTime && !DRAW_TIME_OPTIONS.includes(drawTimeSeconds)) ||
-    (hasRounds && !ROUND_OPTIONS.includes(maxRounds))
+    (hasRounds && !ROUND_OPTIONS.includes(maxRounds)) ||
+    (hasMode && mode !== 'classic' && mode !== 'leaderboard') ||
+    (hasAiMode && typeof aiMode !== 'boolean')
   ) {
     return res.status(400).json({ success: false, message: 'Invalid room settings.' })
   }
 
   if (hasDrawTime) room.drawTimeSeconds = drawTimeSeconds
   if (hasRounds) room.maxRounds = maxRounds
+  if (hasMode) room.mode = mode
+  if (hasAiMode) room.aiMode = aiMode
   player.lastSeen = Date.now()
 
   io.to(room.code).emit('room-update', room)

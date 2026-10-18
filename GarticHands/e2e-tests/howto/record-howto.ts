@@ -151,7 +151,6 @@ test('gestures', async ({ page }) => {
 
 test('classic', async ({ page }) => {
   await enterName(page, 'Alex');
-  await page.getByRole('button', { name: /Classic Play with friends/ }).click();
   await page.getByRole('button', { name: 'Host Game', exact: true }).click();
   await expect(page).toHaveURL('/host');
 
@@ -182,8 +181,9 @@ test('classic', async ({ page }) => {
 
 test('leaderboard', async ({ page }) => {
   await enterName(page, 'Sam');
-  await page.getByRole('button', { name: /AI Mode/ }).click();
-  await page.getByRole('button', { name: 'Showdown vs Bot', exact: true }).click();
+  await page.getByRole('button', { name: 'Host Game', exact: true }).click();
+  await page.getByRole('button', { name: 'Showdown', exact: true }).click();
+  await page.getByRole('button', { name: /Add bot/ }).click();
   await expect(page.getByText('PLAYERS 2/8')).toBeVisible({ timeout: 10_000 });
 
   await record(page, 'leaderboard', async () => {
@@ -211,9 +211,11 @@ test('ai-mode', async ({ page }) => {
   await record(page, 'ai-mode', async () => {
     await enterName(page, 'Jordan');
     await pause(page, 300);
-    await page.getByRole('button', { name: /AI Mode/ }).click();
+    await page.getByRole('button', { name: 'Host Game', exact: true }).click();
     await pause(page, 1200);
-    await page.getByRole('button', { name: 'Classic vs Bots', exact: true }).click();
+    await page.getByRole('button', { name: 'AI Classic', exact: true }).click();
+    await page.getByRole('button', { name: /Add bot/ }).click();
+    await page.getByRole('button', { name: /Add bot/ }).click();
     await expect(page.getByText('PLAYERS 3/8')).toBeVisible({ timeout: 10_000 });
     await pause(page, 1200);
     await page.getByRole('button', { name: /Add bot/ }).click();
