@@ -67,7 +67,7 @@ export async function updateReady(roomCode: string, playerName: string, ready: b
 export async function updateRoomSettings(
   roomCode: string,
   playerName: string,
-  settings: { drawTimeSeconds?: number; maxRounds?: number },
+  settings: { drawTimeSeconds?: number; maxRounds?: number; mode?: GameMode; aiMode?: boolean },
 ) {
   const res = await fetch(`${API_URL}/rooms/${roomCode}/settings`, {
     method: 'PATCH',

@@ -8,12 +8,16 @@ import type { DrawLocationState } from '../types/room';
 /** In-game routes that get the Exit button. Lobbies already have "Leave Room". */
 const EXIT_ROUTES = ['/input', '/draw', '/guess', '/game'];
 
+/** Single-player routes with no room: exiting just returns to the landing page. */
+const LOCAL_EXIT_ROUTES = ['/solo', '/playground'];
+
 /**
  * Global "Exit Game" control. Mounted once in `GarticHands.tsx` (inside the router
  * and `RecordingsProvider`), so no page needs to change.
  *
- * It shows itself only on the in-game routes and only when the route carries
- * `roomCode` + `playerName` in `location.state`. Clicking it opens a confirm
+ * It shows itself on the in-game routes when the route carries `roomCode` +
+ * `playerName` in `location.state`, and always on Solo and Playground (which
+ * have no room, so exiting only navigates home). Clicking it opens a confirm
  * dialog; confirming reports the departure to the server, clears this player's
  * local recordings, and sends them back to the landing page (`/`).
  *
@@ -39,12 +43,18 @@ export default function ExitGameButton() {
     return () => window.removeEventListener('keydown', onKeyDown);
   }, [confirming]);
 
-  const visible = EXIT_ROUTES.includes(location.pathname) && !!roomCode && !!playerName;
+  const isLocal = LOCAL_EXIT_ROUTES.includes(location.pathname);
+  const visible =
+    isLocal || (EXIT_ROUTES.includes(location.pathname) && !!roomCode && !!playerName);
   if (!visible) return null;
 
   function handleExit() {
-    if (!roomCode || !playerName) return;
     setConfirming(false);
+    if (isLocal) {
+      void navigate('/');
+      return;
+    }
+    if (!roomCode || !playerName) return;
     // Leave the page first so no in-game poll fires while we're departing,
     // then tell the server. This component stays mounted, so the request
     // still completes after navigation.
@@ -76,8 +86,9 @@ export default function ExitGameButton() {
                   Exit game?
                 </h2>
                 <p className="text-white/80 text-sm font-semibold text-center mt-2">
-                  You&apos;ll leave the room and return to the start page. Your drawing recordings
-                  will be discarded.
+                  {isLocal
+                    ? 'You\'ll return to the start page. Your drawings from this session will be lost.'
+                    : 'You\'ll leave the room and return to the start page. Your drawing recordings will be discarded.'}
                 </p>
                 <div className="flex gap-3 mt-6">
                   <Button

@@ -104,7 +104,7 @@ describe('HowToPlayPage', () => {
     for (const title of [
       'Drawing with your hand',
       'Classic',
-      'Leaderboard',
+      'Showdown',
       'AI Mode — play with bots',
       'Solo',
       'Playground',

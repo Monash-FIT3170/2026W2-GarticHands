@@ -1,5 +1,4 @@
 import { useState } from 'react';
-import { useNavigate } from 'react-router-dom';
 import {
   DrawingProvider,
   DrawingStage,
@@ -7,10 +6,9 @@ import {
   useDrawing,
   useDrawingMode,
 } from '../drawing';
-import { Card, Button, CountdownTimer } from '../components/ui';
+import { Card, Button } from '../components/ui';
+import BackgroundRays from '../components/ui/BackgroundRays';
 import { usePromptQueue } from '../hooks/usePromptQueue';
-
-const TotalTime = 60;
 
 interface SavedDrawing {
   prompt: string;
@@ -32,12 +30,10 @@ export default function SoloPage() {
 }
 
 function SoloInner() {
-  const navigate = useNavigate();
   const { getDrawingImage, clearDrawing } = useDrawing();
   const [mode, setMode] = useDrawingMode();
   const { prompt, next: nextPrompt } = usePromptQueue();
   const [results, setResults] = useState<SavedDrawing[]>([]);
-  const [timerKey, setTimerKey] = useState(0);
   const [drawingKey, setDrawingKey] = useState(0);
 
   function handleSave() {
@@ -49,7 +45,6 @@ function SoloInner() {
   function handleNext() {
     clearDrawing();
     nextPrompt();
-    setTimerKey((k) => k + 1);
     setDrawingKey((k) => k + 1);
   }
 
@@ -60,36 +55,60 @@ function SoloInner() {
 
   return (
     <div className="background !justify-start">
-      <Card variant="glass" className="w-full !max-w-5xl">
-        <div className="flex items-start justify-between mb-3 gap-4">
-          <div>
-            <p className="rounds">Computer Mode</p>
-            <h1 className="text-3xl">
-              Draw: <span className="italic">{prompt}</span>
-            </h1>
-            <p className="text-sm text-[var(--text-muted)] mt-1">
-              The computer picked this prompt. Draw it, save it, then get a new one.
-            </p>
+      <BackgroundRays />
+
+      <Card variant="lobby" className="relative z-10 !max-w-6xl !rounded-[22px] !p-4 md:!p-6">
+        <div className="mb-3 flex flex-col items-stretch justify-between gap-3 lg:flex-row lg:items-center">
+          <div className="flex justify-center lg:justify-start">
+            <p className="rounds !mb-0">SOLO</p>
           </div>
-          <div className="flex flex-col items-end gap-2">
-            <CountdownTimer key={timerKey} seconds={TotalTime} />
-            <Button variant="secondary" size="sm" onClick={() => void navigate('/')}>
-              Home
-            </Button>
+
+          <DrawingModePicker
+            mode={mode}
+            onModeChange={setMode}
+            className="!m-0 flex justify-center"
+          />
+
+          <div className="flex justify-center lg:justify-end">
+            <div className="flex items-center gap-1 rounded-full bg-white px-4 py-1.5 text-xs font-bold text-[var(--action)]">
+              <span>Time left:</span>
+
+              <span className="text-base leading-none">∞</span>
+            </div>
           </div>
         </div>
 
-        <DrawingModePicker mode={mode} onModeChange={setMode} />
-        <DrawingStage key={drawingKey} mode={mode} />
+        <DrawingStage
+          key={drawingKey}
+          mode={mode}
+          presentation="game"
+          prompt={prompt}
+          toolbarActions={
+            <div className="flex shrink-0 items-center gap-2">
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={handleNext}
+                className="whitespace-nowrap !rounded-lg !px-3 !py-2 text-sm"
+              >
+                Skip Prompt
+              </Button>
 
-        <div className="flex items-end justify-end mt-4 gap-3">
-          <Button variant="outline" size="sm" onClick={handleNext}>
-            Skip Prompt
-          </Button>
-          <Button variant="submit" size="sm" onClick={handleSaveAndNext}>
-            Save + New Prompt
-          </Button>
-        </div>
+              <Button
+                variant="submit"
+                size="sm"
+                onClick={handleSaveAndNext}
+                className="whitespace-nowrap !rounded-lg !border-2 !border-[var(--success)] !bg-white !px-3 !py-2 text-sm !text-[var(--success)] hover:!bg-white/90"
+              >
+                Save + New Prompt
+              </Button>
+            </div>
+          }
+        />
+
+        <p className="text-xs text-[var(--text-muted)] mt-4 text-center">
+          The computer picked this prompt. Draw it, save it, then get a new one.
+        </p>
 
         {results.length > 0 && (
           <div className="mt-6">

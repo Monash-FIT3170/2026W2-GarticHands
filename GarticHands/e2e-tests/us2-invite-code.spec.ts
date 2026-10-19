@@ -12,7 +12,6 @@ test('host can copy a 6-character invite code to the clipboard', async ({ page, 
 
     await page.goto('/')
     await page.getByPlaceholder('Enter username...').fill('player1')
-    await page.getByRole('button', { name: /Classic Play with friends/ }).click()
     await page.getByRole('button', { name: 'Host Game', exact: true }).click()
     await expect(page).toHaveURL('/host')
 

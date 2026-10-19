@@ -1,5 +1,4 @@
 import { useState } from 'react';
-import { useNavigate } from 'react-router-dom';
 import {
   DrawingProvider,
   DrawingStage,
@@ -8,6 +7,7 @@ import {
   useDrawingMode,
 } from '../drawing';
 import { Card, Button } from '../components/ui';
+import BackgroundRays from '../components/ui/BackgroundRays';
 import AiSketch from '../components/AiSketch';
 
 /**
@@ -25,7 +25,6 @@ export default function PlaygroundPage() {
 }
 
 function PlaygroundInner() {
-  const navigate = useNavigate();
   const { getDrawingImage } = useDrawing();
   const [mode, setMode] = useDrawingMode();
   const [snapshot, setSnapshot] = useState<string | null>(null);
@@ -36,32 +35,48 @@ function PlaygroundInner() {
 
   return (
     <div className="background !justify-start">
-      <Card variant="glass" className="w-full !max-w-5xl">
-        <div className="flex items-start justify-between mb-3 gap-4">
-          <div>
-            <p className="rounds">Playground</p>
-            <h1 className="text-3xl">MediaPipe Sandbox</h1>
-            <p className="text-sm text-[var(--text-muted)] mt-1">
-              No timer, no network — try every layout and gesture.
-            </p>
+      <BackgroundRays />
+
+      <Card variant="lobby" className="relative z-10 !max-w-6xl !rounded-[22px] !p-4 md:!p-6">
+        <div className="mb-3 flex flex-col items-stretch justify-between gap-3 lg:flex-row lg:items-center">
+          <div className="flex justify-center lg:justify-start">
+            <p className="rounds !mb-0">Playground</p>
           </div>
-          <Button variant="secondary" size="sm" onClick={() => void navigate('/')}>
-            Home
-          </Button>
+
+          <DrawingModePicker
+            mode={mode}
+            onModeChange={setMode}
+            className="!m-0 flex justify-center"
+          />
+
+          <div className="flex justify-center lg:justify-end">
+            <div className="flex items-center gap-1 rounded-full bg-white px-4 py-1.5 text-xs font-bold text-[var(--action)]">
+              <span>Time left:</span>
+
+              <span className="text-base leading-none">∞</span>
+            </div>
+          </div>
         </div>
 
-        <DrawingModePicker mode={mode} onModeChange={setMode} />
-        <DrawingStage mode={mode} />
+        <DrawingStage
+          mode={mode}
+          presentation="game"
+          heading="Draw Something!"
+          toolbarActions={
+            <Button
+              variant="submit"
+              size="sm"
+              onClick={handleSnapshot}
+              className="whitespace-nowrap !rounded-lg !border-2 !border-[var(--success)] !bg-white !px-3 !py-2 text-sm !text-[var(--success)] hover:!bg-white/90"
+            >
+              Snapshot
+            </Button>
+          }
+        />
 
         <p className="text-xs text-[var(--text-muted)] mt-4 text-center">
           Pinch your index finger and thumb to draw &middot; Open palm to erase
         </p>
-
-        <div className="flex items-end justify-end mt-4 gap-3">
-          <Button variant="outline" size="sm" onClick={handleSnapshot}>
-            Snapshot
-          </Button>
-        </div>
 
         {snapshot && (
           <div className="mt-4">

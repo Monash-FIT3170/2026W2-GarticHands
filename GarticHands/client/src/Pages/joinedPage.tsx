@@ -4,6 +4,7 @@ import { getRoom, updateReady, startRoom, updateRoomSettings } from '../api/room
 import { Page, Card, Button } from '../components/ui';
 import PlayerList from '../components/PlayerList';
 import RoomSettings from '../components/RoomSettings';
+import { roomModeDisplay } from '../components/ui/gamemodes';
 import { useLeaveRoom } from '../hooks/useLeaveRoom';
 import { usePlayerDepartures } from '../hooks/usePlayerDepartures';
 import type { GameMode, Player, DrawLocationState } from '../types/room';
@@ -22,6 +23,7 @@ export default function JoinedPage() {
   const [drawTimeSeconds, setDrawTimeSeconds] = useState(state?.room?.drawTimeSeconds ?? 60);
   const [maxRounds, setMaxRounds] = useState(state?.room?.maxRounds ?? 4);
   const [gameMode, setGameMode] = useState<GameMode>(state?.room?.mode ?? 'classic');
+  const [aiMode, setAiMode] = useState(state?.room?.aiMode ?? false);
 
   const [ready, setReady] = useState(false);
   const [starting, setStarting] = useState(false);
@@ -53,6 +55,7 @@ export default function JoinedPage() {
       if (!data.success || !data.room) return;
 
       setGameMode(data.room.mode ?? 'classic');
+      setAiMode(data.room.aiMode ?? false);
       setDrawTimeSeconds(data.room.drawTimeSeconds ?? 60);
       setMaxRounds(data.room.maxRounds);
 
@@ -156,13 +159,13 @@ export default function JoinedPage() {
 
     if (gameMode === 'classic' && players.length < 3) {
       setPopup(
-        'Classic Mode needs at least 3 players. Switch to Leaderboard Mode to play with 2 players.',
+        'Classic Mode needs at least 3 players. Switch to Showdown Mode to play with 2 players.',
       );
       return;
     }
 
     if (gameMode === 'leaderboard' && players.length < 2) {
-      setPopup('Leaderboard Mode needs at least 2 players.');
+      setPopup('Showdown Mode needs at least 2 players.');
       return;
     }
 
@@ -176,7 +179,7 @@ export default function JoinedPage() {
     }
   }
 
-  const isLeaderboard = gameMode === 'leaderboard';
+  const modeDisplay = roomModeDisplay(gameMode, aiMode);
 
   return (
     <Page variant="centered" logo>
@@ -222,19 +225,9 @@ export default function JoinedPage() {
               </h2>
 
               <div className="flex w-full max-w-[200px] flex-col items-center justify-center rounded-lg border-4 border-[var(--accent)] bg-[var(--surface)] shadow-sm">
-                {isLeaderboard ? (
-                  <LeaderboardIcon />
-                ) : (
-                  <img
-                    src="/gamemode_classic.png"
-                    alt="Classic"
-                    className="mb-2 h-16 w-16 object-contain"
-                  />
-                )}
+                <img src={modeDisplay.icon} alt="" className="mb-2 h-16 w-16 object-contain" />
 
-                <p className="font-extrabold text-[var(--primary)]">
-                  {isLeaderboard ? 'Leaderboard' : 'Classic'}
-                </p>
+                <p className="font-extrabold text-[var(--primary)]">{modeDisplay.title}</p>
               </div>
             </div>
 
@@ -331,62 +324,5 @@ function Popup({ message, onClose }: { message: string; onClose: () => void }) {
         </Button>
       </div>
     </div>
-  );
-}
-
-function LeaderboardIcon() {
-  return (
-    <svg viewBox="0 0 100 100" className="mb-2 h-16 w-16" aria-hidden="true">
-      <rect
-        x="18"
-        y="48"
-        width="18"
-        height="34"
-        rx="4"
-        fill="var(--accent-soft)"
-        stroke="var(--primary)"
-        strokeWidth="3"
-      />
-
-      <rect
-        x="41"
-        y="32"
-        width="18"
-        height="50"
-        rx="4"
-        fill="var(--accent)"
-        stroke="var(--primary)"
-        strokeWidth="3"
-      />
-
-      <rect
-        x="64"
-        y="20"
-        width="18"
-        height="62"
-        rx="4"
-        fill="var(--action)"
-        stroke="var(--primary)"
-        strokeWidth="3"
-      />
-
-      <path
-        d="M24 40 L31 33 L39 38 L51 24 L59 29 L72 15"
-        fill="none"
-        stroke="var(--primary)"
-        strokeWidth="5"
-        strokeLinecap="round"
-        strokeLinejoin="round"
-      />
-
-      <path
-        d="M72 15 L70 24 M72 15 L63 17"
-        fill="none"
-        stroke="var(--primary)"
-        strokeWidth="5"
-        strokeLinecap="round"
-        strokeLinejoin="round"
-      />
-    </svg>
   );
 }
