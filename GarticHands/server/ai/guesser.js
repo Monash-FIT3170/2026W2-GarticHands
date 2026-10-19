@@ -26,7 +26,7 @@ async function generateGuess(dataUrl) {
     return 'a blank canvas'
   }
 
-  const model = client.getGenerativeModel({ model: 'gemini-3.8-flash' })
+  const model = client.getGenerativeModel({ model: 'gemini-3.1-flash-lite' })
 
   const result = await model.generateContent([
     {
