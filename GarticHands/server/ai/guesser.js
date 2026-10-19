@@ -3,7 +3,7 @@ const { GoogleGenerativeAI } = require('@google/generative-ai')
 const client = new GoogleGenerativeAI(process.env.GEMINI_API_KEY)
 
 async function generatePrompt() {
-  const model = client.getGenerativeModel({ model: 'gemini-3.8-flash' })
+  const model = client.getGenerativeModel({ model: 'gemini-3.1-flash-lite' })
 
   const result = await model.generateContent(
     'Generate a single creative and drawable prompt for a Pictionary-style drawing game. ' +
@@ -26,7 +26,7 @@ async function generateGuess(dataUrl) {
     return 'a blank canvas'
   }
 
-  const model = client.getGenerativeModel({ model: 'gemini-3.8-flash' })
+  const model = client.getGenerativeModel({ model: 'gemini-3.1-flash-lite' })
 
   const result = await model.generateContent([
     {
