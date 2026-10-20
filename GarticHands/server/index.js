@@ -382,7 +382,7 @@ async function autoSubmitAIGuess(room) {
   await Promise.all(
     humanPlayers.map(async (player) => {
       const drawing = room.drawings[player.name]
-      if (!drawing || drawing.length < 1000) {
+      if (!drawing) {
         room.aiGuesses[player.name] = 'a blank canvas'
         console.log(`[AI] ${player.name}'s drawing appears blank`)
         return
@@ -513,7 +513,7 @@ async function botSubmission(room, botName, phase) {
 
     case 'draw': {
       const prompt = promptDrawnBy(botName) || botPrompt();
-      const drawing = await drawPrompt(prompt);
+      const drawing = await drawPrompt(prompt, { animate: !room.aiMode });
       return drawing.dataUrl;
     }
 

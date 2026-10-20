@@ -6,6 +6,7 @@ const { describe, it, before, after } = require('node:test');
 const assert = require('node:assert/strict');
 const { spawn } = require('node:child_process');
 const path = require('node:path');
+const sharp = require('sharp');
 
 const PORT = 40000 + Math.floor(Math.random() * 10000);
 const BASE = `http://localhost:${PORT}`;
@@ -43,7 +44,21 @@ async function roomWithBots(host, mode, bots) {
 }
 
 before(async () => {
-  server = spawn(process.execPath, [path.join(__dirname, '..', 'index.js')], {
+  // The real image decoder runs, but Gemini and fetch never reach the network.
+  const entry = path.join(__dirname, '..', 'index.js');
+  const sdkPath = require.resolve('@google/generative-ai');
+  const boot = `
+    require(${JSON.stringify(sdkPath)}).GoogleGenerativeAI = class {
+      getGenerativeModel() {
+        return { generateContent: async (input) => ({
+          response: { text: () => Array.isArray(input) ? 'a test sketch' : 'a fish' }
+        }) };
+      }
+    };
+    globalThis.fetch = async () => { throw new Error('Unexpected network call'); };
+    require(${JSON.stringify(entry)});
+  `;
+  server = spawn(process.execPath, ['-e', boot], {
     env: {
       ...process.env,
       PORT: String(PORT),
@@ -145,6 +160,8 @@ describe('a Classic game with one human and two bots', () => {
     const guessing = await waitFor(code, 'Gus', (r) => r.phase === 'guess');
     for (const bot of bots) {
       assert.match(guessing.drawings[bot], /^data:image\/svg\+xml;base64,/);
+      const svg = Buffer.from(guessing.drawings[bot].split(',')[1], 'base64').toString('utf8');
+      assert.match(svg, /animation-name:draw/, 'non-AI games keep animated bot drawings');
     }
 
     // Some bot drew Gus's prompt.
@@ -174,6 +191,46 @@ describe('a Leaderboard game with one human and one bot', () => {
     const bot = reveal.players.find((p) => p.isBot).name;
     assert.equal(reveal.scores[bot], 80);
     assert.ok(reveal.scores.Hal >= 55 && reveal.scores.Hal <= 95);
+  });
+});
+
+describe('AI mode image decoding', () => {
+  it('guesses small human PNGs and completed bot SVGs', async () => {
+    const { roomCode: code } = await api('POST', '/rooms/create', {
+      hostName: 'ImageTest',
+      mode: 'classic',
+      aiMode: true,
+    });
+    await api('POST', `/rooms/${code}/bots`, { playerName: 'ImageTest' });
+    await api('POST', `/rooms/${code}/bots`, { playerName: 'ImageTest' });
+    assert.equal((await api('PATCH', `/rooms/${code}/start`)).success, true);
+    await waitFor(code, 'ImageTest', (room) => room.phase === 'draw');
+    const png = await sharp({
+      create: { width: 8, height: 8, channels: 3, background: '#000' },
+    })
+      .png()
+      .toBuffer();
+    const smallDrawing = `data:image/png;base64,${png.toString('base64')}`;
+    assert.ok(smallDrawing.length < 1000);
+    await api('POST', `/rooms/${code}/drawings`, {
+      playerName: 'ImageTest',
+      dataUrl: smallDrawing,
+    });
+    const reveal = await waitFor(code, 'ImageTest', (room) => room.phase === 'reveal');
+    for (const player of reveal.players) {
+      assert.equal(
+        reveal.aiGuesses[player.name],
+        'a test sketch',
+        `${player.name}'s drawing was decoded`,
+      );
+      if (player.isBot) {
+        const svg = Buffer.from(reveal.drawings[player.name].split(',')[1], 'base64').toString(
+          'utf8',
+        );
+        assert.match(svg, /<path /);
+        assert.doesNotMatch(svg, /animation|stroke-dashoffset/, 'AI sees completed strokes');
+      }
+    }
   });
 });
 

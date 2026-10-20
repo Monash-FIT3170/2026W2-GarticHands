@@ -147,6 +147,17 @@ Every reply is validated: lowercase plain words only, a word limit per difficult
 
 **Tests.** `npm test -w @gartichands/server` runs `__tests__/` with Node's built-in runner. The model and `fetch` are stubbed, so no key or network is needed.
 
+**Gemini drawing guesses.** `ai/guesser.js` validates base64 data URLs and decodes
+PNG, JPEG and WebP before sending their original bytes and MIME type to Gemini.
+Bot SVG drawings in AI-mode rooms are generated without animation and rasterized
+to PNG with `sharp`; other rooms and `/ai/draw` retain animated SVGs. Inputs are
+limited to 6 MiB and 4 megapixels (SVG source: 256 KiB, PNG output: at most
+1024 × 1024). SVGs must be self-contained UTF-8 without resource references,
+entities, CSS imports/escapes or processing instructions; external files/URLs
+are not loaded. Missing drawings retain the blank-canvas fallback; small valid
+images are not treated as blank. Malformed or unsupported images fail before
+Gemini is called.
+
 **Try it locally.** Put `GROQ_API_KEY=...` in your shell (or `.env` for Docker), run `npm run dev`, then:
 
 ```bash
