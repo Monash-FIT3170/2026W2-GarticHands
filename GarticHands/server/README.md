@@ -147,6 +147,13 @@ Every reply is validated: lowercase plain words only, a word limit per difficult
 
 **Tests.** `npm test -w @gartichands/server` runs `__tests__/` with Node's built-in runner. The model and `fetch` are stubbed, so no key or network is needed.
 
+**AI Mode image guesses.** `ai/guesser.js` calls Gemini using `GEMINI_API_KEY`.
+PNG, JPEG and WebP data URLs retain their MIME type; generated SVG drawings are
+rasterized to PNG with `sharp` because Gemini does not accept SVG images.
+Bots use a completed, non-animated sketch in AI Mode so rasterization includes
+every stroke. Small images are still sent to the model; encoded size does not
+indicate whether a canvas is blank.
+
 **Try it locally.** Put `GROQ_API_KEY=...` in your shell (or `.env` for Docker), run `npm run dev`, then:
 
 ```bash

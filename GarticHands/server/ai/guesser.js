@@ -1,4 +1,5 @@
 const { GoogleGenerativeAI } = require('@google/generative-ai')
+const sharp = require('sharp')
 
 const client = new GoogleGenerativeAI(process.env.GEMINI_API_KEY)
 
@@ -22,12 +23,21 @@ async function generateGuess(dataUrl) {
   }
 
   const image = typeof dataUrl === 'string'
-    ? /^data:(image\/(?:png|jpeg|webp));base64,((?:[A-Za-z0-9+/]{4})*(?:[A-Za-z0-9+/]{2}==|[A-Za-z0-9+/]{3}=)?)$/.exec(dataUrl)
+    ? /^data:(image\/(?:png|jpeg|webp|svg\+xml));base64,([A-Za-z0-9+/]+={0,2})$/.exec(dataUrl)
     : null
-  if (!image || !image[2]) {
-    throw new Error('Drawing must be a base64 PNG, JPEG or WebP data URL')
+  if (!image || image[2].length % 4 !== 0) {
+    throw new Error('Drawing must be a base64 PNG, JPEG, WebP or SVG data URL')
   }
-  const [, mimeType, base64Data] = image
+  let [, mimeType, base64Data] = image
+
+  // Gemini accepts raster images, not the SVGs produced by the AI drawer.
+  if (mimeType === 'image/svg+xml') {
+    const png = await sharp(Buffer.from(base64Data, 'base64'), {
+      limitInputPixels: 4096 * 4096,
+    }).resize({ width: 640, height: 480, fit: 'inside', withoutEnlargement: true }).png().toBuffer()
+    mimeType = 'image/png'
+    base64Data = png.toString('base64')
+  }
 
   const model = client.getGenerativeModel({ model: 'gemini-3.1-flash-lite' })
 

@@ -513,7 +513,7 @@ async function botSubmission(room, botName, phase) {
 
     case 'draw': {
       const prompt = promptDrawnBy(botName) || botPrompt();
-      const drawing = await drawPrompt(prompt);
+      const drawing = await drawPrompt(prompt, { animate: !room.aiMode });
       return drawing.dataUrl;
     }
 

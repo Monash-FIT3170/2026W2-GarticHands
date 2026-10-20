@@ -1,9 +1,13 @@
 import { createRequire } from 'node:module';
+import sharp from 'sharp';
 import { afterEach, describe, expect, it, vi } from 'vitest';
 
 const require = createRequire(import.meta.url);
 const { generateGuess } = require('../../server/ai/guesser') as {
   generateGuess: (dataUrl: unknown) => Promise<string>;
+};
+const { drawPrompt } = require('../../server/ai/drawer') as {
+  drawPrompt: (prompt: string, options: { animate: boolean }) => Promise<{ dataUrl: string }>;
 };
 
 // A valid PNG smaller than the old 1000-character blank-canvas cutoff.
@@ -12,6 +16,7 @@ const PNG =
 
 afterEach(() => {
   vi.unstubAllGlobals();
+  vi.unstubAllEnvs();
 });
 
 describe('AI drawing image decoding', () => {
@@ -37,11 +42,9 @@ describe('AI drawing image decoding', () => {
   );
 
   it.each([
-    null,
     123,
     {},
     'not an image',
-    `data:image/svg+xml;base64,${PNG}`,
     `data:text/plain;base64,${PNG}`,
     `data:image/png,${PNG}`,
     'data:image/png;base64,',
@@ -52,11 +55,38 @@ describe('AI drawing image decoding', () => {
     const fetchMock = vi.fn();
     vi.stubGlobal('fetch', fetchMock);
 
-    if (input === null) {
-      expect(await generateGuess(input)).toBe('a blank canvas');
-    } else {
-      await expect(generateGuess(input)).rejects.toThrow('base64 PNG, JPEG or WebP');
-    }
+    await expect(generateGuess(input)).rejects.toThrow('base64 PNG, JPEG, WebP or SVG');
+    expect(fetchMock).not.toHaveBeenCalled();
+  });
+
+  it('converts an AI-generated SVG to a visible PNG before sending it to Gemini', async () => {
+    vi.stubEnv('AI_ENABLED', 'false');
+    const { dataUrl } = await drawPrompt('a cat', { animate: false });
+    const fetchMock = vi.fn().mockResolvedValue(
+      new Response(
+        JSON.stringify({
+          candidates: [{ content: { parts: [{ text: 'a cat' }] } }],
+        }),
+      ),
+    );
+    vi.stubGlobal('fetch', fetchMock);
+
+    expect(await generateGuess(dataUrl)).toBe('a cat');
+    const request = JSON.parse(fetchMock.mock.calls[0][1].body);
+    const { inlineData } = request.contents[0].parts[0];
+    expect(inlineData.mimeType).toBe('image/png');
+    const png = sharp(Buffer.from(inlineData.data, 'base64'));
+    expect(await png.metadata()).toMatchObject({ format: 'png', width: 640, height: 480 });
+    const { channels } = await png.stats();
+    expect(channels[0].min).toBeLessThan(255);
+    expect(channels[0].max).toBe(255);
+  });
+
+  it('does not call Gemini when SVG rasterization fails', async () => {
+    const fetchMock = vi.fn();
+    vi.stubGlobal('fetch', fetchMock);
+
+    await expect(generateGuess(`data:image/svg+xml;base64,${PNG}`)).rejects.toThrow();
     expect(fetchMock).not.toHaveBeenCalled();
   });
 
