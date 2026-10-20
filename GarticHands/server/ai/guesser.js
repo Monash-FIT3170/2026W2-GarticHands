@@ -17,21 +17,24 @@ async function generatePrompt() {
 }
 
 async function generateGuess(dataUrl) {
-  const base64Data = dataUrl.replace(/^data:image\/\w+;base64,/, '')
-
-  console.log(`[AI] Image base64 length: ${base64Data.length}`)
-
-  if (base64Data.length < 1000) {
-    console.warn('[AI] Image appears blank or too small to guess')
+  if (!dataUrl) {
     return 'a blank canvas'
   }
+
+  const image = typeof dataUrl === 'string'
+    ? /^data:(image\/(?:png|jpeg|webp));base64,((?:[A-Za-z0-9+/]{4})*(?:[A-Za-z0-9+/]{2}==|[A-Za-z0-9+/]{3}=)?)$/.exec(dataUrl)
+    : null
+  if (!image || !image[2]) {
+    throw new Error('Drawing must be a base64 PNG, JPEG or WebP data URL')
+  }
+  const [, mimeType, base64Data] = image
 
   const model = client.getGenerativeModel({ model: 'gemini-3.1-flash-lite' })
 
   const result = await model.generateContent([
     {
       inlineData: {
-        mimeType: 'image/png',
+        mimeType,
         data: base64Data,
       },
     },
