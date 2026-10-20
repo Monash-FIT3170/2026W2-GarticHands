@@ -10,6 +10,10 @@ const { drawPrompt } = require('../../server/ai/drawer') as {
   drawPrompt: (prompt: string, options: { animate: boolean }) => Promise<{ dataUrl: string }>;
 };
 
+interface ImageRequest {
+  contents: { parts: { inlineData: { mimeType: string; data: string } }[] }[];
+}
+
 // A valid PNG smaller than the old 1000-character blank-canvas cutoff.
 const PNG =
   'iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mP8/x8AAwMCAO+aX1sAAAAASUVORK5CYII=';
@@ -34,7 +38,7 @@ describe('AI drawing image decoding', () => {
 
       expect(await generateGuess(`data:${mimeType};base64,${PNG}`)).toBe('a small drawing');
       expect(fetchMock).toHaveBeenCalledOnce();
-      const request = JSON.parse(fetchMock.mock.calls[0][1].body);
+      const request = JSON.parse(fetchMock.mock.calls[0][1].body as string) as ImageRequest;
       expect(request.contents[0].parts[0]).toEqual({
         inlineData: { mimeType, data: PNG },
       });
@@ -72,7 +76,7 @@ describe('AI drawing image decoding', () => {
     vi.stubGlobal('fetch', fetchMock);
 
     expect(await generateGuess(dataUrl)).toBe('a cat');
-    const request = JSON.parse(fetchMock.mock.calls[0][1].body);
+    const request = JSON.parse(fetchMock.mock.calls[0][1].body as string) as ImageRequest;
     const { inlineData } = request.contents[0].parts[0];
     expect(inlineData.mimeType).toBe('image/png');
     const png = sharp(Buffer.from(inlineData.data, 'base64'));
