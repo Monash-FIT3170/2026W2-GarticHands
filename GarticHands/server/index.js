@@ -7,7 +7,7 @@ const { generatePrompts, DIFFICULTIES } = require('./ai/promptGenerator');
 const { MEDIUM_PROMPTS } = require('./data/promptBank');
 const { drawPrompt, MAX_PROMPT_LENGTH } = require('./ai/drawer');
 const { MAX_BOTS, nextBotName, botPrompt, botGuess, botRating } = require('./ai/bots');
-const { generatePrompt, generateGuess } = require('./ai/guesser');
+const { generateGuess } = require('./ai/guesser');
 
 const app = express()
 const server = http.createServer(app)
@@ -180,6 +180,37 @@ function fallbackPromptFor(room) {
     }
   }
   return FALLBACK_PROMPTS[Math.floor(Math.random() * FALLBACK_PROMPTS.length)]
+}
+
+/**
+ * AI Mode: write a prompt for every active player so they skip the prompt
+ * screen. One prompt-generator call covers the whole room (no duplicates,
+ * nothing from earlier rounds); the generator never throws and falls back to
+ * the static bank. A result for a round that has moved on is discarded.
+ */
+async function assignAiPrompts(room) {
+  const round = room.round;
+  const players = activePlayers(room);
+  if (players.length === 0) return;
+
+  const { prompts, source } = await generatePrompts({
+    difficulty: 'medium',
+    count: players.length,
+    exclude: promptHistory[room.code] || [],
+  });
+
+  // Restarted, ended or timed out while the prompts were being generated.
+  if (rooms[room.code] !== room || room.phase !== 'prompt' || room.round !== round) return;
+
+  players.forEach((player, i) => {
+    // Never overwrite a prompt someone (or a bot) already submitted.
+    if (!room.prompts[player.name]) room.prompts[player.name] = prompts[i];
+  });
+  room.aiPrompt = room.prompts[players[0].name];
+  console.log(`[AI] Assigned ${players.length} prompt(s) for round ${round} (${source})`);
+
+  advanceIfPhaseComplete(room);
+  io.to(room.code).emit('room-update', room);
 }
 
 function defaultSubmission(phase, room) {
@@ -397,6 +428,10 @@ async function autoSubmitAIGuess(room) {
       }
     }),
   )
+
+  // The guesses take a few seconds; skip the advance if the room moved on
+  // meanwhile (restart, end, or the guess deadline already passed).
+  if (room.phase !== 'guess') return;
 
   setPhase(room, 'reveal')
   io.to(room.code).emit('room-update', room)
@@ -707,7 +742,7 @@ app.post('/rooms/create', (req, res) => {
     round: 1,
     maxRounds: selectedMaxRounds,
     drawTimeSeconds: 60,
-    aiMode,
+    aiMode: aiMode === true,
     aiPrompt: null,
     aiGuess: null,
     aiGuesses: {},
@@ -886,31 +921,9 @@ app.patch('/rooms/:roomCode/start', (req, res) => {
   io.to(room.code).emit('game-start', room)
   io.to(room.code).emit('room-update', room)
 
+  // In AI Mode the AI writes everyone's prompt, so players go straight to drawing.
   if (room.aiMode) {
-    const players = activePlayers(room)
-    Promise.all(
-      players.map((player) =>
-        generatePrompt()
-          .then((prompt) => {
-            room.prompts[player.name] = prompt
-            console.log(`[AI] Generated prompt for ${player.name}: "${prompt}"`)
-          })
-          .catch(() => {
-            const fallback = FALLBACK_PROMPTS[Math.floor(Math.random() * FALLBACK_PROMPTS.length)]
-            room.prompts[player.name] = fallback
-            console.log(`[AI] Fallback prompt for ${player.name}: "${fallback}"`)
-          }),
-      ),
-    )
-      .then(() => {
-        const firstPlayer = players[0]
-        if (firstPlayer) room.aiPrompt = room.prompts[firstPlayer.name]
-        advanceIfPhaseComplete(room)
-        io.to(room.code).emit('room-update', room)
-      })
-      .catch((err) => {
-        console.error('[AI] Prompt generation failed:', err.message)
-      })
+    assignAiPrompts(room).catch((err) => console.error('[AI] Prompt assignment failed:', err));
   }
 
   res.json({ success: true, room })
@@ -949,30 +962,9 @@ app.patch('/rooms/:roomCode/restart', (req, res) => {
   setPhase(room, 'prompt')
   io.to(room.code).emit('room-update', room)
 
+  // In AI Mode the AI writes everyone's prompt, so players go straight to drawing.
   if (room.aiMode) {
-    const players = activePlayers(room)
-    Promise.all(
-      players.map((player) =>
-        generatePrompt()
-          .then((prompt) => {
-            room.prompts[player.name] = prompt
-            console.log(`[AI] Generated prompt for ${player.name} round ${room.round}: "${prompt}"`)
-          })
-          .catch(() => {
-            const fallback = FALLBACK_PROMPTS[Math.floor(Math.random() * FALLBACK_PROMPTS.length)]
-            room.prompts[player.name] = fallback
-          }),
-      ),
-    )
-      .then(() => {
-        const firstPlayer = players[0]
-        if (firstPlayer) room.aiPrompt = room.prompts[firstPlayer.name]
-        advanceIfPhaseComplete(room)
-        io.to(room.code).emit('room-update', room)
-      })
-      .catch((err) => {
-        console.error('[AI] Prompt generation failed:', err.message)
-      })
+    assignAiPrompts(room).catch((err) => console.error('[AI] Prompt assignment failed:', err));
   }
 
   res.json({ success: true, room, maxRounds: room.maxRounds })
