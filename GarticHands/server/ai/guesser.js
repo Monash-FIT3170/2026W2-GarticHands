@@ -1,4 +1,5 @@
 const { GoogleGenerativeAI } = require('@google/generative-ai')
+const sharp = require('sharp')
 
 const client = new GoogleGenerativeAI(process.env.GEMINI_API_KEY)
 
@@ -17,13 +18,25 @@ async function generatePrompt() {
 }
 
 async function generateGuess(dataUrl) {
-  const base64Data = dataUrl.replace(/^data:image\/\w+;base64,/, '')
-
-  console.log(`[AI] Image base64 length: ${base64Data.length}`)
-
-  if (base64Data.length < 1000) {
-    console.warn('[AI] Image appears blank or too small to guess')
+  if (!dataUrl) {
     return 'a blank canvas'
+  }
+
+  const image = typeof dataUrl === 'string'
+    ? /^data:(image\/(?:png|jpeg|webp|svg\+xml));base64,([A-Za-z0-9+/]+={0,2})$/.exec(dataUrl)
+    : null
+  if (!image || image[2].length % 4 !== 0) {
+    throw new Error('Drawing must be a base64 PNG, JPEG, WebP or SVG data URL')
+  }
+  let [, mimeType, base64Data] = image
+
+  // Gemini accepts raster images, not the SVGs produced by the AI drawer.
+  if (mimeType === 'image/svg+xml') {
+    const png = await sharp(Buffer.from(base64Data, 'base64'), {
+      limitInputPixels: 4096 * 4096,
+    }).resize({ width: 640, height: 480, fit: 'inside', withoutEnlargement: true }).png().toBuffer()
+    mimeType = 'image/png'
+    base64Data = png.toString('base64')
   }
 
   const model = client.getGenerativeModel({ model: 'gemini-3.1-flash-lite' })
@@ -31,7 +44,7 @@ async function generateGuess(dataUrl) {
   const result = await model.generateContent([
     {
       inlineData: {
-        mimeType: 'image/png',
+        mimeType,
         data: base64Data,
       },
     },
